@@ -1,25 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { MapPin, Phone, MessageCircle, ArrowRight, BedDouble } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { activeBranches, compactPhone, roomsByBranch } from "@/lib/tete-data";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 export default function ContactsPage() {
   const [selectedBranchId, setSelectedBranchId] = useState(activeBranches[0]?.id ?? 30);
   const selectedBranch = activeBranches.find((b) => b.id === selectedBranchId) || activeBranches[0];
   const branchRooms = roomsByBranch(selectedBranchId);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initial page entrance animation
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    tl.from(".contacts-header-animate", {
+      opacity: 0,
+      y: 30,
+      duration: 0.6,
+      stagger: 0.1,
+      ease: "power3.out",
+    })
+    .from(".branch-card-animate", {
+      opacity: 0,
+      y: 15,
+      duration: 0.5,
+      stagger: 0.08,
+      ease: "power3.out",
+    }, "-=0.3");
+  }, { scope: containerRef });
+
+  // Animation triggered when selected branch changes
+  useGSAP(() => {
+    gsap.fromTo(".details-card-animate", 
+      { opacity: 0, scale: 0.98, y: 15 },
+      { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "power3.out" }
+    );
+  }, { dependencies: [selectedBranchId], scope: containerRef });
 
   return (
-    <main className="site-shell min-h-dvh text-white">
+    <main className="site-shell min-h-dvh text-white" ref={containerRef}>
       <SiteHeader />
       <div className="mx-auto w-[min(100%-2rem,1360px)] pb-16 pt-32">
         <section className="mb-8">
-          <p className="eyebrow">Thông tin liên hệ</p>
-          <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-[-0.025em] md:text-5xl">
+          <p className="eyebrow contacts-header-animate">Thông tin liên hệ</p>
+          <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-[-0.025em] md:text-5xl contacts-header-animate">
             Hệ thống chi nhánh
           </h1>
-          <p className="mt-3 max-w-[62ch] text-sm font-semibold leading-6 text-white/62 md:text-[0.95rem]">
+          <p className="mt-3 max-w-[62ch] text-sm font-semibold leading-6 text-white/62 md:text-[0.95rem] contacts-header-animate">
             Vui lòng chọn cơ sở bên dưới để xem chi tiết thông tin liên hệ, hotline, số lượng phòng và bản đồ chỉ đường.
           </p>
         </section>
@@ -35,7 +67,7 @@ export default function ContactsPage() {
             return (
               <button
                 key={branch.id}
-                className={`flex flex-col items-start text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                className={`flex flex-col items-start text-left p-4 rounded-2xl border transition-all duration-200 cursor-pointer branch-card-animate ${
                   isSelected
                     ? "border-pink-300 bg-gradient-to-br from-pink-500/20 to-yellow-500/5 text-white shadow-[0_0_20px_rgba(243,90,189,0.15)]"
                     : "border-white/10 bg-white/5 text-white hover:-translate-y-0.5 hover:bg-white/8 hover:border-white/20"
@@ -57,7 +89,7 @@ export default function ContactsPage() {
 
         {/* Details Card Panel */}
         {selectedBranch && (
-          <section className="glass-panel rounded-3xl p-6 md:p-8 grid gap-8 lg:grid-cols-[1fr_480px] guide-modal-card">
+          <section className="glass-panel rounded-3xl p-6 md:p-8 grid gap-8 lg:grid-cols-[1fr_480px] details-card-animate">
             <div className="flex flex-col justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-xl border border-pink-300/30 bg-pink-300/10 px-3 py-1.5 text-xs font-extrabold text-pink-200 uppercase tracking-wider">

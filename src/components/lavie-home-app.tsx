@@ -29,6 +29,10 @@ import type { ElementType } from "react";
 import { useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { activeBranches, compactPhone, money, Room, roomsByBranch } from "@/lib/tete-data";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 const slotLabels = ["08:00 - 11:00", "11:15 - 14:15", "14:30 - 17:30", "17:45 - 20:45", "21:00 - 00:00"];
 
@@ -88,6 +92,45 @@ export function LavieHomeApp() {
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
   const [modalRoom, setModalRoom] = useState<Room | null>(null);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useGSAP(() => {
+    const tl = gsap.timeline();
+    tl.from(".lavie-hero-copy h1", {
+      opacity: 0,
+      y: 40,
+      duration: 0.8,
+      ease: "power3.out",
+    })
+    .from(".lavie-hero-copy p", {
+      opacity: 0,
+      y: 20,
+      duration: 0.6,
+      ease: "power3.out",
+    }, "-=0.5")
+    .from(".lavie-hero-actions a", {
+      opacity: 0,
+      y: 15,
+      duration: 0.5,
+      stagger: 0.1,
+      ease: "power3.out",
+    }, "-=0.4")
+    .from(".lavie-marquee-card", {
+      opacity: 0,
+      scale: 0.8,
+      rotation: -10,
+      duration: 0.8,
+      stagger: 0.05,
+      ease: "back.out(1.7)",
+    }, "-=0.6");
+  }, { scope: containerRef });
+
+  useGSAP(() => {
+    gsap.fromTo(".room-card-clone",
+      { opacity: 0, y: 30, scale: 0.96 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.08, ease: "power3.out" }
+    );
+  }, { dependencies: [activeBranchId], scope: containerRef });
   const branchRooms = useMemo(() => roomsByBranch(activeBranchId), [activeBranchId]);
   const featuredRooms = branchRooms.slice(0, 10);
   const heroMarqueeRooms = featuredRooms.slice(0, 8);
@@ -180,7 +223,7 @@ export function LavieHomeApp() {
   }
 
   return (
-    <div id="top" className="site-shell text-white">
+    <div id="top" className="site-shell text-white" ref={containerRef}>
       <SiteHeader />
 
       <main className="pt-[68px]">
