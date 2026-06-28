@@ -1978,6 +1978,32 @@
   },
   "promotions": {
     "domain": "Khuyến mãi",
+    "templates": {
+      "amount_off_products": {
+        "title": "Giảm giá số tiền cố định cho phòng",
+        "description": "Giảm một số tiền cụ thể cho các phòng nghỉ hoặc hạng phòng được chọn"
+      },
+      "amount_off_order": {
+        "title": "Giảm giá số tiền cố định cho đặt phòng",
+        "description": "Giảm một số tiền cụ thể trên tổng giá trị đặt phòng"
+      },
+      "percentage_off_product": {
+        "title": "Giảm giá phần trăm cho phòng",
+        "description": "Giảm giá theo phần trăm (%) cho các phòng nghỉ được chọn"
+      },
+      "percentage_off_order": {
+        "title": "Giảm giá phần trăm cho đặt phòng",
+        "description": "Giảm giá theo phần trăm (%) trên tổng giá trị đặt phòng"
+      },
+      "buy_get": {
+        "title": "Đặt X tặng Y (Buy X Get Y)",
+        "description": "Đặt X phòng/đêm phòng, nhận miễn phí Y phòng/đêm phòng"
+      },
+      "shipping_discount": {
+        "title": "Miễn phí dịch vụ đi kèm / phụ phí",
+        "description": "Áp dụng giảm giá 100% cho phí dịch vụ hoặc phụ phí nhận phòng"
+      }
+    },
     "sections": {
       "details": "Chi tiết khuyến mãi"
     },
