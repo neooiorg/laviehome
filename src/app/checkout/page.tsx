@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { ElementType } from 'react';
 
 import { SiteHeader } from '@/components/site-header';
+import { CheckoutPaymentBox } from '@/components/checkout-payment-box';
 import { getPublicBranches } from '@/lib/homestay-dashboard';
 import { compactPhone, money } from '@/lib/format';
 import {
@@ -197,50 +198,12 @@ export default async function CheckoutPage({
               </a>
             </section>
 
-            <section id='payment' className='section-card p-6 md:p-8 scroll-mt-28'>
-              <h2 className='text-lg font-extrabold tracking-[-0.02em] text-white'>Thanh Toán Đặt Phòng</h2>
-              <p className='mt-2 text-sm font-semibold leading-6 text-white/58'>
-                Hệ thống sẽ tự động duyệt trong 5 giây sau khi nhận được chuyển khoản.
-              </p>
-              <div className='mt-4 rounded-2xl border-2 border-yellow-200/30 bg-yellow-200/5 p-4 text-center shadow-[3px_3px_0px_rgba(254,240,138,0.1)]'>
-                <p className='text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-yellow-200'>Thời gian còn lại</p>
-                <p className='mt-1 text-2xl font-extrabold text-white'>10:00</p>
-              </div>
-              
-              <div className='mt-5 border-2 border-white/20 bg-white p-5 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_rgba(255,255,255,0.05)]'>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`VietinBank|101878956230|${checkout.price}|${transferCode}|LAVIE HOME`)}`}
-                  alt="Mã QR Chuyển Khoản"
-                  width={200}
-                  height={200}
-                  className="rounded-lg"
-                />
-              </div>
-
-              <div className='mt-5 grid gap-3 text-sm'>
-                <PaymentLine label='Ngân hàng thụ hưởng' value='Vietinbank' />
-                <PaymentLine label='Chủ tài khoản' value='LAVIE HOME' />
-                <PaymentLine label='Nội dung chuyển khoản' value={transferCode} />
-                <PaymentLine label='Tổng thanh toán' value={`${money(checkout.price)}đ`} strong />
-              </div>
-              <Link
-                className='mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-white/20 bg-white/5 px-6 text-sm font-extrabold text-white shadow-[3px_3px_0px_rgba(255,255,255,0.15)] hover:shadow-[5px_5px_0px_white] hover:border-white hover:-translate-y-0.5 transition-all duration-150'
-                href='/#booking'
-              >
-                Hủy & Đặt Đơn Khác
-              </Link>
-              <div className='mt-5 rounded-2xl border border-white/10 bg-white/5 p-5'>
-                <h3 className='flex items-center gap-2 font-extrabold text-pink-100 text-sm'>
-                  <ShieldCheck size={18} className="text-pink-300" /> Hướng Dẫn Thanh Toán
-                </h3>
-                <ol className='mt-3 list-decimal space-y-2 pl-4 text-xs font-semibold leading-5 text-white/62'>
-                  <li>Mở ứng dụng ngân hàng của bạn.</li>
-                  <li>Quét mã QR bên trên để tự động điền thông tin hoặc nhập tay nội dung chuyển khoản.</li>
-                  <li>Nội dung chuyển khoản cần viết in hoa chính xác chữ cái.</li>
-                  <li>Sau khi chuyển khoản thành công, hệ thống sẽ tự động xác nhận trong giây lát.</li>
-                </ol>
-              </div>
-            </section>
+            <CheckoutPaymentBox 
+              price={checkout.price} 
+              transferCode={transferCode} 
+              hotline={checkout.hotline} 
+              mapLink={checkout.map} 
+            />
           </aside>
         </section>
 
