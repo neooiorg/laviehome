@@ -808,8 +808,8 @@
     }
   },
   "inventory": {
-    "domain": "Kho hàng",
-    "subtitle": "Quản lý các mục kho hàng của bạn",
+    "domain": "Quản lý phòng",
+    "subtitle": "Quản lý phòng nghỉ và thông tin phòng",
     "reserved": "Đã đặt trước",
     "available": "Có sẵn",
     "locationLevels": "Vị trí",
