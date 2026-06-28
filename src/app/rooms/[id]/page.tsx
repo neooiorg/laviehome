@@ -112,7 +112,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
                 
                 {/* Branch and Badge */}
                 <div className="space-y-2">
-                  <span className="inline-block bg-yellow-300 text-slate-950 font-extrabold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border-2 border-slate-950 shadow-[2px_2px_0px_#f43f5e]">
+                  <span className="inline-block bg-yellow-300 text-black font-extrabold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border-2 border-slate-950 shadow-[2px_2px_0px_#f43f5e]">
                     {room.branch_name.split(' - ')[0]}
                   </span>
                   <h1 className="text-3xl font-black tracking-tight text-white mt-1">

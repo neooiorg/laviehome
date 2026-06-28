@@ -223,10 +223,7 @@ input {
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, #fff0a8 0%, #ff9bdb 36%, #f35abd 76%, #f8dc80 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #f35abd;
 }
 
 .lavie-glow {
@@ -342,10 +339,7 @@ input {
 
 .lavie-hero-copy h1 span {
   display: block;
-  background: linear-gradient(90deg, #ffe576, #ff8fd9 54%, #ffffff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #ffe576;
   font-size: 0.82em;
   line-height: 1.02;
 }
@@ -899,7 +893,7 @@ input {
   font-size: 1rem;
   font-weight: 700;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  transition: color 150ms ease, padding-left 150ms ease;
+  transition: color 150ms ease, transform 150ms ease;
   background: transparent;
   border-radius: 0;
 }
@@ -907,8 +901,7 @@ input {
 .mobile-drawer-link:hover,
 .mobile-drawer-link:active {
   color: #ff9ee2;
-  padding-left: 0.6rem;
-  background: transparent;
+  transform: translateX(6px);
 }
 
 .mobile-drawer-link.is-primary {
@@ -1330,4 +1323,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
 
+.animate-float {
+  animation: float 2s ease-in-out infinite;
+}

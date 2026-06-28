@@ -488,7 +488,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               <span>Còn Trống</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-lg bg-yellow-400 text-slate-900 border border-yellow-300" />
+              <span className="w-5 h-5 rounded-lg bg-yellow-400 text-black border border-yellow-300" />
               <span>Đang chọn</span>
             </div>
             <div className="flex items-center gap-2">
@@ -589,7 +589,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                                       booked
                                         ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
                                         : selected
-                                          ? "bg-yellow-400 border-yellow-300 text-slate-950 font-black shadow-[0_0_10px_rgba(234,179,8,0.4)] hover:bg-yellow-300"
+                                          ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)] hover:bg-yellow-300"
                                           : promo
                                             ? "border-transparent bg-white/5 hover:bg-white/10 ring-1 ring-pink-500/50 shadow-[0_0_8px_rgba(244,63,94,0.15)]"
                                             : "border-rose-500/60 bg-white/5 hover:bg-white/10 hover:border-rose-400"
@@ -602,7 +602,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                                   ) : (
                                     <>
                                       {hasBlindBag && !selected && (
-                                        <div className="absolute inset-0 flex items-center justify-center animate-bounce">
+                                        <div className="absolute inset-0 flex items-center justify-center animate-float">
                                           <BlindBagIcon size={18} />
                                         </div>
                                       )}
