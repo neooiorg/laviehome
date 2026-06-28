@@ -1,14 +1,11 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { Channels } from "@medusajs/icons";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 const SalesChannelsPage = () => {
-  const navigate = useNavigate();
-
   useEffect(() => {
-    navigate("/settings/sales-channels");
-  }, [navigate]);
+    window.location.href = "/app/settings/sales-channels";
+  }, []);
 
   return null;
 };
