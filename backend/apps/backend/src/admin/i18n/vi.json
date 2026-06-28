@@ -164,14 +164,14 @@
         "customerGroup": "Nhóm khách hàng",
         "product": "Sản phẩm",
         "productVariant": "Biến thể sản phẩm",
-        "inventory": "Kho hàng",
+        "inventory": "Quản lý phòng",
         "reservation": "Đặt trước",
         "category": "Danh mục",
         "collection": "Bộ sưu tập",
-        "order": "Đơn hàng",
+        "order": "Đặt phòng",
         "promotion": "Khuyến mãi",
         "campaign": "Chiến dịch",
-        "priceList": "Bảng giá",
+        "priceList": "Bảng giá phòng",
         "user": "Người dùng",
         "region": "Khu vực",
         "taxRegion": "Khu vực thuế",
@@ -193,15 +193,15 @@
       "commandShortcut": "Lệnh",
       "then": "sau đó",
       "navigation": {
-        "goToOrders": "Đơn hàng",
+        "goToOrders": "Đặt phòng",
         "goToProducts": "Sản phẩm",
         "goToCollections": "Bộ sưu tập",
         "goToCategories": "Danh mục",
         "goToCustomers": "Khách hàng",
         "goToCustomerGroups": "Nhóm khách hàng",
-        "goToInventory": "Kho hàng",
+        "goToInventory": "Quản lý phòng",
         "goToReservations": "Đặt trước",
-        "goToPriceLists": "Bảng giá",
+        "goToPriceLists": "Bảng giá phòng",
         "goToPromotions": "Khuyến mãi",
         "goToCampaigns": "Chiến dịch"
       },
@@ -235,8 +235,8 @@
         }
       },
       "store": {
-        "label": "Cửa hàng",
-        "storeSettings": "Cài đặt cửa hàng"
+        "label": "Homestay",
+        "storeSettings": "Cài đặt Homestay"
       },
       "actions": {
         "logout": "Đăng xuất"
@@ -251,8 +251,8 @@
         "extensions": "Tiện ích mở rộng"
       },
       "main": {
-        "store": "Cửa hàng",
-        "storeSettings": "Cài đặt cửa hàng"
+        "store": "Homestay",
+        "storeSettings": "Cài đặt Homestay"
       },
       "settings": {
         "header": "Cài đặt",
@@ -1035,7 +1035,7 @@
         "creditLineDescription": "Hoàn tiền dưới dạng tín dụng cửa hàng"
       }
     },
-    "domain": "Đơn hàng",
+    "domain": "Đặt phòng",
     "claim": "Khiếu nại",
     "exchange": "Đổi hàng",
     "return": "Trả hàng",
@@ -2249,7 +2249,7 @@
     "totalSpend": "<0>{{amount}}</0> <1>{{currency}}</1>"
   },
   "priceLists": {
-    "domain": "Bảng giá",
+    "domain": "Bảng giá phòng",
     "subtitle": "Tạo chương trình giảm giá hoặc ghi đè giá cho các điều kiện cụ thể.",
     "delete": {
       "confirmation": "Bạn sắp xóa bảng giá {{title}}. Hành động này không thể hoàn tác.",
@@ -2938,7 +2938,7 @@
     "fulfillmentProvider": "Nhà cung cấp giao hàng",
     "providers": "Nhà cung cấp",
     "availability": "Tình trạng sẵn có",
-    "inventory": "Kho hàng",
+    "inventory": "Quản lý phòng",
     "optional": "Tùy chọn",
     "note": "Ghi chú",
     "automaticTaxes": "Thuế tự động",
