@@ -178,6 +178,8 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
   const [modalRoom, setModalRoom] = useState<Room | null>(null);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const roomRowRef = useRef<HTMLDivElement | null>(null);
+  const dragState = useRef({ isDragging: false, moved: false, startX: 0, startScrollLeft: 0 });
 
   useGSAP(() => {
     const tl = gsap.timeline();
@@ -237,6 +239,36 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
 
   function scrollBooking(direction: -1 | 1) {
     bookingScrollRef.current?.scrollBy({ left: direction * 420, behavior: "smooth" });
+  }
+
+  function handleRoomRowPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    const el = roomRowRef.current;
+    if (!el || event.pointerType !== "mouse") return;
+    dragState.current = { isDragging: true, moved: false, startX: event.clientX, startScrollLeft: el.scrollLeft };
+    el.setPointerCapture(event.pointerId);
+  }
+
+  function handleRoomRowPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const el = roomRowRef.current;
+    const state = dragState.current;
+    if (!el || !state.isDragging) return;
+    const delta = event.clientX - state.startX;
+    if (Math.abs(delta) > 3) state.moved = true;
+    el.scrollLeft = state.startScrollLeft - delta;
+  }
+
+  function endRoomRowDrag(event: React.PointerEvent<HTMLDivElement>) {
+    const el = roomRowRef.current;
+    if (dragState.current.isDragging) el?.releasePointerCapture(event.pointerId);
+    dragState.current.isDragging = false;
+  }
+
+  function handleRoomCardClickCapture(event: React.MouseEvent<HTMLDivElement>) {
+    if (dragState.current.moved) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragState.current.moved = false;
+    }
   }
 
   function toggleSlot(slot: SelectedSlot) {
@@ -430,7 +462,16 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
             </div>
           </div>
 
-          <div id="room-row" className="hide-scrollbar flex snap-x gap-5 overflow-x-auto pb-6">
+          <div
+            id="room-row"
+            ref={roomRowRef}
+            onPointerDown={handleRoomRowPointerDown}
+            onPointerMove={handleRoomRowPointerMove}
+            onPointerUp={endRoomRowDrag}
+            onPointerLeave={endRoomRowDrag}
+            onClickCapture={handleRoomCardClickCapture}
+            className="hide-scrollbar flex snap-x gap-5 overflow-x-auto pb-6 cursor-grab select-none active:cursor-grabbing md:snap-none"
+          >
             {featuredRooms.map((room) => (
               <article key={room.id} className="room-card-clone snap-center">
                 <Image
@@ -510,7 +551,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                   <thead>
                     {/* Row 1: Tên phòng */}
                     <tr className="border-b border-white/10 bg-white/5">
-                      <th colSpan={2} className="p-3 text-center border-r border-white/10 text-xs font-black uppercase tracking-wider text-pink-200">
+                      <th colSpan={2} className="sticky left-0 z-30 w-[6.5rem] min-w-[6.5rem] bg-[#1f1428] p-3 text-center border-r border-white/10 text-xs font-black uppercase tracking-wider text-pink-200">
                         Tên phòng
                       </th>
                       {calendarRooms.map((room) => (
@@ -525,8 +566,8 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                     </tr>
                     {/* Row 2: Thứ / Ngày / Slots */}
                     <tr className="border-b border-white/10 bg-white/3">
-                      <th className="p-2.5 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Thứ</th>
-                      <th className="p-2.5 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Ngày</th>
+                      <th className="sticky left-0 z-30 w-[3.1rem] min-w-[3.1rem] bg-[#1f1428] p-2.5 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Thứ</th>
+                      <th className="sticky left-[3.1rem] z-30 w-[3.4rem] min-w-[3.4rem] bg-[#1f1428] p-2.5 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Ngày</th>
                       {calendarRooms.map((room) =>
                         getRoomSlots(room.card_name).map((slot, sIdx) => (
                           <th
@@ -548,12 +589,12 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                   <tbody>
                     {dates.map((date, dayIndex) => (
                       <tr key={date.iso} className="border-b border-white/5 hover:bg-white/3 transition-colors duration-150">
-                        <td className="p-3 text-center border-r border-white/10 font-bold text-xs text-white/80">
+                        <td className="sticky left-0 z-10 w-[3.1rem] min-w-[3.1rem] bg-[#1b1023] p-3 text-center border-r border-white/10 font-bold text-xs text-white/80">
                           <span className={date.label === "Hôm nay" ? "text-pink-400 font-extrabold" : ""}>
                             {date.label}
                           </span>
                         </td>
-                        <td className="p-3 text-center border-r border-white/10 font-bold text-xs text-white/80">
+                        <td className="sticky left-[3.1rem] z-10 w-[3.4rem] min-w-[3.4rem] bg-[#1b1023] p-3 text-center border-r border-white/10 font-bold text-xs text-white/80">
                           <span className={date.label === "Hôm nay" ? "text-pink-400 font-extrabold" : ""}>
                             {date.dateLabel}
                           </span>
@@ -625,7 +666,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
 
             {/* Selected summary details block */}
             {selectedSlots.length > 0 && (
-              <div className="rounded-3xl p-6 border-2 border-white/20 bg-[#1b111f] shadow-[6px_6px_0px_rgba(255,255,255,0.05)]">
+              <div id="booking-summary" className="scroll-mt-28 rounded-3xl p-6 border-2 border-white/20 bg-[#1b111f] shadow-[6px_6px_0px_rgba(255,255,255,0.05)]">
                 <h3 className="text-base font-extrabold text-pink-200 border-b border-white/10 pb-3 mb-4 flex items-center gap-2">
                   <Sparkles size={16} /> Chi tiết khung giờ đã chọn
                 </h3>
@@ -776,6 +817,20 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
           <MessageCircle size={20} />
         </a>
       </div>
+
+      {selectedSlots.length > 0 && (
+        <button
+          onClick={() => document.getElementById("booking-summary")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+          className="fixed inset-x-3 bottom-[4.6rem] z-50 flex items-center justify-between gap-3 rounded-2xl border border-yellow-300/60 bg-[#2a1730] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
+        >
+          <span className="text-left text-xs font-bold text-white/85">
+            Đã chọn {selectedSlots.length} khung giờ
+            <br />
+            <span className="text-base font-black text-yellow-200">{money(Math.max(comboTotal, 0))}đ</span>
+          </span>
+          <span className="primary-button !min-h-9 px-4 text-xs">Xem chi tiết</span>
+        </button>
+      )}
 
       <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-white/10 bg-[#1b1024]/95 px-2 py-2 backdrop-blur-xl md:hidden">
         <a className="bottom-link" href="#rooms">
