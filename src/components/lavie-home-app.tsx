@@ -597,7 +597,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                 </div>
               ) : (
               <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overscroll-x-contain">
-                <table className="booking-table border-collapse w-full text-center">
+                <table className="booking-table border-collapse min-w-max text-center">
                   <thead>
                     {/* Row 1: Tên phòng */}
                     <tr className="border-b border-white/10 bg-white/5">
@@ -660,7 +660,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                             const price = slot.isOvernight ? room.full_day_price : room.price_from;
 
                             return (
-                              <td key={id} className="p-2.5 text-center border-r border-white/5 align-middle">
+                              <td key={id} className="p-2.5 text-center border-r border-white/5 align-middle min-w-[95px]">
                                 <button
                                   disabled={booked}
                                   onClick={() =>
