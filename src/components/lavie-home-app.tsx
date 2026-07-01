@@ -420,7 +420,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               const city = parts[0];
               const address = parts.slice(1).join(" - ") || "Chi nhánh";
               const isSelected = activeBranchId === branch.id;
-              
+
               return (
                 <button
                   key={branch.id}
@@ -443,22 +443,53 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               );
             })}
           </div>
+
+          {featuredRooms[0] && (
+            <div className="mt-5 relative aspect-[21/9] rounded-2xl overflow-hidden border border-white/10">
+              <Image
+                src={featuredRooms[0].main_image}
+                alt={currentBranch?.name ?? "Chi nhánh"}
+                fill
+                sizes="(min-width: 1024px) 1360px, 100vw"
+                className="object-cover object-center transition-all duration-500"
+                draggable={false}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+              <div className="absolute bottom-4 left-5">
+                <p className="text-xs font-bold text-white/60 uppercase tracking-wider mb-1">Chi nhánh đang xem</p>
+                <p className="text-lg font-black text-white">{currentBranch?.name}</p>
+              </div>
+            </div>
+          )}
         </section>
 
         <section id="rooms" className="mx-auto w-[min(100%-2rem,1360px)] py-8">
-          <div className="mb-5 flex items-end justify-between gap-4">
+          <div className="mb-5 flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="eyebrow">Danh sách phòng</p>
               <h2 className="mt-2 max-w-3xl text-2xl font-extrabold leading-tight tracking-[-0.025em] md:text-4xl">Phòng tại {currentBranch?.name}</h2>
               <p className="mt-3 max-w-[62ch] text-sm font-semibold leading-6 text-white/62 md:text-[0.95rem]">{branchRooms.length} phòng đang hiển thị từ dữ liệu gốc.</p>
             </div>
-            <div className="hidden gap-2 md:flex">
-              <button className="icon-button" onClick={() => document.getElementById("room-row")?.scrollBy({ left: -420, behavior: "smooth" })} aria-label="Cuộn trái">
-                <ArrowLeft size={18} />
-              </button>
-              <button className="icon-button" onClick={() => document.getElementById("room-row")?.scrollBy({ left: 420, behavior: "smooth" })} aria-label="Cuộn phải">
-                <ArrowRight size={18} />
-              </button>
+            <div className="flex items-center gap-3">
+              <select
+                value={activeBranchId}
+                onChange={(e) => switchBranch(Number(e.target.value))}
+                className="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-bold text-white backdrop-blur-sm cursor-pointer focus:outline-none focus:border-pink-400 hover:border-white/40 transition-colors"
+              >
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id} className="bg-[#1b1023] text-white">
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+              <div className="hidden gap-2 md:flex">
+                <button className="icon-button" onClick={() => document.getElementById("room-row")?.scrollBy({ left: -420, behavior: "smooth" })} aria-label="Cuộn trái">
+                  <ArrowLeft size={18} />
+                </button>
+                <button className="icon-button" onClick={() => document.getElementById("room-row")?.scrollBy({ left: 420, behavior: "smooth" })} aria-label="Cuộn phải">
+                  <ArrowRight size={18} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -480,6 +511,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                   width={420}
                   height={300}
                   className="h-52 w-full rounded-2xl object-cover"
+                  draggable={false}
                 />
                 <h3 className="mt-4 min-h-12 text-base font-extrabold leading-tight text-pink-100">{room.card_name}</h3>
                 <div className="mt-3 flex max-h-28 flex-wrap gap-2 overflow-hidden">
@@ -546,7 +578,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
 
           <div className="flex flex-col gap-5">
             <div className="glass-panel booking-panel rounded-3xl overflow-hidden border border-white/10 bg-white/2">
-              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto">
+              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overscroll-x-contain">
                 <table className="booking-table border-collapse w-full text-center">
                   <thead>
                     {/* Row 1: Tên phòng */}
@@ -819,17 +851,35 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
       </div>
 
       {selectedSlots.length > 0 && (
-        <button
-          onClick={() => document.getElementById("booking-summary")?.scrollIntoView({ behavior: "smooth", block: "center" })}
-          className="fixed inset-x-3 bottom-[4.6rem] z-50 flex items-center justify-between gap-3 rounded-2xl border border-yellow-300/60 bg-[#2a1730] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
-        >
-          <span className="text-left text-xs font-bold text-white/85">
-            Đã chọn {selectedSlots.length} khung giờ
-            <br />
-            <span className="text-base font-black text-yellow-200">{money(Math.max(comboTotal, 0))}đ</span>
-          </span>
-          <span className="primary-button !min-h-9 px-4 text-xs">Xem chi tiết</span>
-        </button>
+        <>
+          {/* Mobile floating bar */}
+          <button
+            onClick={() => document.getElementById("booking-summary")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            className="fixed inset-x-3 bottom-[4.6rem] z-50 flex items-center justify-between gap-3 rounded-2xl border border-yellow-300/60 bg-[#2a1730] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
+          >
+            <span className="text-left text-xs font-bold text-white/85">
+              Đã chọn {selectedSlots.length} khung giờ
+              <br />
+              <span className="text-base font-black text-yellow-200">{money(Math.max(comboTotal, 0))}đ</span>
+            </span>
+            <span className="primary-button !min-h-9 px-4 text-xs">Xem chi tiết</span>
+          </button>
+          {/* Desktop floating bar */}
+          <div className="hidden md:flex fixed bottom-0 inset-x-0 z-40 items-center justify-between gap-4 border-t-2 border-yellow-300/30 bg-[#1b1024]/95 backdrop-blur-xl px-8 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.4)]">
+            <div className="flex items-baseline gap-4">
+              <span className="text-sm font-bold text-white/60">
+                {selectedSummary?.room} · {selectedSummary?.date} · {selectedSummary?.time}
+              </span>
+              <span className="text-xl font-black text-yellow-200">{money(Math.max(comboTotal, 0))}đ</span>
+              {selectedSlots.length > 1 && (
+                <span className="text-sm font-bold text-emerald-300">-{Math.round(discountRate * 100)}% + {extraMinutes} phút</span>
+              )}
+            </div>
+            <button onClick={goToCheckout} className="primary-button !min-h-11 px-8 text-base font-extrabold uppercase tracking-wide cursor-pointer">
+              Đặt phòng ngay
+            </button>
+          </div>
+        </>
       )}
 
       <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-white/10 bg-[#1b1024]/95 px-2 py-2 backdrop-blur-xl md:hidden">
