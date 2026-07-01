@@ -40,6 +40,8 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS room_name VARCHAR(255),
       ADD COLUMN IF NOT EXISTS branch_id INTEGER,
       ADD COLUMN IF NOT EXISTS branch_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(20),
       ADD COLUMN IF NOT EXISTS date_label VARCHAR(100),
       ADD COLUMN IF NOT EXISTS time_range VARCHAR(200),
       ADD COLUMN IF NOT EXISTS timeslot_ids TEXT,
