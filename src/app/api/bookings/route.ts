@@ -35,6 +35,21 @@ async function ensureTable(db: Pool) {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  await db.query(`
+    ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS room_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS branch_id INTEGER,
+      ADD COLUMN IF NOT EXISTS branch_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS date_label VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS time_range VARCHAR(200),
+      ADD COLUMN IF NOT EXISTS timeslot_ids TEXT,
+      ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS notes TEXT,
+      ADD COLUMN IF NOT EXISTS guest_count INTEGER DEFAULT 2,
+      ADD COLUMN IF NOT EXISTS has_car BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS has_decoration BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
+  `);
 }
 
 export async function POST(req: NextRequest) {
