@@ -5,7 +5,7 @@ RUN apt-get update -y && apt-get install -y python3 build-essential && rm -rf /v
 FROM base AS build
 COPY . .
 RUN npm ci --legacy-peer-deps
-RUN npm run build --workspace=apps/backend -- --no-admin
+RUN npm run build --workspace=apps/backend
 
 FROM base AS runner
 ENV NODE_ENV=production
