@@ -35,6 +35,12 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(useGSAP);
 
+const PLACEHOLDER_IMG = "https://placehold.co/420x300/1b1023/white?text=Anh+phong";
+
+function safeImg(src: string) {
+  return src && src.startsWith("http") ? src : PLACEHOLDER_IMG;
+}
+
 const slotLabels = ["08:00 - 11:00", "11:15 - 14:15", "14:30 - 17:30", "17:45 - 20:45", "21:00 - 00:00"];
 
 const amenityIconMap: Record<string, React.ElementType> = {
@@ -220,10 +226,15 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
     () => rooms.filter((room) => room.branch_id === activeBranchId && room.is_classic === 0),
     [activeBranchId, rooms]
   );
+  // Calendar includes all rooms of the branch (not just is_classic === 0) for branches like KCN Hong Loan
+  const allBranchRooms = useMemo(
+    () => rooms.filter((room) => room.branch_id === activeBranchId),
+    [activeBranchId, rooms]
+  );
   const featuredRooms = branchRooms.slice(0, 10);
   const heroMarqueeRooms = featuredRooms.slice(0, 8);
   const heroLoopRooms = [...heroMarqueeRooms, ...heroMarqueeRooms];
-  const calendarRooms = branchRooms.slice(0, 8);
+  const calendarRooms = (branchRooms.length > 0 ? branchRooms : allBranchRooms).slice(0, 8);
   const currentBranch = branches.find((branch) => branch.id === activeBranchId) ?? branches[0];
   const dates = useMemo(() => makeDates(), []);
 
@@ -383,8 +394,8 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               <div className="lavie-cyber-mockup relative p-2">
                 <div className="border-4 border-white bg-slate-900 rounded-3xl overflow-hidden shadow-[8px_8px_0px_rgba(243,90,189,0.5)] aspect-[4/3] relative">
                   {featuredRooms[0] && (
-                    <Image 
-                      src={featuredRooms[0].main_image} 
+                    <Image
+                      src={safeImg(featuredRooms[0].main_image)}
                       alt="Preview Room"
                       fill
                       sizes="(min-width: 1024px) 500px, 300px"
@@ -447,7 +458,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
           {featuredRooms[0] && (
             <div className="mt-5 relative aspect-[21/9] rounded-2xl overflow-hidden border border-white/10">
               <Image
-                src={featuredRooms[0].main_image}
+                src={safeImg(featuredRooms[0].main_image)}
                 alt={currentBranch?.name ?? "Chi nhánh"}
                 fill
                 sizes="(min-width: 1024px) 1360px, 100vw"
@@ -506,7 +517,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
             {featuredRooms.map((room) => (
               <article key={room.id} className="room-card-clone snap-center">
                 <Image
-                  src={room.main_image}
+                  src={safeImg(room.main_image)}
                   alt={`${room.card_name} room`}
                   width={420}
                   height={300}
@@ -578,6 +589,13 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
 
           <div className="flex flex-col gap-5">
             <div className="glass-panel booking-panel rounded-3xl overflow-hidden border border-white/10 bg-white/2">
+              {calendarRooms.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 text-white/50">
+                  <BedDouble size={36} className="text-white/20" />
+                  <p className="text-base font-bold">Chi nhánh này chưa có phòng trong lịch đặt</p>
+                  <p className="text-sm">Vui lòng chọn chi nhánh khác hoặc liên hệ hotline để đặt thủ công.</p>
+                </div>
+              ) : (
               <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overscroll-x-contain">
                 <table className="booking-table border-collapse w-full text-center">
                   <thead>
@@ -694,6 +712,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                   </tbody>
                 </table>
               </div>
+              )}
             </div>
 
             {/* Selected summary details block */}

@@ -6,6 +6,25 @@ if (!process.env.JWT_SECRET) {
 }
 
 module.exports = defineConfig({
+  modules: [
+    {
+      resolve: "@medusajs/medusa/file",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/medusa/file-local",
+            id: "local",
+            options: {
+              // uploads/ path inside .medusa/server — must be mounted as a Dokploy volume
+              upload_dir: "uploads",
+              // BACKEND_URL phải set trong Dokploy env để image URL trả về đúng host
+              backend_url: process.env.BACKEND_URL || process.env.MEDUSA_BACKEND_URL || "http://localhost:9000",
+            },
+          },
+        ],
+      },
+    },
+  ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     databaseDriverOptions: (process.env.DATABASE_URL?.includes('neon.tech') || process.env.DATABASE_URL?.includes('sslmode=require')) ? {
