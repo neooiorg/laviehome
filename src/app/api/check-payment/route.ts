@@ -31,8 +31,9 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ paid: false });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error checking payment status:", error);
-    return NextResponse.json({ paid: false, error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ paid: false, error: message }, { status: 500 });
   }
 }
