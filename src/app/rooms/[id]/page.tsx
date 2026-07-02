@@ -20,6 +20,11 @@ import { getPublicBranches, getPublicRoomById } from '@/lib/homestay-dashboard';
 import { money } from '@/lib/format';
 import { compactPhone } from '@/lib/format';
 
+const PLACEHOLDER_IMG = 'https://placehold.co/900x650/1b1023/white?text=Anh+phong';
+function safeImg(src: string | undefined | null) {
+  return src && src.startsWith('http') ? src : PLACEHOLDER_IMG;
+}
+
 // Helper to map amenity names to Lucide icons
 function getAmenityIcon(amenity: string) {
   const lower = amenity.toLowerCase();
@@ -51,7 +56,8 @@ export default async function RoomDetailPage({ params }: PageProps) {
   }
 
   const branch = branches.find((b) => b.id === room.branch_id) ?? branches[0];
-  const allImages = room.images && room.images.length > 0 ? room.images : [room.main_image];
+  const validImages = (room.images ?? []).filter((img) => img && img.startsWith('http'));
+  const allImages = validImages.length > 0 ? validImages : [safeImg(room.main_image)];
 
   return (
     <main className="site-shell min-h-dvh text-white flex flex-col justify-between">
@@ -75,7 +81,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
             <div className="space-y-6">
               <div className="border-4 border-white bg-slate-900 rounded-3xl overflow-hidden shadow-[8px_8px_0px_rgba(243,90,189,0.4)] aspect-[16/10] relative">
                 <Image
-                  src={room.main_image}
+                  src={safeImg(room.main_image)}
                   alt={room.card_name}
                   fill
                   priority
@@ -95,7 +101,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
                       className="border-2 border-white/20 bg-slate-900 rounded-2xl overflow-hidden shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:border-pink-300 hover:shadow-[4px_4px_0px_rgba(243,90,189,0.3)] transition-all aspect-[4/3] relative cursor-pointer group"
                     >
                       <Image
-                        src={imgUrl}
+                        src={safeImg(imgUrl)}
                         alt={`${room.card_name} - Góc ${index + 2}`}
                         fill
                         className="object-cover transition duration-300 group-hover:scale-105"

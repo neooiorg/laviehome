@@ -1,16 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { IdCard, Upload, UserRound } from "lucide-react";
+import { IdCard, Tag, Upload, UserRound } from "lucide-react";
+import { money } from "@/lib/format";
 
 type CheckoutFormProps = {
   bookingId: string;
   price: number;
 };
 
+type DiscountResult =
+  | { valid: true; percent: number; description: string }
+  | { valid: false; error: string };
+
 export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountResult, setDiscountResult] = useState<DiscountResult | null>(null);
+  const [validating, setValidating] = useState(false);
+
+  const discountPercent = discountResult?.valid ? discountResult.percent : 0;
+  const discountAmount = Math.round(price * discountPercent / 100);
+
+  async function applyDiscount() {
+    const code = discountCode.trim();
+    if (!code) return;
+    setValidating(true);
+    try {
+      const res = await fetch(`/api/discount?code=${encodeURIComponent(code)}`);
+      const data: DiscountResult = await res.json();
+      setDiscountResult(data);
+    } catch {
+      setDiscountResult({ valid: false, error: "Không thể kết nối máy chủ" });
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  function resetDiscount() {
+    setDiscountCode("");
+    setDiscountResult(null);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -19,6 +50,7 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
     const fd = new FormData(e.currentTarget);
     const guestCount = Number(fd.get("guest_count") ?? 2);
     const surcharge = guestCount === 3 ? 50000 : guestCount === 4 ? 100000 : 0;
+    const finalAmount = price - discountAmount + surcharge;
 
     try {
       await fetch("/api/bookings", {
@@ -32,15 +64,23 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
           notes: fd.get("notes"),
           has_car: fd.get("has_car") === "on",
           has_decoration: fd.get("has_decoration") === "on",
-          discount_code: fd.get("discount_code"),
-          amount: price + surcharge,
+          discount_code: discountResult?.valid ? discountCode : null,
+          amount: finalAmount,
         }),
       });
+
+      // Increment used_count for the applied code
+      if (discountResult?.valid && discountCode) {
+        fetch("/api/discount", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: discountCode }),
+        }).catch(() => {});
+      }
+
       setSaved(true);
-      // Scroll to payment section
       document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
     } catch {
-      // silently fail — booking was already created on page load
       document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
     } finally {
       setSaving(false);
@@ -148,6 +188,76 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
             bảo lãnh cho bạn cùng phòng.
           </span>
         </label>
+      </section>
+
+      <section className="section-card p-6 md:p-8">
+        <h2 className="flex items-center gap-2 text-xl font-extrabold tracking-[-0.025em]">
+          <Tag className="text-pink-200" size={21} /> Mã Giảm Giá
+        </h2>
+        <div className="mt-4 flex gap-2">
+          <input
+            className="flex-1 rounded-xl border-2 border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-yellow-400 focus:bg-white/10 transition uppercase tracking-widest disabled:opacity-50"
+            placeholder="Nhập mã khuyến mãi..."
+            maxLength={20}
+            disabled={discountResult?.valid === true}
+            value={discountCode}
+            onChange={(e) => {
+              setDiscountCode(e.target.value.toUpperCase());
+              setDiscountResult(null);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), applyDiscount())}
+          />
+          {discountResult?.valid ? (
+            <button
+              type="button"
+              onClick={resetDiscount}
+              className="rounded-xl border-2 border-white/20 bg-white/5 px-4 py-2.5 text-xs font-extrabold text-white/60 hover:bg-white/10 transition"
+            >
+              Xoá
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={!discountCode.trim() || validating}
+              onClick={applyDiscount}
+              className="rounded-xl border-2 border-yellow-400/60 bg-yellow-400/10 px-4 py-2.5 text-xs font-extrabold text-yellow-300 hover:bg-yellow-400/20 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {validating ? "..." : "Áp Dụng"}
+            </button>
+          )}
+        </div>
+
+        {discountResult?.valid && (
+          <div className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 space-y-1">
+            <p className="text-sm font-extrabold text-emerald-300">
+              ✓ {discountResult.description}
+            </p>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/60 font-semibold">Giá gốc</span>
+              <span className="font-bold text-white/60 line-through">{money(price)}đ</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-emerald-300 font-semibold">Giảm {discountPercent}%</span>
+              <span className="font-extrabold text-emerald-300">-{money(discountAmount)}đ</span>
+            </div>
+            <div className="flex items-center justify-between text-base border-t border-white/10 pt-2 mt-1">
+              <span className="font-extrabold text-white">Tổng thanh toán</span>
+              <span className="font-extrabold text-yellow-200 text-lg">{money(price - discountAmount)}đ</span>
+            </div>
+          </div>
+        )}
+
+        {discountResult && !discountResult.valid && (
+          <p className="mt-2 text-sm font-bold text-red-400">
+            ✗ {discountResult.error}
+          </p>
+        )}
+
+        {!discountResult && (
+          <p className="mt-2 text-[11px] text-white/38 font-semibold">
+            Nhập mã và nhấn Áp Dụng để kiểm tra ngay.
+          </p>
+        )}
       </section>
 
       <button

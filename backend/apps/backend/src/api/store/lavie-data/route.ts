@@ -30,11 +30,11 @@ export async function GET(
     // 2. Fetch Products (Rooms)
     const { data: products } = await query.graph({
       entity: "product",
-      fields: ["id", "title", "handle", "status", "description", "thumbnail", "images.url", "metadata", "variants.prices.amount"]
+      fields: ["id", "title", "handle", "status", "description", "thumbnail", "images.url", "metadata", "variants.prices.amount", "created_at"]
     });
 
     const rooms = products
-      .filter((p: any) => p.metadata?.room_id !== undefined)
+      .filter((p: any) => p.metadata?.room_id !== undefined && p.status === "published")
       .map((product: any) => ({
         id: Number(product.metadata?.room_id ?? 0),
         branch_id: Number(product.metadata?.branch_id ?? 0),
@@ -46,9 +46,10 @@ export async function GET(
         full_day_price: Number(product.metadata?.full_day_price ?? 0),
         main_image: product.thumbnail ?? "",
         is_classic: Number(product.metadata?.is_classic ?? 0),
-        images: product.images?.map((img: any) => img.url) ?? []
+        images: product.images?.map((img: any) => img.url) ?? [],
+        created_at: product.created_at ?? ""
       }))
-      .sort((a: any, b: any) => b.price_from - a.price_from || a.id - b.id);
+      .sort((a: any, b: any) => b.created_at.localeCompare(a.created_at));
 
     res.status(200).json({ branches, rooms });
   } catch (error: any) {

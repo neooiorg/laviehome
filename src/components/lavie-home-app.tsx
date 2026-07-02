@@ -953,10 +953,13 @@ function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void;
         </div>
         <div className="grid gap-5 p-5 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="hide-scrollbar flex snap-x gap-4 overflow-x-auto">
-            {room.images.slice(0, 10).map((src) => (
+            {(room.images.filter((src) => src && src.startsWith("http")).length > 0
+              ? room.images.filter((src) => src && src.startsWith("http"))
+              : [room.main_image]
+            ).slice(0, 10).map((src) => (
               <Image
                 key={src}
-                src={src}
+                src={safeImg(src)}
                 alt={room.card_name}
                 width={900}
                 height={650}

@@ -127,26 +127,6 @@ export default async function CheckoutPage({
                 <CheckoutLine icon={Clock3} label='Khung giờ' value={checkout.timeRange} />
               </div>
               <div className='mt-5 border-t border-white/10 pt-5 space-y-4'>
-                <div className='grid gap-2'>
-                  <label className='text-xs font-extrabold uppercase tracking-wider text-white/50'>
-                    Mã Giảm Giá (Nếu Có)
-                  </label>
-                  <div className='flex gap-2'>
-                    <input
-                      className='flex-1 rounded-xl border-2 border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-yellow-400 focus:bg-white/10 transition uppercase tracking-widest'
-                      placeholder='Nhập mã khuyến mãi...'
-                      name='discount_code'
-                      maxLength={20}
-                    />
-                    <button
-                      type='button'
-                      className='rounded-xl border-2 border-yellow-400/60 bg-yellow-400/10 px-4 py-2.5 text-xs font-extrabold text-yellow-300 hover:bg-yellow-400/20 transition'
-                    >
-                      Áp Dụng
-                    </button>
-                  </div>
-                  <p className='text-[11px] text-white/38 font-semibold'>Nhân viên sẽ xác nhận và áp mã trong quá trình xử lý đặt phòng.</p>
-                </div>
                 <div className='flex items-center justify-between text-sm font-bold text-white/62'>
                   <span>Tạm Tính</span>
                   <span className='text-xl font-extrabold text-yellow-200'>{money(checkout.price)}đ</span>

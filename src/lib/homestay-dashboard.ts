@@ -97,6 +97,7 @@ type RoomRow = {
   main_image: string;
   is_classic: number;
   images: string[];
+  created_at?: string;
 };
 
 type BookingRow = {
@@ -179,7 +180,7 @@ async function getActiveCatalogRooms(): Promise<RoomRow[]> {
     return data.rooms || [];
   } catch (error) {
     console.error('Failed to fetch rooms from Medusa, falling back to local query:', error);
-    return query<RoomRow>('select * from rooms where is_classic = 0 order by price_from desc, id asc');
+    return query<RoomRow>('select * from rooms where is_classic = 0 order by id desc');
   }
 }
 
