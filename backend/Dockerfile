@@ -10,6 +10,7 @@ RUN npm run build --workspace=apps/backend
 FROM base AS runner
 ENV NODE_ENV=production
 COPY --from=build /app/apps/backend/.medusa/server ./
+RUN mkdir -p .medusa/server/public/admin
 RUN npm i --omit=dev --legacy-peer-deps
 EXPOSE 9000
-CMD ["sleep", "3600"]
+CMD ["npm", "run", "start"]
