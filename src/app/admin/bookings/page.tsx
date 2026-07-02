@@ -26,7 +26,9 @@ type Booking = {
 const ADMIN_KEY = "lavie_admin_authed";
 
 export default function AdminBookingsPage() {
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(() =>
+    typeof window !== "undefined" && sessionStorage.getItem(ADMIN_KEY) === "1"
+  );
   const [password, setPassword] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,12 +36,9 @@ export default function AdminBookingsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem(ADMIN_KEY) === "1") {
-      setAuthed(true);
-      fetchBookings();
-    }
+    if (authed) fetchBookings();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authed]);
 
   async function fetchBookings() {
     setLoading(true);
