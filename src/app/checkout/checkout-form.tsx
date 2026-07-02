@@ -19,9 +19,12 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
   const [discountCode, setDiscountCode] = useState("");
   const [discountResult, setDiscountResult] = useState<DiscountResult | null>(null);
   const [validating, setValidating] = useState(false);
+  const [guestCount, setGuestCount] = useState(2);
 
+  const surcharge = guestCount === 3 ? 50000 : guestCount === 4 ? 100000 : 0;
   const discountPercent = discountResult?.valid ? discountResult.percent : 0;
   const discountAmount = Math.round(price * discountPercent / 100);
+  const finalAmount = price + surcharge - discountAmount;
 
   async function applyDiscount() {
     const code = discountCode.trim();
@@ -48,9 +51,6 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
     setSaving(true);
 
     const fd = new FormData(e.currentTarget);
-    const guestCount = Number(fd.get("guest_count") ?? 2);
-    const surcharge = guestCount === 3 ? 50000 : guestCount === 4 ? 100000 : 0;
-    const finalAmount = price - discountAmount + surcharge;
 
     try {
       await fetch("/api/bookings", {
@@ -118,9 +118,9 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
             <p className="text-sm font-bold text-white/72">Số Lượng Người</p>
             <div className="grid gap-3 md:grid-cols-3">
               {[
-                ["2", "Đi 2 người", "Mặc định"],
-                ["3", "Đi 3 người", "Phụ thu 50.000đ"],
-                ["4", "Đi 4 người", "Phụ thu 100.000đ"],
+                [2, "Đi 2 người", "Mặc định"],
+                [3, "Đi 3 người", "Phụ thu 50.000đ"],
+                [4, "Đi 4 người", "Phụ thu 100.000đ"],
               ].map(([value, title, note]) => (
                 <label
                   key={value}
@@ -131,7 +131,8 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
                     type="radio"
                     name="guest_count"
                     value={value}
-                    defaultChecked={value === "2"}
+                    checked={guestCount === value}
+                    onChange={() => setGuestCount(value as number)}
                   />
                   <span className="block font-extrabold text-white">{title}</span>
                   <span className="mt-1 block text-xs font-bold text-white/52">{note}</span>
@@ -227,22 +228,32 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
           )}
         </div>
 
-        {discountResult?.valid && (
+        {(discountResult?.valid || surcharge > 0) && (
           <div className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 space-y-1">
-            <p className="text-sm font-extrabold text-emerald-300">
-              ✓ {discountResult.description}
-            </p>
+            {discountResult?.valid && (
+              <p className="text-sm font-extrabold text-emerald-300">
+                ✓ {discountResult.description}
+              </p>
+            )}
             <div className="flex items-center justify-between text-sm">
-              <span className="text-white/60 font-semibold">Giá gốc</span>
-              <span className="font-bold text-white/60 line-through">{money(price)}đ</span>
+              <span className="text-white/60 font-semibold">Giá phòng</span>
+              <span className="font-bold text-white/60">{money(price)}đ</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-emerald-300 font-semibold">Giảm {discountPercent}%</span>
-              <span className="font-extrabold text-emerald-300">-{money(discountAmount)}đ</span>
-            </div>
+            {surcharge > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-orange-300 font-semibold">Phụ thu {guestCount} người</span>
+                <span className="font-extrabold text-orange-300">+{money(surcharge)}đ</span>
+              </div>
+            )}
+            {discountResult?.valid && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-emerald-300 font-semibold">Giảm {discountPercent}%</span>
+                <span className="font-extrabold text-emerald-300">-{money(discountAmount)}đ</span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-base border-t border-white/10 pt-2 mt-1">
               <span className="font-extrabold text-white">Tổng thanh toán</span>
-              <span className="font-extrabold text-yellow-200 text-lg">{money(price - discountAmount)}đ</span>
+              <span className="font-extrabold text-yellow-200 text-lg">{money(finalAmount)}đ</span>
             </div>
           </div>
         )}
