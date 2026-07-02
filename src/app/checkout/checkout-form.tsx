@@ -20,6 +20,35 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
   const [discountResult, setDiscountResult] = useState<DiscountResult | null>(null);
   const [validating, setValidating] = useState(false);
   const [guestCount, setGuestCount] = useState(2);
+  const [cccdFront, setCccdFront] = useState<string | null>(null);
+  const [cccdBack, setCccdBack] = useState<string | null>(null);
+  const [cccdFrontName, setCccdFrontName] = useState("");
+  const [cccdBackName, setCccdBackName] = useState("");
+
+  function readFileAsBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleCccdFront(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCccdFrontName(file.name);
+    const b64 = await readFileAsBase64(file);
+    setCccdFront(b64);
+  }
+
+  async function handleCccdBack(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCccdBackName(file.name);
+    const b64 = await readFileAsBase64(file);
+    setCccdBack(b64);
+  }
 
   const surcharge = guestCount === 3 ? 50000 : guestCount === 4 ? 100000 : 0;
   const discountPercent = discountResult?.valid ? discountResult.percent : 0;
@@ -66,6 +95,8 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
           has_decoration: fd.get("has_decoration") === "on",
           discount_code: discountResult?.valid ? discountCode : null,
           amount: finalAmount,
+          cccd_front: cccdFront,
+          cccd_back: cccdBack,
         }),
       });
 
@@ -171,14 +202,28 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
         </p>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="checkout-upload">
-            <Upload size={24} className="text-pink-300" />
-            <span>Mặt Trước CCCD / Bằng Lái</span>
-            <input type="file" accept="image/*" />
+            {cccdFront ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={cccdFront} alt="CCCD mặt trước" className="h-24 w-full object-cover rounded-xl" />
+            ) : (
+              <Upload size={24} className="text-pink-300" />
+            )}
+            <span className={cccdFrontName ? "text-emerald-300 text-xs truncate max-w-full" : ""}>
+              {cccdFrontName || "Mặt Trước CCCD / Bằng Lái"}
+            </span>
+            <input type="file" accept="image/*" onChange={handleCccdFront} />
           </label>
           <label className="checkout-upload">
-            <Upload size={24} className="text-pink-300" />
-            <span>Mặt Sau CCCD / Bằng Lái</span>
-            <input type="file" accept="image/*" />
+            {cccdBack ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={cccdBack} alt="CCCD mặt sau" className="h-24 w-full object-cover rounded-xl" />
+            ) : (
+              <Upload size={24} className="text-pink-300" />
+            )}
+            <span className={cccdBackName ? "text-emerald-300 text-xs truncate max-w-full" : ""}>
+              {cccdBackName || "Mặt Sau CCCD / Bằng Lái"}
+            </span>
+            <input type="file" accept="image/*" onChange={handleCccdBack} />
           </label>
         </div>
         <label className="mt-5 flex items-start gap-3 text-sm font-semibold leading-6 text-white/62 cursor-pointer hover:text-white transition-colors">

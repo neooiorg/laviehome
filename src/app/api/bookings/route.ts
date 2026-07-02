@@ -31,6 +31,8 @@ async function ensureTable(db: Pool) {
       guest_count INTEGER DEFAULT 2,
       has_car BOOLEAN DEFAULT FALSE,
       has_decoration BOOLEAN DEFAULT FALSE,
+      cccd_front TEXT,
+      cccd_back TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
@@ -50,6 +52,8 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS guest_count INTEGER DEFAULT 2,
       ADD COLUMN IF NOT EXISTS has_car BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS has_decoration BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS cccd_front TEXT,
+      ADD COLUMN IF NOT EXISTS cccd_back TEXT,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
 }
@@ -73,6 +77,8 @@ export async function POST(req: NextRequest) {
       guest_count,
       has_car,
       has_decoration,
+      cccd_front,
+      cccd_back,
     } = body;
 
     if (!id) {
@@ -86,8 +92,8 @@ export async function POST(req: NextRequest) {
       `INSERT INTO bookings (
         id, room_name, branch_id, branch_name, date_label, time_range,
         timeslot_ids, amount, customer_name, customer_phone, discount_code,
-        notes, guest_count, has_car, has_decoration
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        notes, guest_count, has_car, has_decoration, cccd_front, cccd_back
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
       ON CONFLICT (id) DO UPDATE SET
         customer_name = COALESCE(EXCLUDED.customer_name, bookings.customer_name),
         customer_phone = COALESCE(EXCLUDED.customer_phone, bookings.customer_phone),
@@ -96,6 +102,8 @@ export async function POST(req: NextRequest) {
         has_car = COALESCE(EXCLUDED.has_car, bookings.has_car),
         has_decoration = COALESCE(EXCLUDED.has_decoration, bookings.has_decoration),
         discount_code = COALESCE(EXCLUDED.discount_code, bookings.discount_code),
+        cccd_front = COALESCE(EXCLUDED.cccd_front, bookings.cccd_front),
+        cccd_back = COALESCE(EXCLUDED.cccd_back, bookings.cccd_back),
         updated_at = NOW()`,
       [
         id,
@@ -113,6 +121,8 @@ export async function POST(req: NextRequest) {
         guest_count ? Number(guest_count) : 2,
         has_car ?? false,
         has_decoration ?? false,
+        cccd_front ?? null,
+        cccd_back ?? null,
       ]
     );
 
