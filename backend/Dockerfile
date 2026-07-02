@@ -12,4 +12,4 @@ ENV NODE_ENV=production
 COPY --from=build /app/apps/backend/.medusa/server ./
 RUN npm i --omit=dev --legacy-peer-deps
 EXPOSE 9000
-CMD ["/bin/sh", "-c", "mkdir -p .medusa/server/public/admin && export DATABASE_URL=$(echo ${DATABASE_URL} | sed 's/&channel_binding=require//') && npm run start 2>&1 || (echo '=== STARTUP FAILED ===' && sleep 600)"]
+CMD ["/bin/sh", "-c", "echo '=== DIAG START ===' && ls && cat package.json | head -30 && echo '=== DB URL HOST ===' && echo ${DATABASE_URL} | sed 's/:[^:@]*@/@PASS@/' && mkdir -p .medusa/server/public/admin && npm run start; echo '=== EXIT CODE: '$?; sleep 3600"]
