@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "dokploy": {
+      "command": "npx",
+      "args": ["-y", "dokploy-mcp"],
+      "env": {
+        "DOKPLOY_URL": "https://dokploy.neooi.com",
+        "DOKPLOY_API_KEY": "codexOjQOrazDRpdbQXZPWmADhEvYhbttalcWLvYEGaGljgWDZnvxgAAPBIMxAzkhYOWJ"
+      }
+    }
+  }
+}
