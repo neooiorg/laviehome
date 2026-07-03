@@ -1,3 +1,4 @@
+import PageContainer from "@/components/layout/page-container";
 import { getBookingSnapshots, getAllRooms, getPublicBranches } from "@/lib/homestay-dashboard";
 
 import { Bookings } from "./_components/bookings";
@@ -8,5 +9,9 @@ export default async function Page() {
     getPublicBranches(),
     getAllRooms(),
   ]);
-  return <Bookings bookings={bookings} branches={branches} rooms={rooms} />;
+  return (
+    <PageContainer>
+      <Bookings bookings={bookings} branches={branches} rooms={rooms} />
+    </PageContainer>
+  );
 }

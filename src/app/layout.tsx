@@ -1,6 +1,19 @@
-import type { Metadata } from 'next';
-import { ClerkProvider } from '@clerk/nextjs';
+import Providers from '@/components/layout/providers';
+import { Toaster } from '@/components/ui/sonner';
+import { fontVariables } from '@/components/themes/font.config';
+import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
+import ThemeProvider from '@/components/themes/theme-provider';
+import { cn } from '@/lib/utils';
+import type { Metadata, Viewport } from 'next';
+import { cookies } from 'next/headers';
+import NextTopLoader from 'nextjs-toploader';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import './globals.css';
+
+const META_THEME_COLORS = {
+  light: '#ffffff',
+  dark: '#09090b'
+};
 
 export const metadata: Metadata = {
   title: 'Lavie Home - Đặt Phòng Tự Check-in Tự Động 24/7',
@@ -8,18 +21,44 @@ export const metadata: Metadata = {
     'Website đặt phòng Lavie Home với chọn chi nhánh, xem phòng, lịch đặt phòng demo và thông tin liên hệ.'
 };
 
-export default function RootLayout({
-  children
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: META_THEME_COLORS.light },
+    { media: '(prefers-color-scheme: dark)', color: META_THEME_COLORS.dark }
+  ]
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const activeThemeValue = cookieStore.get('active_theme')?.value;
+  const isValidTheme = THEMES.some((t) => t.value === activeThemeValue);
+  const themeToApply = isValidTheme ? activeThemeValue! : DEFAULT_THEME;
+
   return (
-    <ClerkProvider publishableKey={process.env.CLERK_PUBLISHABLE_KEY}>
-      <html lang='vi' className='dark h-full antialiased' data-theme='lavie'>
-        <body className='min-h-full flex flex-col bg-background text-foreground font-sans'>
-          {children}
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang='vi' suppressHydrationWarning data-theme={themeToApply}>
+      <head />
+      <body
+        className={cn(
+          'bg-background text-foreground overflow-x-hidden overscroll-none font-sans antialiased',
+          fontVariables
+        )}
+      >
+        <NextTopLoader color='var(--primary)' showSpinner={false} />
+        <NuqsAdapter>
+          <ThemeProvider
+            attribute='class'
+            defaultTheme='system'
+            enableSystem
+            disableTransitionOnChange
+            enableColorScheme
+          >
+            <Providers activeThemeValue={themeToApply}>
+              <Toaster />
+              {children}
+            </Providers>
+          </ThemeProvider>
+        </NuqsAdapter>
+      </body>
+    </html>
   );
 }

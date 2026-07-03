@@ -1,17 +1,30 @@
 "use client";
+"use no memo";
 
 import * as React from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  type ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type PaginationState,
+  type SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable } from "@/components/data-table";
+import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import type { DiscountCode } from "@/lib/homestay-dashboard";
 import { createDiscountCode, deleteDiscountCode, toggleDiscountActive, updateDiscountCode } from "@/lib/discount-actions";
 
@@ -19,6 +32,9 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
   const [codes, setCodes] = React.useState(initial);
   const [editCode, setEditCode] = React.useState<DiscountCode | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
+  const [search, setSearch] = React.useState("");
 
   async function handleToggle(code: string, active: boolean) {
     setCodes((prev) => prev.map((c) => c.code === code ? { ...c, active } : c));
@@ -30,6 +46,108 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
     await deleteDiscountCode(code);
     setCodes((prev) => prev.filter((c) => c.code !== code));
   }
+
+  const columns: ColumnDef<DiscountCode>[] = [
+    {
+      accessorKey: "code",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Mã" />,
+      cell: ({ row }) => (
+        <span className="font-mono font-semibold">{row.original.code}</span>
+      ),
+    },
+    {
+      accessorKey: "percent",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Giảm" />,
+      cell: ({ row }) => <Badge variant="secondary">{row.original.percent}%</Badge>,
+    },
+    {
+      accessorKey: "description",
+      header: "Mô tả",
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.description || "—"}</span>
+      ),
+    },
+    {
+      id: "usage",
+      header: "Đã dùng",
+      accessorFn: (row) => row.used_count,
+      cell: ({ row }) => (
+        <span className="tabular-nums text-sm">{row.original.used_count} / {row.original.max_uses}</span>
+      ),
+    },
+    {
+      accessorKey: "expires_at",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Hết hạn" />,
+      cell: ({ row }) => (
+        <span className="text-sm">
+          {row.original.expires_at ? new Date(row.original.expires_at).toLocaleDateString("vi-VN") : "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "active",
+      header: "Hoạt động",
+      cell: ({ row }) => (
+        <Switch
+          checked={row.original.active}
+          onCheckedChange={(v) => handleToggle(row.original.code, v)}
+        />
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <Button size="sm" variant="ghost" onClick={() => setEditCode(row.original)}>
+            <Pencil className="size-3.5" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => handleDelete(row.original.code)}>
+            <Trash2 className="size-3.5 text-destructive" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  const filteredData = React.useMemo(() => {
+    if (!search) return codes;
+    const q = search.toLowerCase();
+    return codes.filter((c) =>
+      c.code.toLowerCase().includes(q) || (c.description ?? "").toLowerCase().includes(q)
+    );
+  }, [codes, search]);
+
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    state: { sorting, pagination },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  const toolbar = (
+    <div className="flex items-center justify-between gap-3">
+      <InputGroup className="h-8 w-56">
+        <InputGroupAddon align="inline-start">
+          <Search className="size-3.5" />
+        </InputGroupAddon>
+        <InputGroupInput
+          className="h-8"
+          placeholder="Tìm mã, mô tả..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); table.setPageIndex(0); }}
+        />
+      </InputGroup>
+      <div className="text-sm text-muted-foreground tabular-nums">{codes.length} mã</div>
+    </div>
+  );
 
   return (
     <>
@@ -44,49 +162,7 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
           </div>
         </CardHeader>
         <CardContent className="px-0">
-          <Table className="**:data-[slot='table-cell']:px-4 **:data-[slot='table-head']:px-4">
-            <TableHeader className="[&_tr]:border-t">
-              <TableRow>
-                <TableHead className="py-4 font-normal">Mã</TableHead>
-                <TableHead className="py-4 font-normal">Giảm</TableHead>
-                <TableHead className="py-4 font-normal">Mô tả</TableHead>
-                <TableHead className="py-4 font-normal">Đã dùng</TableHead>
-                <TableHead className="py-4 font-normal">Hết hạn</TableHead>
-                <TableHead className="py-4 font-normal">Hoạt động</TableHead>
-                <TableHead className="py-4 font-normal" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {codes.map((c) => (
-                <TableRow key={c.code}>
-                  <TableCell className="font-mono font-semibold">{c.code}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{c.percent}%</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{c.description || "—"}</TableCell>
-                  <TableCell className="tabular-nums text-sm">
-                    {c.used_count} / {c.max_uses}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {c.expires_at ? new Date(c.expires_at).toLocaleDateString("vi-VN") : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Switch checked={c.active} onCheckedChange={(v) => handleToggle(c.code, v)} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditCode(c)}>
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => handleDelete(c.code)}>
-                        <Trash2 className="size-3.5 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <DataTable table={table} emptyMessage="Không có mã giảm giá nào." toolbar={toolbar} />
         </CardContent>
       </Card>
 

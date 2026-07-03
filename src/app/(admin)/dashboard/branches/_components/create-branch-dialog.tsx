@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { createBranch } from "@/lib/branch-actions";
 
-export function CreateBranchDialog() {
+export function CreateBranchDialog({ onCreated }: { onCreated?: (b: import('@/lib/homestay-dashboard').BranchRow) => void } = {}) {
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -26,8 +26,9 @@ export function CreateBranchDialog() {
   async function handleCreate() {
     if (!name.trim()) return;
     setSaving(true);
-    await createBranch({ name: name.trim(), hotline: hotline.trim(), google_maps_link: mapsLink.trim(), active, classic_booking_enabled: classic });
+    const result = await createBranch({ name: name.trim(), hotline: hotline.trim(), google_maps_link: mapsLink.trim(), active, classic_booking_enabled: classic });
     setSaving(false);
+    if (onCreated && result) onCreated(result);
     reset();
     setOpen(false);
   }

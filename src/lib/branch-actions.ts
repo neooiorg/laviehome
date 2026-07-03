@@ -22,12 +22,13 @@ export interface BranchInput {
   classic_booking_enabled: boolean;
 }
 
-export async function createBranch(data: BranchInput): Promise<void> {
-  await query(
-    'INSERT INTO branches (name, hotline, google_maps_link, active, classic_booking_enabled) VALUES ($1, $2, $3, $4, $5)',
+export async function createBranch(data: BranchInput): Promise<import('@/lib/homestay-dashboard').BranchRow | null> {
+  const rows = await query<import('@/lib/homestay-dashboard').BranchRow>(
+    'INSERT INTO branches (name, hotline, google_maps_link, active, classic_booking_enabled) VALUES ($1, $2, $3, $4, $5) RETURNING *',
     [data.name, data.hotline, data.google_maps_link, data.active ? 1 : 0, data.classic_booking_enabled ? 1 : 0]
   );
   revalidatePath('/dashboard/branches');
+  return rows[0] ?? null;
 }
 
 export async function updateBranch(id: number, data: Partial<BranchInput>): Promise<void> {

@@ -5,10 +5,9 @@ const currentYear = new Date().getFullYear();
 export const APP_CONFIG = {
   name: "Laviehome Admin",
   version: packageJson.version,
-  copyright: `© ${currentYear}, Studio Admin.`,
+  copyright: `© ${currentYear}, Laviehome.`,
   meta: {
-    title: "Studio Admin - Modern Next.js Dashboard Starter Template",
-    description:
-      "Studio Admin is a modern, open-source dashboard starter template built with Next.js 16, Tailwind CSS v4, and shadcn/ui. Perfect for SaaS apps, admin panels, and internal tools—fully customizable and production-ready.",
+    title: "Laviehome Admin",
+    description: "Trang quản trị hệ thống đặt phòng Laviehome.",
   },
 };

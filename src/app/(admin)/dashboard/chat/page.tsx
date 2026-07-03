@@ -3,25 +3,22 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import PageContainer from "@/components/layout/page-container";
 
 export default function Page() {
   return (
-    <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h1 className="font-medium text-sm leading-none">Chat preview</h1>
-          <p className="text-muted-foreground text-sm">
-            This iframe shows the standalone chat screen. Open it in full screen for a better view.
-          </p>
+    <PageContainer pageTitle="Chat" pageDescription="Xem trước màn hình chat. Mở trong tab mới để trải nghiệm đầy đủ.">
+      <div className="flex flex-1 flex-col gap-2">
+        <div className="flex justify-end">
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/chat" target="_blank" rel="noreferrer">
+              <ExternalLink className="mr-1.5 size-3.5" />
+              Mở tab mới
+            </Link>
+          </Button>
         </div>
-        <Button asChild variant="ghost" size="icon-sm">
-          <Link href="/chat" target="_blank" rel="noreferrer" aria-label="Open chat in new tab">
-            <ExternalLink />
-          </Link>
-        </Button>
+        <iframe src="/chat" title="Chat preview" className="min-h-[600px] flex-1 rounded-lg border bg-background" />
       </div>
-
-      <iframe src="/chat" title="Chat preview" className="min-h-0 flex-1 rounded-lg border bg-background" />
-    </div>
+    </PageContainer>
   );
 }
