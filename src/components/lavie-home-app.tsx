@@ -862,7 +862,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
         <a className="float-button bg-emerald-500" href={`tel:${compactPhone(currentBranch?.hotline ?? "0909123456")}`} aria-label="Gọi ngay">
           <Phone size={22} />
         </a>
-        <a className="float-button bg-blue-600" href={`https://zalo.me/${compactPhone(currentBranch?.hotline ?? "0909123456")}`} aria-label="Zalo">
+        <a className="float-button bg-blue-600" href={`https://zalo.me/${compactPhone(currentBranch?.hotline ?? "0909123456")}`} aria-label="Zalo" target="_blank" rel="noopener noreferrer">
           <MessageCircle size={20} />
         </a>
       </div>
