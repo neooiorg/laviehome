@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, BedDouble, MapPin, MessageCircle, Phone } from 'lucide-react';
 
 import { SiteHeader } from '@/components/site-header';
+import { BottomNav } from '@/components/bottom-nav';
 import { getPublicBranches, getPublicRooms } from '@/lib/homestay-dashboard';
 import { compactPhone } from '@/lib/format';
 
@@ -93,6 +94,7 @@ export default async function ContactsPage() {
           })}
         </section>
       </div>
+      <BottomNav />
     </main>
   );
 }

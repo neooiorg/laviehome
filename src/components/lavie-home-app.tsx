@@ -20,7 +20,6 @@ import {
   MapPin,
   MessageCircle,
   Phone,
-  Search,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -29,6 +28,7 @@ import {
 import type { ElementType } from "react";
 import { useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
+import { BottomNav } from "@/components/bottom-nav";
 import { compactPhone, money } from "@/lib/format";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -590,7 +590,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                   <p className="text-sm">Vui lòng chọn chi nhánh khác hoặc liên hệ hotline để đặt thủ công.</p>
                 </div>
               ) : (
-              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overscroll-x-contain">
+              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain">
                 <table className="booking-table min-w-max text-center">
                   <thead>
                     {/* Row 1: Tên phòng */}
@@ -899,20 +899,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
         </>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-white/10 bg-[#1b1024]/95 px-2 py-2 backdrop-blur-xl md:hidden">
-        <a className="bottom-link" href="#rooms">
-          <Home size={18} /> Trang chủ
-        </a>
-        <Link className="bottom-link" href="/checking">
-          <Search size={18} /> Tra cứu
-        </Link>
-        <a className="bottom-link" href={`tel:${compactPhone(currentBranch?.hotline ?? "0909123456")}`}>
-          <Phone size={18} /> Gọi ngay
-        </a>
-        <Link className="bottom-link" href="/contacts">
-          <MapPin size={18} /> Địa chỉ
-        </Link>
-      </nav>
+      <BottomNav hotline={currentBranch?.hotline ?? "0909123456"} />
 
       {modalRoom ? <RoomModal room={modalRoom} onClose={() => setModalRoom(null)} onBook={() => setModalRoom(null)} /> : null}
     </div>

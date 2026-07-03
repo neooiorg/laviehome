@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { SiteHeader } from '@/components/site-header';
+import { BottomNav } from '@/components/bottom-nav';
 import { getPublicBranches, getPublicRoomById } from '@/lib/homestay-dashboard';
 import { money } from '@/lib/format';
 import { compactPhone } from '@/lib/format';
@@ -300,6 +301,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
           © 2025 Lavie Home. Tất cả quyền được bảo lưu.
         </div>
       </footer>
+      <BottomNav />
     </main>
   );
 }

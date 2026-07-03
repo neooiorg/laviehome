@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Calendar, CheckCircle2, Clock, Home, Phone, Search, XCircle } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import { BottomNav } from "@/components/bottom-nav";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { money } from "@/lib/format";
@@ -188,6 +189,7 @@ export default function CheckingPage() {
           </div>
         )}
       </div>
+      <BottomNav />
     </main>
   );
 }

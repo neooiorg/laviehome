@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ElementType } from 'react';
 
 import { SiteHeader } from '@/components/site-header';
+import { BottomNav } from '@/components/bottom-nav';
 import { CheckoutPaymentBox } from '@/components/checkout-payment-box';
 import { CheckoutForm } from './checkout-form';
 import { getPublicBranches } from '@/lib/homestay-dashboard';
@@ -164,6 +165,7 @@ export default async function CheckoutPage({
           </a>
         </div>
       </div>
+      <BottomNav />
     </main>
   );
 }
