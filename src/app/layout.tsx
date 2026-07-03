@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={process.env.CLERK_PUBLISHABLE_KEY}>
       <html lang='vi' className='dark h-full antialiased' data-theme='lavie'>
         <body className='min-h-full flex flex-col bg-background text-foreground font-sans'>
           {children}

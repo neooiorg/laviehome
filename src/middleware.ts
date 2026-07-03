@@ -4,6 +4,8 @@ const isProtectedRoute = createRouteMatcher(['/dashboard(.*)']);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) await auth.protect();
+}, {
+  publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
 });
 
 export const config = {
