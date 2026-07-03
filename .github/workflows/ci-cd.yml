@@ -28,6 +28,14 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx eslint .
       - run: npm run build
+      - name: Notify Telegram - Frontend CI failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          chmod +x scripts/telegram_notify.sh
+          ./scripts/telegram_notify.sh failure "❌ Frontend CI thất bại (lint/build)."
 
   ci-backend:
     name: Build check (backend)
@@ -42,6 +50,15 @@ jobs:
           node-version: 20
       - run: npm ci --legacy-peer-deps
       - run: npm run build --workspace=apps/backend
+      - name: Notify Telegram - Backend CI failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          chmod +x scripts/telegram_notify.sh
+          ./scripts/telegram_notify.sh failure "❌ Backend CI thất bại (build Medusa)."
 
   build-push-frontend:
     name: Build & push frontend image
@@ -63,6 +80,14 @@ jobs:
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+      - name: Notify Telegram - Frontend image build failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          chmod +x scripts/telegram_notify.sh
+          ./scripts/telegram_notify.sh failure "❌ Build & push Docker image frontend thất bại."
 
   build-push-backend:
     name: Build & push backend image
@@ -84,6 +109,14 @@ jobs:
           tags: |
             ${{ env.BACKEND_IMAGE }}:latest
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+      - name: Notify Telegram - Backend image build failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          chmod +x scripts/telegram_notify.sh
+          ./scripts/telegram_notify.sh failure "❌ Build & push Docker image backend thất bại."
 
   deploy:
     name: Trigger Dokploy redeploy
@@ -91,6 +124,7 @@ jobs:
     needs: [build-push-frontend, build-push-backend]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Redeploy backend on Dokploy
         run: |
           curl -sf -X POST "https://dokploy.neooi.com/api/application.deploy" \
@@ -103,3 +137,19 @@ jobs:
             -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{"applicationId":"Up82i2f3V2rALnvjhUjbM"}'
+      - name: Notify Telegram - Deploy success
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          chmod +x scripts/telegram_notify.sh
+          ./scripts/telegram_notify.sh success "🚀 Deploy lên production thành công!"
+      - name: Notify Telegram - Deploy failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          chmod +x scripts/telegram_notify.sh
+          ./scripts/telegram_notify.sh failure "❌ Trigger Dokploy redeploy thất bại."
