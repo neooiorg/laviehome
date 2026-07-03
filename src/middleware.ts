@@ -1,26 +1,14 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const session = request.cookies.get('admin_session')?.value;
-  const secret = process.env.ADMIN_SECRET;
-  const isAuthenticated = !!secret && session === secret;
+const isProtectedRoute = createRouteMatcher(['/dashboard(.*)']);
 
-  if (pathname.startsWith('/dashboard')) {
-    if (!isAuthenticated) {
-      const loginUrl = new URL('/auth/login', request.url);
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  if (pathname === '/auth/login' && isAuthenticated) {
-    return NextResponse.redirect(new URL('/dashboard/bookings', request.url));
-  }
-
-  return NextResponse.next();
-}
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) await auth.protect();
+});
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/login'],
+  matcher: [
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jte|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
 };
