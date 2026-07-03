@@ -2,9 +2,6 @@ import {
   BedDouble,
   BookOpen,
   Building2,
-  Calendar,
-  CheckSquare,
-  Kanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -68,30 +65,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Phòng",
         url: "/dashboard/rooms",
         icon: BedDouble,
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: "Công cụ",
-    items: [
-      {
-        id: "calendar",
-        title: "Lịch",
-        url: "/dashboard/calendar",
-        icon: Calendar,
-      },
-      {
-        id: "kanban",
-        title: "Kanban",
-        url: "/dashboard/kanban",
-        icon: Kanban,
-      },
-      {
-        id: "tasks",
-        title: "Tasks",
-        url: "/dashboard/tasks",
-        icon: CheckSquare,
       },
     ],
   },
