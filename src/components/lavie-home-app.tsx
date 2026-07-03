@@ -419,7 +419,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {branches.map((branch) => {
               const parts = branch.name.split(" - ");
               const city = parts[0];
@@ -719,7 +719,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                 <h3 className="text-base font-extrabold text-pink-200 border-b border-white/10 pb-3 mb-4 flex items-center gap-2">
                   <Sparkles size={16} /> Chi tiết khung giờ đã chọn
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 text-sm">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
                   <SummaryRow icon={BedDouble} label="Phòng" value={selectedSummary?.room ?? "Chưa chọn"} />
                   <SummaryRow icon={MapPin} label="Chi nhánh" value={selectedSummary?.branch ?? currentBranch?.name ?? "Chưa chọn"} />
                   <SummaryRow icon={CalendarDays} label="Ngày" value={selectedSummary?.date ?? "Chưa chọn"} />
