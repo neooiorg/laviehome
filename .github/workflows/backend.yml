@@ -40,7 +40,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           chmod +x scripts/telegram_notify.sh
-          ./scripts/telegram_notify.sh failure "❌ Backend CI thất bại (build Medusa)."
+          ./scripts/telegram_notify.sh failure "❌ Backend CI thất bại (build)."
 
   build-push:
     name: Build & push image

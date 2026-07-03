@@ -149,39 +149,12 @@ function formatMonth(monthKey: string) {
   });
 }
 
-const MEDUSA_API_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || 'http://localhost:9000';
-const PUBLISHABLE_KEY = 'pk_d25bfb68d4fd0cff768b0a590c501abf60ef04072158b2422eb431e1cdb2bde7';
-
 async function getBranches(): Promise<BranchRow[]> {
-  try {
-    const res = await fetch(`${MEDUSA_API_URL}/store/lavie-data`, {
-      headers: {
-        'x-publishable-api-key': PUBLISHABLE_KEY
-      },
-      next: { revalidate: 10 }
-    });
-    const data = await res.json();
-    return data.branches || [];
-  } catch (error) {
-    console.error('Failed to fetch branches from Medusa, falling back to local query:', error);
-    return query<BranchRow>('select * from branches order by id');
-  }
+  return query<BranchRow>('select * from branches order by id');
 }
 
 async function getActiveCatalogRooms(): Promise<RoomRow[]> {
-  try {
-    const res = await fetch(`${MEDUSA_API_URL}/store/lavie-data`, {
-      headers: {
-        'x-publishable-api-key': PUBLISHABLE_KEY
-      },
-      next: { revalidate: 10 }
-    });
-    const data = await res.json();
-    return data.rooms || [];
-  } catch (error) {
-    console.error('Failed to fetch rooms from Medusa, falling back to local query:', error);
-    return query<RoomRow>('select * from rooms where is_classic = 0 order by id desc');
-  }
+  return query<RoomRow>('select * from rooms where is_classic = 0 order by id desc');
 }
 
 export async function getPublicBranches() {
@@ -541,20 +514,6 @@ export function moneyRange(room: RoomSummary['room']) {
 }
 
 export async function getPublicRoomById(id: number): Promise<RoomRow | null> {
-  try {
-    const res = await fetch(`${MEDUSA_API_URL}/store/lavie-data`, {
-      headers: {
-        'x-publishable-api-key': PUBLISHABLE_KEY
-      },
-      next: { revalidate: 10 }
-    });
-    const data = await res.json();
-    const rooms = data.rooms || [];
-    const room = rooms.find((r: RoomRow) => r.id === id);
-    return room ?? null;
-  } catch (error) {
-    console.error('Failed to fetch room by id from Medusa, falling back to local query:', error);
-    const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
-    return results[0] ?? null;
-  }
+  const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
+  return results[0] ?? null;
 }
