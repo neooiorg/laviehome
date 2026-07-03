@@ -1,5 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { CalendarMini, UserCircle } from "@medusajs/icons";
+import { CalendarMini, User } from "@medusajs/icons";
 import { useEffect, useState } from "react";
 
 type Booking = {
@@ -92,7 +92,7 @@ export default function BookingsPage() {
               {/* Info grid */}
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                 <div className="flex items-center gap-1.5 text-ui-fg-subtle">
-                  <UserCircle className="shrink-0" />
+                  <User className="shrink-0" />
                   <span className="font-medium text-ui-fg-base">{b.customer_name || "—"}</span>
                 </div>
                 <div className="text-ui-fg-subtle">
