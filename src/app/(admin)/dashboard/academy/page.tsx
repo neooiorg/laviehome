@@ -15,7 +15,7 @@ export default function Page() {
         <div className="space-y-1">
           <h1 className="text-3xl tracking-tight">Academy Dashboard</h1>
           <p className="text-muted-foreground text-sm">
-            Good morning, Teacher. Here's a quick overview of today's activity.
+            Good morning, Teacher. Here&apos;s a quick overview of today&apos;s activity.
           </p>
         </div>
 

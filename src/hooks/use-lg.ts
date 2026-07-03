@@ -11,6 +11,7 @@ export function useIsLg() {
       setIsLg(window.innerWidth >= LG_BREAKPOINT);
     };
     mql.addEventListener("change", onChange);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLg(window.innerWidth >= LG_BREAKPOINT);
     return () => mql.removeEventListener("change", onChange);
   }, []);
