@@ -1,8 +1,12 @@
-import { getBookingSnapshots } from "@/lib/homestay-dashboard";
+import { getBookingSnapshots, getAllRooms, getPublicBranches } from "@/lib/homestay-dashboard";
 
 import { Bookings } from "./_components/bookings";
 
 export default async function Page() {
-  const bookings = await getBookingSnapshots(100);
-  return <Bookings bookings={bookings} />;
+  const [bookings, branches, rooms] = await Promise.all([
+    getBookingSnapshots(300),
+    getPublicBranches(),
+    getAllRooms(),
+  ]);
+  return <Bookings bookings={bookings} branches={branches} rooms={rooms} />;
 }

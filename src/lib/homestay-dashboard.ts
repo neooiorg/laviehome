@@ -18,6 +18,7 @@ export type BookingSnapshot = {
   customerPhone: string | null;
   room: RoomSummary['room'];
   branch: BranchSummary['branch'];
+  stayDate: string;
   dateLabel: string;
   timeRange: string;
   channel: string;
@@ -86,7 +87,7 @@ export type PriceBandPoint = {
   share: number;
 };
 
-type BranchRow = {
+export type BranchRow = {
   id: number;
   name: string;
   active: number;
@@ -95,7 +96,7 @@ type BranchRow = {
   classic_booking_enabled: number;
 };
 
-type RoomRow = {
+export type RoomRow = {
   id: number;
   branch_id: number;
   card_name: string;
@@ -108,6 +109,17 @@ type RoomRow = {
   is_classic: number;
   images: string[];
   created_at?: string;
+};
+
+export type DiscountCode = {
+  code: string;
+  percent: number;
+  description: string;
+  active: boolean;
+  max_uses: number;
+  used_count: number;
+  expires_at: string | null;
+  created_at: string;
 };
 
 type BookingRow = {
@@ -338,6 +350,7 @@ export async function getBookingSnapshots(limit = 12): Promise<BookingSnapshot[]
       google_maps_link: booking.branch_maps,
       classic_booking_enabled: booking.branch_classic
     },
+    stayDate: booking.stay_date.slice(0, 10),
     dateLabel: new Date(booking.stay_date).toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
@@ -554,4 +567,119 @@ export function moneyRange(room: RoomSummary['room']) {
 export async function getPublicRoomById(id: number): Promise<RoomRow | null> {
   const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
   return results[0] ?? null;
+}
+
+export async function getRoomById(id: number): Promise<RoomRow | null> {
+  const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
+  return results[0] ?? null;
+}
+
+export async function getAllRooms(): Promise<RoomRow[]> {
+  return query<RoomRow>('select * from rooms order by id desc');
+}
+
+export async function getBranchById(id: number): Promise<BranchRow | null> {
+  const results = await query<BranchRow>('select * from branches where id = $1', [id]);
+  return results[0] ?? null;
+}
+
+export async function getDiscountCodes(): Promise<DiscountCode[]> {
+  return query<DiscountCode>('select * from discount_codes order by created_at desc');
+}
+
+export async function getBookingSnapshotsFiltered(options?: {
+  limit?: number;
+  branchId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  status?: BookingStatus;
+}): Promise<BookingSnapshot[]> {
+  const { limit = 100, branchId, dateFrom, dateTo, status } = options ?? {};
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (branchId) {
+    params.push(branchId);
+    conditions.push(`b.branch_id = $${params.length}`);
+  }
+  if (dateFrom) {
+    params.push(dateFrom);
+    conditions.push(`b.stay_date >= $${params.length}`);
+  }
+  if (dateTo) {
+    params.push(dateTo);
+    conditions.push(`b.stay_date <= $${params.length}`);
+  }
+  if (status) {
+    params.push(status);
+    conditions.push(`b.status = $${params.length}`);
+  }
+
+  params.push(limit);
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const bookings = await query<BookingRow>(
+    `
+    select
+      b.id, b.room_id, b.branch_id, b.guest_name, b.customer_name, b.customer_phone,
+      b.stay_date::text, b.time_range, b.channel, b.status, b.amount, b.guest_count,
+      b.has_car, b.has_decoration, b.discount_code, b.notes, b.cccd_front, b.cccd_back,
+      b.created_at::text,
+      r.card_name, r.branch_name, r.room_amenities, r.price_from, r.price_to,
+      r.full_day_price, r.main_image, r.is_classic, r.images,
+      br.hotline as branch_hotline, br.google_maps_link as branch_maps,
+      br.active as branch_active, br.classic_booking_enabled as branch_classic
+    from bookings b
+    join rooms r on r.id = b.room_id
+    join branches br on br.id = b.branch_id
+    ${where}
+    order by b.created_at desc
+    limit $${params.length}
+    `,
+    params
+  );
+
+  return bookings.map((booking) => ({
+    id: booking.id,
+    guestName: booking.guest_name,
+    room: {
+      id: booking.room_id,
+      branch_id: booking.branch_id,
+      card_name: booking.card_name,
+      branch_name: booking.branch_name,
+      room_amenities: booking.room_amenities,
+      price_from: booking.price_from,
+      price_to: booking.price_to,
+      full_day_price: booking.full_day_price,
+      main_image: booking.main_image,
+      is_classic: booking.is_classic,
+      images: booking.images
+    },
+    branch: {
+      id: booking.branch_id,
+      name: booking.branch_name,
+      active: booking.branch_active,
+      hotline: booking.branch_hotline,
+      google_maps_link: booking.branch_maps,
+      classic_booking_enabled: booking.branch_classic
+    },
+    stayDate: booking.stay_date.slice(0, 10),
+    dateLabel: new Date(booking.stay_date).toLocaleDateString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    }),
+    timeRange: booking.time_range,
+    channel: booking.channel,
+    status: booking.status,
+    amount: booking.amount,
+    customerName: booking.customer_name,
+    customerPhone: booking.customer_phone,
+    guestCount: booking.guest_count,
+    hasCar: booking.has_car ?? false,
+    hasDecoration: booking.has_decoration ?? false,
+    discountCode: booking.discount_code,
+    notes: booking.notes,
+    cccdFront: booking.cccd_front,
+    cccdBack: booking.cccd_back,
+    createdAt: booking.created_at
+  }));
 }

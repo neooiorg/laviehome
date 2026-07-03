@@ -2,6 +2,8 @@ import {
   BedDouble,
   BookOpen,
   Building2,
+  LayoutDashboard,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,12 +47,24 @@ export interface NavGroup {
 
 export const sidebarItems: NavGroup[] = [
   {
+    id: 0,
+    label: "Tổng quan",
+    items: [
+      {
+        id: "overview",
+        title: "Dashboard",
+        url: "/dashboard/overview",
+        icon: LayoutDashboard,
+      },
+    ],
+  },
+  {
     id: 1,
     label: "Quản lý",
     items: [
       {
         id: "bookings",
-        title: "Bookings",
+        title: "Đặt phòng",
         url: "/dashboard/bookings",
         icon: BookOpen,
       },
@@ -65,6 +79,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Phòng",
         url: "/dashboard/rooms",
         icon: BedDouble,
+      },
+      {
+        id: "discounts",
+        title: "Mã giảm giá",
+        url: "/dashboard/discounts",
+        icon: Tag,
       },
     ],
   },

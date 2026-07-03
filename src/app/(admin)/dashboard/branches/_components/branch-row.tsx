@@ -17,7 +17,7 @@ interface BranchRowData {
   classic_booking_enabled: number;
 }
 
-export function BranchRow({ branch }: { branch: BranchRowData }) {
+export function BranchRow({ branch, children }: { branch: BranchRowData; children?: React.ReactNode }) {
   const [active, setActive] = React.useState(branch.active === 1);
   const [classic, setClassic] = React.useState(branch.classic_booking_enabled === 1);
 
@@ -55,6 +55,7 @@ export function BranchRow({ branch }: { branch: BranchRowData }) {
       <TableCell>
         <Switch checked={classic} onCheckedChange={handleClassic} aria-label="Bật/tắt booking classic" />
       </TableCell>
+      <TableCell className="text-right">{children}</TableCell>
     </TableRow>
   );
 }
