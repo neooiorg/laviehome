@@ -14,6 +14,8 @@ export type BookingStatus = 'Đã xác nhận' | 'Chờ cọc' | 'Đang ở' | '
 export type BookingSnapshot = {
   id: string;
   guestName: string;
+  customerName: string | null;
+  customerPhone: string | null;
   room: RoomSummary['room'];
   branch: BranchSummary['branch'];
   dateLabel: string;
@@ -21,6 +23,14 @@ export type BookingSnapshot = {
   channel: string;
   status: BookingStatus;
   amount: number;
+  guestCount: number | null;
+  hasCar: boolean;
+  hasDecoration: boolean;
+  discountCode: string | null;
+  notes: string | null;
+  cccdFront: string | null;
+  cccdBack: string | null;
+  createdAt: string;
 };
 
 export type BranchSummary = {
@@ -105,11 +115,20 @@ type BookingRow = {
   room_id: number;
   branch_id: number;
   guest_name: string;
+  customer_name: string | null;
+  customer_phone: string | null;
   stay_date: string;
   time_range: string;
   channel: string;
   status: BookingStatus;
   amount: number;
+  guest_count: number | null;
+  has_car: boolean;
+  has_decoration: boolean;
+  discount_code: string | null;
+  notes: string | null;
+  cccd_front: string | null;
+  cccd_back: string | null;
   created_at: string;
   card_name: string;
   branch_name: string;
@@ -173,11 +192,20 @@ async function getBookings(limit = 12) {
       b.room_id,
       b.branch_id,
       b.guest_name,
+      b.customer_name,
+      b.customer_phone,
       b.stay_date::text,
       b.time_range,
       b.channel,
       b.status,
       b.amount,
+      b.guest_count,
+      b.has_car,
+      b.has_decoration,
+      b.discount_code,
+      b.notes,
+      b.cccd_front,
+      b.cccd_back,
       b.created_at::text,
       r.card_name,
       r.branch_name,
@@ -318,7 +346,17 @@ export async function getBookingSnapshots(limit = 12): Promise<BookingSnapshot[]
     timeRange: booking.time_range,
     channel: booking.channel,
     status: booking.status,
-    amount: booking.amount
+    amount: booking.amount,
+    customerName: booking.customer_name,
+    customerPhone: booking.customer_phone,
+    guestCount: booking.guest_count,
+    hasCar: booking.has_car ?? false,
+    hasDecoration: booking.has_decoration ?? false,
+    discountCode: booking.discount_code,
+    notes: booking.notes,
+    cccdFront: booking.cccd_front,
+    cccdBack: booking.cccd_back,
+    createdAt: booking.created_at
   }));
 }
 

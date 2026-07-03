@@ -2,8 +2,10 @@
 "use no memo";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { Eye } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 
@@ -44,10 +46,10 @@ function money(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
 }
 
-export const bookingsColumns: ColumnDef<BookingSnapshot>[] = [
+export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: BookingSnapshot) => void }>[] = [
   {
     id: "search",
-    accessorFn: (row) => `${row.guestName} ${row.room.card_name} ${row.branch.name}`,
+    accessorFn: (row) => `${row.guestName} ${row.customerName ?? ""} ${row.customerPhone ?? ""} ${row.room.card_name} ${row.branch.name}`,
     filterFn: "includesString",
     enableHiding: true,
   },
@@ -55,7 +57,12 @@ export const bookingsColumns: ColumnDef<BookingSnapshot>[] = [
     accessorKey: "guestName",
     header: "Khách",
     cell: ({ row }) => (
-      <div className="font-medium text-sm text-foreground">{row.original.guestName}</div>
+      <div>
+        <div className="font-medium text-sm text-foreground">{row.original.guestName}</div>
+        {row.original.customerPhone && (
+          <div className="text-xs text-muted-foreground">{row.original.customerPhone}</div>
+        )}
+      </div>
     ),
   },
   {
@@ -108,5 +115,25 @@ export const bookingsColumns: ColumnDef<BookingSnapshot>[] = [
     cell: ({ row }) => (
       <div className="whitespace-nowrap text-sm font-medium">{money(row.original.amount)}đ</div>
     ),
+  },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row, table }) => {
+      const onDetail = (table.options.meta as { onDetail?: (b: BookingSnapshot) => void } | undefined)?.onDetail;
+      return (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="size-7 text-muted-foreground"
+          onClick={() => onDetail?.(row.original)}
+          aria-label="Xem chi tiết"
+        >
+          <Eye className="size-3.5" />
+        </Button>
+      );
+    },
+    enableSorting: false,
+    enableHiding: false,
   },
 ];

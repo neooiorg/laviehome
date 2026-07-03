@@ -1,5 +1,7 @@
 import {
+  BedDouble,
   BookOpen,
+  Building2,
   Calendar,
   CheckSquare,
   Kanban,
@@ -54,6 +56,18 @@ export const sidebarItems: NavGroup[] = [
         title: "Bookings",
         url: "/dashboard/bookings",
         icon: BookOpen,
+      },
+      {
+        id: "branches",
+        title: "Chi nhánh",
+        url: "/dashboard/branches",
+        icon: Building2,
+      },
+      {
+        id: "rooms",
+        title: "Phòng",
+        url: "/dashboard/rooms",
+        icon: BedDouble,
       },
     ],
   },
