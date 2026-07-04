@@ -1,6 +1,7 @@
 "use client";
 
 import { useClerk, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { CircleUser, EllipsisVertical, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +21,7 @@ export function NavUser() {
   const { isMobile } = useSidebar();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const router = useRouter();
 
   const name = user?.fullName ?? user?.username ?? "Admin";
   const email = user?.primaryEmailAddress?.emailAddress ?? "";
@@ -71,7 +73,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => signOut({ redirectUrl: '/auth/v2/login' })}>
+            <DropdownMenuItem onSelect={async () => { await signOut(); router.push('/auth/v2/login'); }}>
               <LogOut />
               Đăng xuất
             </DropdownMenuItem>
