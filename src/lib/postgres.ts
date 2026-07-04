@@ -7,34 +7,28 @@ declare global {
   var __laviePgPool: Pool | undefined;
 }
 
-function createPool() {
+function getPool(): Pool {
+  if (globalThis.__laviePgPool) return globalThis.__laviePgPool;
+
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set.');
   }
 
-  return new Pool({
-    connectionString,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-}
+  const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
 
-export const pool: Pool =
-  globalThis.__laviePgPool !== undefined
-    ? globalThis.__laviePgPool
-    : createPool();
+  if (process.env.NODE_ENV !== 'production') {
+    globalThis.__laviePgPool = pool;
+  }
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.__laviePgPool = pool;
+  return pool;
 }
 
 export async function query<T extends Record<string, unknown> = Record<string, unknown>>(
   text: string,
   params: unknown[] = []
 ): Promise<T[]> {
-  const result = await pool.query<T>(text, params);
+  const result = await getPool().query<T>(text, params);
   return result.rows;
 }
 
