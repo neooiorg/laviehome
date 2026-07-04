@@ -6,43 +6,43 @@ export const DEFAULT_THEME = 'vercel';
 
 export const THEMES = [
   {
-    name: 'Claude',
+    name: 'Theme 1',
     value: 'claude'
   },
   {
-    name: 'Neobrutualism',
+    name: 'Theme 2',
     value: 'neobrutualism'
   },
   {
-    name: 'Supabase',
+    name: 'Theme 3',
     value: 'supabase'
   },
   {
-    name: 'Vercel',
+    name: 'Theme 4',
     value: 'vercel'
   },
   {
-    name: 'Mono',
+    name: 'Theme 5',
     value: 'mono'
   },
   {
-    name: 'Notebook',
+    name: 'Theme 6',
     value: 'notebook'
   },
   {
-    name: 'Light Green',
+    name: 'Theme 7',
     value: 'light-green'
   },
   {
-    name: 'Zen',
+    name: 'Theme 8',
     value: 'zen'
   },
   {
-    name: 'Astro Vista',
+    name: 'Theme 9',
     value: 'astro-vista'
   },
   {
-    name: 'WhatsApp',
+    name: 'Theme 10',
     value: 'whatsapp'
   }
 ];
