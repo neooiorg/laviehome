@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
       // Medusa backend uploads (Dokploy deployment — sslip.io subdomains)
       { protocol: "http", hostname: "**.sslip.io" },
       { protocol: "https", hostname: "**.sslip.io" },
+      // Clerk user/org avatars
+      { protocol: "https", hostname: "img.clerk.com" },
+      { protocol: "https", hostname: "images.clerk.dev" },
       // Local dev
       { protocol: "http", hostname: "localhost" },
     ],
