@@ -253,7 +253,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
 
     function onMouseMove(e: MouseEvent) {
       const state = dragState.current;
-      if (!state.isDragging) return;
+      if (!state.isDragging || !el) return;
       const delta = e.clientX - state.startX;
       if (Math.abs(delta) > 3) state.moved = true;
       el.scrollLeft = state.startScrollLeft - delta;
