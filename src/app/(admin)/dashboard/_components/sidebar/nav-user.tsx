@@ -71,7 +71,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => signOut({ redirectUrl: "/" })}>
+            <DropdownMenuItem onSelect={() => signOut({ redirectUrl: '/auth/v2/login' })}>
               <LogOut />
               Đăng xuất
             </DropdownMenuItem>
