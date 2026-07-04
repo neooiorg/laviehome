@@ -15,8 +15,14 @@ import { PieGraph } from './pie-graph';
 import { RecentSales } from './recent-sales';
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { getTrendPoints, getBookingStatusSummary, getPriceBands } from '@/lib/homestay-dashboard';
 
-export default function OverViewPage() {
+export default async function OverViewPage() {
+  const [trends, statuses, bands] = await Promise.all([
+    getTrendPoints(),
+    getBookingStatusSummary(100),
+    getPriceBands(),
+  ]);
   return (
     <PageContainer>
       <div className='flex flex-1 flex-col space-y-2'>
@@ -118,16 +124,16 @@ export default function OverViewPage() {
             </div>
             <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
               <div className='col-span-4'>
-                <BarGraph />
+                <BarGraph data={bands} />
               </div>
               <Card className='col-span-4 md:col-span-3'>
                 <RecentSales />
               </Card>
               <div className='col-span-4'>
-                <AreaGraph />
+                <AreaGraph data={trends} />
               </div>
               <div className='col-span-4 md:col-span-3'>
-                <PieGraph />
+                <PieGraph data={statuses} />
               </div>
             </div>
           </TabsContent>
