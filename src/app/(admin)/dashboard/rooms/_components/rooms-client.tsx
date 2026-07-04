@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataTable } from "@/components/data-table";
+import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
 import type { BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 
 import { CreateRoomDialog } from "./create-room-dialog";
@@ -86,8 +87,11 @@ export function RoomsClient({ rooms, branches }: Props) {
           </SelectContent>
         </Select>
       </div>
-      <div className="text-sm text-muted-foreground tabular-nums">
-        {filteredData.length} phòng
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {filteredData.length} phòng
+        </span>
+        <DataTableViewOptions table={table} />
       </div>
     </div>
   );

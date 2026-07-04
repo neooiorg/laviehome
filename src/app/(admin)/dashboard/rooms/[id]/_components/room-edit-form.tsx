@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/image-upload";
+import { AlertModal } from "@/components/modal/alert-modal";
 import type { BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 import { deleteRoom, updateRoom } from "@/lib/room-actions";
 
@@ -19,6 +20,7 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   const router = useRouter();
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   const [cardName, setCardName] = React.useState(room.card_name);
   const [branchId, setBranchId] = React.useState(String(room.branch_id));
@@ -51,7 +53,6 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   }
 
   async function handleDelete() {
-    if (!confirm(`Xóa phòng "${room.card_name}"? Hành động này không thể hoàn tác.`)) return;
     setDeleting(true);
     await deleteRoom(room.id);
     router.push("/dashboard/rooms");
@@ -151,10 +152,19 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
           <Label htmlFor="is-classic">Phòng classic (theo giờ cố định)</Label>
         </div>
 
+        <AlertModal
+          isOpen={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          onConfirm={handleDelete}
+          loading={deleting}
+          title={`Xóa phòng "${room.card_name}"?`}
+          description="Hành động này không thể hoàn tác. Phòng sẽ bị xóa vĩnh viễn."
+        />
+
         <div className="flex items-center justify-between border-t pt-4">
-          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+          <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} disabled={deleting}>
             <Trash2 className="mr-1.5 size-3.5" />
-            {deleting ? "Đang xóa..." : "Xóa phòng"}
+            Xóa phòng
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => router.push("/dashboard/rooms")}>Hủy</Button>

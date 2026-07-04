@@ -14,7 +14,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!room) notFound();
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="p-6">
       <RoomEditForm room={room} branches={branches} />
     </div>
   );

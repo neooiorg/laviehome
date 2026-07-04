@@ -21,6 +21,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Switch } from "@/components/ui/switch";
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
 import type { BranchRow } from "@/lib/homestay-dashboard";
 import { toggleBranchActive, toggleBranchClassic } from "@/lib/branch-actions";
 
@@ -150,7 +151,10 @@ export function BranchesClient({ branches: initial }: { branches: BranchRow[] })
           onChange={(e) => { setSearch(e.target.value); table.setPageIndex(0); }}
         />
       </InputGroup>
-      <div className="text-sm text-muted-foreground tabular-nums">{branches.length} chi nhánh</div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground tabular-nums">{branches.length} chi nhánh</span>
+        <DataTableViewOptions table={table} />
+      </div>
     </div>
   );
 

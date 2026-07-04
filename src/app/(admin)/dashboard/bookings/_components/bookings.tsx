@@ -22,9 +22,10 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { BookingSnapshot, BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 
+import { DataTable } from "@/components/data-table";
+import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
 import { BookingDetailSheet } from "./booking-detail-sheet";
 import { bookingsColumns } from "./bookings-columns";
-import { BookingsTable } from "./bookings-table";
 import { CreateBookingSheet } from "./create-booking-sheet";
 
 const STATUSES = ["All", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
@@ -193,12 +194,15 @@ export function Bookings({
               </div>
             </div>
 
-            <div className="text-sm text-muted-foreground tabular-nums">
-              {table.getFilteredRowModel().rows.length} booking
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {table.getFilteredRowModel().rows.length} booking
+              </span>
+              <DataTableViewOptions table={table} />
             </div>
           </div>
 
-          <BookingsTable table={table} />
+          <DataTable table={table} emptyMessage="Không có booking nào." />
         </CardContent>
       </Card>
 

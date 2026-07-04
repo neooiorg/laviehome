@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { AlertModal } from "@/components/modal/alert-modal";
 import {
   type ColumnDef,
   getCoreRowModel,
@@ -25,6 +26,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Switch } from "@/components/ui/switch";
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
 import type { DiscountCode } from "@/lib/homestay-dashboard";
 import { createDiscountCode, deleteDiscountCode, toggleDiscountActive, updateDiscountCode } from "@/lib/discount-actions";
 
@@ -32,6 +34,8 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
   const [codes, setCodes] = React.useState(initial);
   const [editCode, setEditCode] = React.useState<DiscountCode | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = React.useState(false);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [search, setSearch] = React.useState("");
@@ -41,10 +45,13 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
     await toggleDiscountActive(code, active);
   }
 
-  async function handleDelete(code: string) {
-    if (!confirm(`Xóa mã giảm giá "${code}"?`)) return;
-    await deleteDiscountCode(code);
-    setCodes((prev) => prev.filter((c) => c.code !== code));
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    await deleteDiscountCode(deleteTarget);
+    setCodes((prev) => prev.filter((c) => c.code !== deleteTarget));
+    setDeleteLoading(false);
+    setDeleteTarget(null);
   }
 
   const columns: ColumnDef<DiscountCode>[] = [
@@ -104,7 +111,7 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
           <Button size="sm" variant="ghost" onClick={() => setEditCode(row.original)}>
             <Pencil className="size-3.5" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => handleDelete(row.original.code)}>
+          <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(row.original.code)}>
             <Trash2 className="size-3.5 text-destructive" />
           </Button>
         </div>
@@ -145,12 +152,24 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
           onChange={(e) => { setSearch(e.target.value); table.setPageIndex(0); }}
         />
       </InputGroup>
-      <div className="text-sm text-muted-foreground tabular-nums">{codes.length} mã</div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground tabular-nums">{codes.length} mã</span>
+        <DataTableViewOptions table={table} />
+      </div>
     </div>
   );
 
   return (
     <>
+      <AlertModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
+        title={`Xóa mã "${deleteTarget}"?`}
+        description="Mã giảm giá sẽ bị xóa vĩnh viễn."
+      />
+
       <Card>
         <CardHeader className="border-b has-data-[slot=card-action]:grid-cols-1 md:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
           <div>
