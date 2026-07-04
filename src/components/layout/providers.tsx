@@ -16,6 +16,9 @@ export default function Providers({
     <>
       <ActiveThemeProvider initialTheme={activeThemeValue}>
         <ClerkProvider
+          signInUrl="/auth/v2/login"
+          signUpUrl="/auth/v2/register"
+          afterSignOutUrl="/auth/v2/login"
           appearance={{
             variables: {
               colorPrimary: 'var(--primary)',

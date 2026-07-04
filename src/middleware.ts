@@ -3,7 +3,11 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 const isProtectedRoute = createRouteMatcher(['/dashboard(.*)']);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) await auth.protect();
+  if (isProtectedRoute(req)) {
+    await auth.protect({
+      unauthenticatedUrl: new URL('/auth/v2/login', req.url).toString(),
+    });
+  }
 }, {
   publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
 });
