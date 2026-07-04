@@ -46,6 +46,13 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'Thư viện ảnh',
+        url: '/dashboard/media',
+        icon: 'media',
+        isActive: false,
+        items: []
+      },
+      {
         title: 'Mã giảm giá',
         url: '/dashboard/discounts',
         icon: 'palette',

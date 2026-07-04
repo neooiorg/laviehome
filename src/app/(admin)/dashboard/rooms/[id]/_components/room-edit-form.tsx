@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ImageUpload } from "@/components/image-upload";
 import type { BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 import { deleteRoom, updateRoom } from "@/lib/room-actions";
 
@@ -28,7 +29,6 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   const [images, setImages] = React.useState<string[]>(room.images ?? []);
   const [amenities, setAmenities] = React.useState<string[]>(room.room_amenities ?? []);
   const [isClassic, setIsClassic] = React.useState(room.is_classic === 1);
-  const [newImage, setNewImage] = React.useState("");
   const [newAmenity, setNewAmenity] = React.useState("");
 
   async function handleSave() {
@@ -98,43 +98,20 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label>Ảnh chính (URL)</Label>
-          <Input value={mainImage} onChange={(e) => setMainImage(e.target.value)} placeholder="https://..." />
+          <Label>Ảnh chính</Label>
+          <ImageUpload
+            single
+            value={mainImage ? [mainImage] : []}
+            onChange={(urls) => setMainImage(urls[0] ?? "")}
+          />
         </div>
 
         <div className="flex flex-col gap-2">
           <Label>Danh sách ảnh</Label>
-          <div className="flex gap-2">
-            <Input
-              value={newImage}
-              onChange={(e) => setNewImage(e.target.value)}
-              placeholder="https://..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newImage.trim()) {
-                  setImages([...images, newImage.trim()]);
-                  setNewImage("");
-                }
-              }}
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              onClick={() => { if (newImage.trim()) { setImages([...images, newImage.trim()]); setNewImage(""); } }}
-            >
-              <Plus className="size-4" />
-            </Button>
-          </div>
-          <div className="flex flex-col gap-1">
-            {images.map((img, i) => (
-              <div key={i} className="flex items-center gap-2 rounded border px-3 py-1 text-sm">
-                <span className="flex-1 truncate text-muted-foreground">{img}</span>
-                <button type="button" onClick={() => setImages(images.filter((_, j) => j !== i))}>
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
+          <ImageUpload
+            value={images}
+            onChange={setImages}
+          />
         </div>
 
         <div className="flex flex-col gap-2">
