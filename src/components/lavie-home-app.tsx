@@ -250,23 +250,26 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
     const el = roomRowRef.current;
     if (!el || event.pointerType !== "mouse") return;
     dragState.current = { isDragging: true, moved: false, startX: event.clientX, startScrollLeft: el.scrollLeft };
-    el.setPointerCapture(event.pointerId);
+
+    function onMouseMove(e: MouseEvent) {
+      const state = dragState.current;
+      if (!state.isDragging) return;
+      const delta = e.clientX - state.startX;
+      if (Math.abs(delta) > 3) state.moved = true;
+      el.scrollLeft = state.startScrollLeft - delta;
+    }
+    function onMouseUp() {
+      dragState.current.isDragging = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
   }
 
-  function handleRoomRowPointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    const el = roomRowRef.current;
-    const state = dragState.current;
-    if (!el || !state.isDragging) return;
-    const delta = event.clientX - state.startX;
-    if (Math.abs(delta) > 3) state.moved = true;
-    el.scrollLeft = state.startScrollLeft - delta;
-  }
+  function handleRoomRowPointerMove(_event: React.PointerEvent<HTMLDivElement>) { /* handled via window */ }
 
-  function endRoomRowDrag(event: React.PointerEvent<HTMLDivElement>) {
-    const el = roomRowRef.current;
-    if (dragState.current.isDragging) el?.releasePointerCapture(event.pointerId);
-    dragState.current.isDragging = false;
-  }
+  function endRoomRowDrag(_event: React.PointerEvent<HTMLDivElement>) { /* handled via window */ }
 
   function handleRoomCardClickCapture(event: React.MouseEvent<HTMLDivElement>) {
     if (dragState.current.moved) {
@@ -502,9 +505,6 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
             id="room-row"
             ref={roomRowRef}
             onPointerDown={handleRoomRowPointerDown}
-            onPointerMove={handleRoomRowPointerMove}
-            onPointerUp={endRoomRowDrag}
-            onPointerLeave={endRoomRowDrag}
             onClickCapture={handleRoomCardClickCapture}
             className="hide-scrollbar flex snap-x gap-5 overflow-x-auto pb-6 cursor-grab select-none active:cursor-grabbing md:snap-none"
           >
