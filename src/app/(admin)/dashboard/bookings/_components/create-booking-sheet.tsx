@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
 import { createBookingAdmin } from "@/lib/booking-actions";
@@ -72,6 +72,7 @@ export function CreateBookingSheet({
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Tạo đặt phòng</SheetTitle>
+          <SheetDescription className="sr-only">Điền thông tin để tạo đặt phòng mới.</SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-4 pt-4">

@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { X, Upload, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { AlertModal } from "@/components/modal/alert-modal";
 
 interface ImageUploadProps {
   value: string[];
@@ -22,6 +23,7 @@ export function ImageUpload({
   className,
 }: ImageUploadProps) {
   const [uploading, setUploading] = React.useState(false);
+  const [pendingDeleteIndex, setPendingDeleteIndex] = React.useState<number | null>(null);
 
   async function uploadFile(file: File): Promise<string | null> {
     const fd = new FormData();
@@ -63,6 +65,7 @@ export function ImageUpload({
 
   function remove(index: number) {
     onChange(value.filter((_, i) => i !== index));
+    setPendingDeleteIndex(null);
   }
 
   function moveLeft(index: number) {
@@ -82,6 +85,14 @@ export function ImageUpload({
   const canUploadMore = single ? value.length === 0 : value.length < maxFiles;
 
   return (
+    <>
+    <AlertModal
+      isOpen={pendingDeleteIndex !== null}
+      onClose={() => setPendingDeleteIndex(null)}
+      onConfirm={() => pendingDeleteIndex !== null && remove(pendingDeleteIndex)}
+      title="Xóa ảnh?"
+      description="Ảnh này sẽ bị xóa khỏi danh sách. Bạn có chắc không?"
+    />
     <div className={cn("flex flex-col gap-3", className)}>
       {value.length > 0 && (
         <div className={cn("grid gap-2", single ? "grid-cols-1" : "grid-cols-3 sm:grid-cols-4")}>
@@ -93,7 +104,7 @@ export function ImageUpload({
                 fill
                 className="object-cover"
                 sizes="200px"
-                unoptimized={url.startsWith("/uploads/")}
+                unoptimized={url.startsWith("/api/upload/")}
               />
               <div className="absolute inset-0 flex items-start justify-between gap-1 p-1 opacity-0 transition-opacity group-hover:opacity-100 bg-black/20">
                 {!single && (
@@ -118,7 +129,7 @@ export function ImageUpload({
                 )}
                 <button
                   type="button"
-                  onClick={() => remove(i)}
+                  onClick={() => setPendingDeleteIndex(i)}
                   className="ml-auto rounded bg-white/80 p-0.5 hover:bg-white"
                 >
                   <X className="size-3 text-destructive" />
@@ -159,5 +170,6 @@ export function ImageUpload({
         </div>
       )}
     </div>
+    </>
   );
 }

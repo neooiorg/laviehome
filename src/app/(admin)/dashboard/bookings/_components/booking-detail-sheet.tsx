@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 
-import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 
@@ -36,6 +35,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
           <>
             <SheetHeader className="mb-6">
               <SheetTitle className="text-lg">Chi tiết booking #{booking.id}</SheetTitle>
+              <SheetDescription className="sr-only">Thông tin chi tiết về booking này.</SheetDescription>
             </SheetHeader>
 
             <div className="space-y-6">

@@ -18,7 +18,7 @@ export default async function MediaPage() {
         const info = await stat(path.join(uploadsDir, name));
         return {
           name,
-          url: `/uploads/${name}`,
+          url: `/api/upload/${name}`,
           size: info.size,
           createdAt: info.birthtime.toISOString(),
         };
