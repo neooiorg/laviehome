@@ -38,7 +38,7 @@ gsap.registerPlugin(useGSAP);
 const PLACEHOLDER_IMG = "https://placehold.co/420x300/1b1023/white?text=Anh+phong";
 
 function safeImg(src: string) {
-  return src && src.startsWith("http") ? src : PLACEHOLDER_IMG;
+  return src && (src.startsWith("http") || src.startsWith("/")) ? src : PLACEHOLDER_IMG;
 }
 
 const slotLabels = ["08:00 - 11:00", "11:15 - 14:15", "14:30 - 17:30", "17:45 - 20:45", "21:00 - 00:00"];
@@ -940,8 +940,8 @@ function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void;
         </div>
         <div className="grid gap-5 p-5 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="hide-scrollbar flex snap-x gap-4 overflow-x-auto">
-            {(room.images.filter((src) => src && src.startsWith("http")).length > 0
-              ? room.images.filter((src) => src && src.startsWith("http"))
+            {(room.images.filter((src) => src && (src.startsWith("http") || src.startsWith("/"))).length > 0
+              ? room.images.filter((src) => src && (src.startsWith("http") || src.startsWith("/")))
               : [room.main_image]
             ).slice(0, 10).map((src) => (
               <Image

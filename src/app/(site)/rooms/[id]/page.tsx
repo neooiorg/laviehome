@@ -23,7 +23,7 @@ import { compactPhone } from '@/lib/format';
 
 const PLACEHOLDER_IMG = 'https://placehold.co/900x650/1b1023/white?text=Anh+phong';
 function safeImg(src: string | undefined | null) {
-  return src && src.startsWith('http') ? src : PLACEHOLDER_IMG;
+  return src && (src.startsWith('http') || src.startsWith('/')) ? src : PLACEHOLDER_IMG;
 }
 
 // Helper to map amenity names to Lucide icons
@@ -57,7 +57,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
   }
 
   const branch = branches.find((b) => b.id === room.branch_id) ?? branches[0];
-  const validImages = (room.images ?? []).filter((img) => img && img.startsWith('http'));
+  const validImages = (room.images ?? []).filter((img) => img && (img.startsWith('http') || img.startsWith('/')));
   const allImages = validImages.length > 0 ? validImages : [safeImg(room.main_image)];
 
   return (
