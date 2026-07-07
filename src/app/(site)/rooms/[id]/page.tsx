@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BrandWordmark } from '@/components/brand-wordmark';
 import { RoomGallery } from './room-gallery';
+import { RoomBooking } from './room-booking';
 import { 
   ArrowLeft, 
   BedDouble, 
@@ -142,12 +143,12 @@ export default async function RoomDetailPage({ params }: PageProps) {
 
                 {/* Action CTA Buttons */}
                 <div className="space-y-3.5 pt-4">
-                  <Link
-                    href={`/?branch=${room.branch_id}#booking`}
+                  <a
+                    href="#booking"
                     className="primary-button w-full text-center py-4 text-sm font-extrabold uppercase tracking-widest block"
                   >
                     Đặt phòng ngay bây giờ
-                  </Link>
+                  </a>
 
                   <a 
                     href={`https://zalo.me/${compactPhone(branch?.hotline ?? '0909123456')}`}
@@ -187,6 +188,18 @@ export default async function RoomDetailPage({ params }: PageProps) {
             </div>
 
           </div>
+
+          {/* In-page booking — đặt phòng ngay tại đây, không quay về trang chủ */}
+          <RoomBooking
+            room={{
+              id: room.id,
+              branch_id: room.branch_id,
+              card_name: room.card_name,
+              branch_name: room.branch_name,
+              price_from: room.price_from,
+              full_day_price: room.full_day_price,
+            }}
+          />
         </div>
       </div>
 
