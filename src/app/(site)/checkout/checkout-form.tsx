@@ -1,19 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IdCard, Tag, Upload, UserRound } from "lucide-react";
 import { money } from "@/lib/format";
+
+export type CheckoutPricing = {
+  guestCount: number;
+  surcharge: number;
+  discountPercent: number;
+  discountAmount: number;
+  finalAmount: number;
+};
 
 type CheckoutFormProps = {
   bookingId: string;
   price: number;
+  onPricingChange?: (pricing: CheckoutPricing) => void;
 };
 
 type DiscountResult =
   | { valid: true; percent: number; description: string }
   | { valid: false; error: string };
 
-export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
+export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutFormProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
@@ -54,6 +63,11 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
   const discountPercent = discountResult?.valid ? discountResult.percent : 0;
   const discountAmount = Math.round(price * discountPercent / 100);
   const finalAmount = price + surcharge - discountAmount;
+
+  // Keep the sidebar summary + payment box in sync with the live pricing.
+  useEffect(() => {
+    onPricingChange?.({ guestCount, surcharge, discountPercent, discountAmount, finalAmount });
+  }, [onPricingChange, guestCount, surcharge, discountPercent, discountAmount, finalAmount]);
 
   async function applyDiscount() {
     const code = discountCode.trim();
@@ -204,7 +218,7 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
           <label className="checkout-upload">
             {cccdFront ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={cccdFront} alt="CCCD mặt trước" className="h-24 w-full object-cover rounded-xl" />
+              <img src={cccdFront} alt="CCCD mặt trước" className="w-full aspect-[1.585/1] object-contain rounded-xl bg-black/25" />
             ) : (
               <Upload size={24} className="text-pink-300" />
             )}
@@ -216,7 +230,7 @@ export function CheckoutForm({ bookingId, price }: CheckoutFormProps) {
           <label className="checkout-upload">
             {cccdBack ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={cccdBack} alt="CCCD mặt sau" className="h-24 w-full object-cover rounded-xl" />
+              <img src={cccdBack} alt="CCCD mặt sau" className="w-full aspect-[1.585/1] object-contain rounded-xl bg-black/25" />
             ) : (
               <Upload size={24} className="text-pink-300" />
             )}

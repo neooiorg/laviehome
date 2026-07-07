@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Calendar, CheckCircle2, Clock, Home, Phone, Search, XCircle } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, Hash, Home, Phone, Search, XCircle } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { gsap } from "gsap";
@@ -37,6 +37,7 @@ function StatusIcon({ status }: { status: string }) {
 export default function CheckingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Booking[] | null>(null);
@@ -56,12 +57,20 @@ export default function CheckingPage() {
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!phone.trim() && !code.trim()) {
+      setError("Vui lòng nhập số điện thoại hoặc mã đặt phòng.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setBookings(null);
 
     try {
-      const params = new URLSearchParams({ phone });
+      const params = new URLSearchParams();
+      if (phone.trim()) params.set("phone", phone.trim());
+      if (code.trim()) params.set("code", code.trim());
       if (date) params.set("date", date);
 
       const res = await fetch(`/api/bookings?${params}`);
@@ -99,7 +108,24 @@ export default function CheckingPage() {
                   placeholder="Nhập số điện thoại đã đặt phòng"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  required
+                />
+              </span>
+            </label>
+
+            <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-white/35 animate-item">
+              <span className="h-px flex-1 bg-white/10" /> hoặc <span className="h-px flex-1 bg-white/10" />
+            </div>
+
+            <label className="grid gap-2 text-sm font-bold text-white/72 animate-item">
+              Mã đặt phòng
+              <span className="relative">
+                <Hash className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-pink-200" size={18} />
+                <input
+                  type="text"
+                  className="field-input uppercase tracking-widest"
+                  placeholder="VD: LVH01000123"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
                 />
               </span>
             </label>

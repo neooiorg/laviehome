@@ -26,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import type { ElementType } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { compactPhone, money } from "@/lib/format";
@@ -241,6 +241,22 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
     setActiveBranchId(branchId);
     setSelectedSlots([]);
   }
+
+  // Pre-select branch from the URL (?branch=<id>) so links from a room detail
+  // page open the booking calendar for the correct branch instead of the first one.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const branchParam = Number(params.get("branch"));
+    if (!branchParam || Number.isNaN(branchParam)) return;
+    if (!branches.some((b) => b.id === branchParam)) return;
+    setActiveBranchId(branchParam);
+    if (window.location.hash === "#booking") {
+      // Wait for the branch calendar to render before scrolling into view.
+      requestAnimationFrame(() => {
+        document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+  }, [branches]);
 
   function scrollBooking(direction: -1 | 1) {
     bookingScrollRef.current?.scrollBy({ left: direction * 420, behavior: "smooth" });

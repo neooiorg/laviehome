@@ -272,7 +272,9 @@ function EditDiscountSheet({
   const [percent, setPercent] = React.useState(code ? String(code.percent) : "");
   const [description, setDescription] = React.useState(code?.description ?? "");
   const [maxUses, setMaxUses] = React.useState(code ? String(code.max_uses) : "");
-  const [expiresAt, setExpiresAt] = React.useState(code?.expires_at ? code.expires_at.slice(0, 10) : "");
+  const [expiresAt, setExpiresAt] = React.useState(
+    code?.expires_at ? String(code.expires_at).slice(0, 10) : ""
+  );
   const [active, setActive] = React.useState(code?.active ?? true);
 
   async function handleSave() {

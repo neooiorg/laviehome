@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BrandWordmark } from '@/components/brand-wordmark';
+import { RoomGallery } from './room-gallery';
 import { 
   ArrowLeft, 
   BedDouble, 
@@ -78,40 +78,8 @@ export default async function RoomDetailPage({ params }: PageProps) {
           {/* Main Grid Section */}
           <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-8 xl:gap-12 items-start">
             
-            {/* Left: Gallery Grid */}
-            <div className="space-y-6">
-              <div className="border-4 border-white bg-slate-900 rounded-3xl overflow-hidden shadow-[8px_8px_0px_rgba(243,90,189,0.4)] aspect-[16/10] relative">
-                <Image
-                  src={safeImg(room.main_image)}
-                  alt={room.card_name}
-                  fill
-                  priority
-                  className="object-cover"
-                />
-                <div className="absolute top-4 left-4 bg-pink-600 border-2 border-white text-white px-3 py-1.5 rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-[3px_3px_0px_#fff]">
-                  ✨ Ảnh phòng thực tế 100%
-                </div>
-              </div>
-
-              {/* Grid of smaller images */}
-              {allImages.length > 1 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {allImages.slice(1, 7).map((imgUrl: string, index) => (
-                    <div 
-                      key={index}
-                      className="border-2 border-white/20 bg-slate-900 rounded-2xl overflow-hidden shadow-[4px_4px_0px_rgba(255,255,255,0.05)] hover:border-pink-300 hover:shadow-[4px_4px_0px_rgba(243,90,189,0.3)] transition-all aspect-[4/3] relative cursor-pointer group"
-                    >
-                      <Image
-                        src={safeImg(imgUrl)}
-                        alt={`${room.card_name} - Góc ${index + 2}`}
-                        fill
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Left: Interactive Gallery */}
+            <RoomGallery images={allImages} alt={room.card_name} />
 
             {/* Right: Room Specs Panel */}
             <div className="space-y-6">
@@ -174,8 +142,8 @@ export default async function RoomDetailPage({ params }: PageProps) {
 
                 {/* Action CTA Buttons */}
                 <div className="space-y-3.5 pt-4">
-                  <Link 
-                    href="/#booking" 
+                  <Link
+                    href={`/?branch=${room.branch_id}#booking`}
                     className="primary-button w-full text-center py-4 text-sm font-extrabold uppercase tracking-widest block"
                   >
                     Đặt phòng ngay bây giờ

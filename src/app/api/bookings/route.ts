@@ -137,22 +137,38 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const phone = searchParams.get("phone");
+  const code = searchParams.get("code");
   const date = searchParams.get("date");
 
-  if (!phone) {
-    return NextResponse.json({ error: "Missing phone" }, { status: 400 });
+  // Allow looking up either by phone number or by booking code so that
+  // customers without a phone on file can still find their booking.
+  if (!phone && !code) {
+    return NextResponse.json({ error: "Vui lòng nhập số điện thoại hoặc mã đặt phòng" }, { status: 400 });
   }
 
   try {
     const db = getPool();
     await ensureTable(db);
 
-    const params: string[] = [phone.replace(/\D/g, "")];
-    let whereClauses = `REGEXP_REPLACE(customer_phone, '[^0-9]', '', 'g') = $1`;
+    const params: string[] = [];
+    const conditions: string[] = [];
+
+    if (phone) {
+      params.push(phone.replace(/\D/g, ""));
+      conditions.push(`REGEXP_REPLACE(customer_phone, '[^0-9]', '', 'g') = $${params.length}`);
+    }
+
+    if (code) {
+      params.push(code.trim().toUpperCase());
+      conditions.push(`UPPER(id) = $${params.length}`);
+    }
+
+    // phone OR code identifies the booking; date further narrows the result.
+    let whereClauses = `(${conditions.join(" OR ")})`;
 
     if (date) {
       params.push(date);
-      whereClauses += ` AND date_label = $2`;
+      whereClauses += ` AND date_label = $${params.length}`;
     }
 
     const result = await db.query(

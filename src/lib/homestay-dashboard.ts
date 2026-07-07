@@ -584,7 +584,14 @@ export async function getBranchById(id: number): Promise<BranchRow | null> {
 }
 
 export async function getDiscountCodes(): Promise<DiscountCode[]> {
-  return query<DiscountCode>('select * from discount_codes order by created_at desc');
+  // Cast timestamps to text so they arrive as ISO strings (not JS Date objects),
+  // matching the DiscountCode type. The edit sheet calls expires_at.slice(...),
+  // which would throw if pg returned a Date.
+  return query<DiscountCode>(
+    `select code, percent, description, active, max_uses, used_count,
+            expires_at::text as expires_at, created_at::text as created_at
+     from discount_codes order by created_at desc`
+  );
 }
 
 export async function getBookingSnapshotsFiltered(options?: {

@@ -9,7 +9,7 @@ export default clerkMiddleware(async (auth, req) => {
     });
   }
 }, {
-  publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+  publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 });
 
 export const config = {
