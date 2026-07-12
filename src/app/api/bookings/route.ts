@@ -57,16 +57,19 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
   // Patch the legacy admin schema so customer checkout INSERTs don't fail.
-  // - guest_name/stay_date/channel/status: set safe defaults
-  // - branch_id/room_id: make nullable (no sensible scalar default exists)
-  // Each statement is isolated so one missing column doesn't block the others.
+  // Admin bookings always supply every field; customer checkout only supplies
+  // a subset. Set safe defaults or drop NOT NULL for columns the customer
+  // route may omit. Each statement is isolated so missing columns don't block.
   for (const stmt of [
     `ALTER TABLE bookings ALTER COLUMN guest_name SET DEFAULT ''`,
     `ALTER TABLE bookings ALTER COLUMN stay_date SET DEFAULT CURRENT_DATE`,
     `ALTER TABLE bookings ALTER COLUMN channel SET DEFAULT 'Online'`,
     `ALTER TABLE bookings ALTER COLUMN status SET DEFAULT 'Chờ thanh toán'`,
-    `ALTER TABLE bookings ALTER COLUMN branch_id DROP NOT NULL`,
     `ALTER TABLE bookings ALTER COLUMN room_id DROP NOT NULL`,
+    `ALTER TABLE bookings ALTER COLUMN branch_id DROP NOT NULL`,
+    `ALTER TABLE bookings ALTER COLUMN time_range DROP NOT NULL`,
+    `ALTER TABLE bookings ALTER COLUMN customer_name DROP NOT NULL`,
+    `ALTER TABLE bookings ALTER COLUMN customer_phone DROP NOT NULL`,
   ]) {
     await db.query(stmt).catch(() => {});
   }
