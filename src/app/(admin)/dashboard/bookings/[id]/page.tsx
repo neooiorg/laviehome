@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -127,11 +126,10 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   <div>
                     <p className="mb-1.5 text-xs text-muted-foreground">Mặt trước</p>
                     <a href={booking.cccdFront} target="_blank" rel="noreferrer">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={booking.cccdFront}
                         alt="CCCD mặt trước"
-                        width={400}
-                        height={260}
                         className="w-full rounded-lg border object-cover"
                       />
                     </a>
@@ -141,11 +139,10 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   <div>
                     <p className="mb-1.5 text-xs text-muted-foreground">Mặt sau</p>
                     <a href={booking.cccdBack} target="_blank" rel="noreferrer">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={booking.cccdBack}
                         alt="CCCD mặt sau"
-                        width={400}
-                        height={260}
                         className="w-full rounded-lg border object-cover"
                       />
                     </a>
