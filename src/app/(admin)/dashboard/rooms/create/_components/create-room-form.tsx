@@ -1,11 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Plus, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, X } from "lucide-react";
 
+import PageContainer from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,8 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import type { BranchRow } from "@/lib/homestay-dashboard";
 import { createRoom } from "@/lib/room-actions";
 
-export function CreateRoomDialog({ branches }: { branches: BranchRow[] }) {
-  const [open, setOpen] = React.useState(false);
+export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
+  const router = useRouter();
   const [saving, setSaving] = React.useState(false);
   const [cardName, setCardName] = React.useState("");
   const [branchId, setBranchId] = React.useState(branches[0] ? String(branches[0].id) : "");
@@ -25,13 +28,6 @@ export function CreateRoomDialog({ branches }: { branches: BranchRow[] }) {
   const [amenities, setAmenities] = React.useState<string[]>([]);
   const [isClassic, setIsClassic] = React.useState(false);
   const [newAmenity, setNewAmenity] = React.useState("");
-
-  function reset() {
-    setCardName(""); setBranchId(branches[0] ? String(branches[0].id) : "");
-    setPriceFrom(""); setPriceTo(""); setFullDayPrice("");
-    setMainImage(""); setAmenities([]); setIsClassic(false);
-    setNewAmenity("");
-  }
 
   async function handleCreate() {
     if (!cardName.trim() || !branchId) return;
@@ -49,24 +45,24 @@ export function CreateRoomDialog({ branches }: { branches: BranchRow[] }) {
       room_amenities: amenities,
       is_classic: isClassic,
     });
-    setSaving(false);
-    reset();
-    setOpen(false);
+    router.push("/dashboard/rooms");
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="mr-1.5 size-3.5" />
-          Thêm phòng
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Thêm phòng mới</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-4 pt-2">
+    <PageContainer>
+      <div className="mb-6 flex items-center gap-3">
+        <Link href="/dashboard/rooms" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="size-4" />
+          Danh sách phòng
+        </Link>
+      </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Thêm phòng mới</h1>
+      </div>
+
+      <Card className="max-w-2xl">
+        <CardHeader className="pb-3"><CardTitle className="text-base">Thông tin phòng</CardTitle></CardHeader>
+        <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Tên phòng *</Label>
             <Input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="VD: Phòng Hướng Biển 01" />
@@ -76,11 +72,7 @@ export function CreateRoomDialog({ branches }: { branches: BranchRow[] }) {
             <Label>Chi nhánh *</Label>
             <Select value={branchId} onValueChange={setBranchId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {branches.map((b) => (
-                  <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-                ))}
-              </SelectContent>
+              <SelectContent>{branches.map((b) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
@@ -114,29 +106,25 @@ export function CreateRoomDialog({ branches }: { branches: BranchRow[] }) {
               ))}
             </div>
             <div className="flex gap-2">
-              <Input
-                value={newAmenity}
-                onChange={(e) => setNewAmenity(e.target.value)}
-                placeholder="Thêm tiện ích..."
-                onKeyDown={(e) => { if (e.key === "Enter" && newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }}
-              />
+              <Input value={newAmenity} onChange={(e) => setNewAmenity(e.target.value)} placeholder="Thêm tiện ích..."
+                onKeyDown={(e) => { if (e.key === "Enter" && newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }} />
               <Button type="button" size="sm" variant="outline" onClick={() => { if (newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }}>Thêm</Button>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Switch checked={isClassic} onCheckedChange={setIsClassic} id="create-classic" />
-            <Label htmlFor="create-classic">Phòng classic</Label>
+            <Switch checked={isClassic} onCheckedChange={setIsClassic} id="classic" />
+            <Label htmlFor="classic">Phòng classic</Label>
           </div>
 
-          <div className="flex justify-end gap-2 border-t pt-3">
-            <Button variant="outline" onClick={() => setOpen(false)}>Hủy</Button>
-            <Button onClick={handleCreate} disabled={saving || !cardName.trim()}>
+          <div className="flex gap-2 border-t pt-3">
+            <Button variant="outline" asChild><Link href="/dashboard/rooms">Hủy</Link></Button>
+            <Button onClick={handleCreate} disabled={saving || !cardName.trim() || !branchId}>
               {saving ? "Đang tạo..." : "Tạo phòng"}
             </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </PageContainer>
   );
 }

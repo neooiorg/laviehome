@@ -24,10 +24,10 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { BookingSnapshot, BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 
+import Link from "next/link";
 import { DataTable } from "@/components/data-table";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { bookingsColumns } from "./bookings-columns";
-import { CreateBookingSheet } from "./create-booking-sheet";
 
 function exportCsv(bookings: BookingSnapshot[]) {
   const headers = ["ID", "Khách", "SĐT", "Phòng", "Chi nhánh", "Ngày", "Giờ", "Kênh", "Trạng thái", "Số tiền", "Tạo lúc"];
@@ -59,7 +59,6 @@ export function Bookings({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
-  const [createOpen, setCreateOpen] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState<Date | null>(null);
 
   // Real-time: listen for payment confirmations pushed by the SePay webhook via SSE
@@ -124,9 +123,11 @@ export function Bookings({
               <Download className="mr-1.5 size-3.5" />
               Xuất CSV
             </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-1.5 size-3.5" />
-              Tạo đặt phòng
+            <Button size="sm" asChild>
+              <Link href="/dashboard/bookings/create">
+                <Plus className="mr-1.5 size-3.5" />
+                Tạo đặt phòng
+              </Link>
             </Button>
           </div>
         </CardHeader>
@@ -192,12 +193,6 @@ export function Bookings({
         </CardContent>
       </Card>
 
-      <CreateBookingSheet
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        branches={branches}
-        rooms={rooms}
-      />
     </>
   );
 }

@@ -20,7 +20,9 @@ import { DataTable } from "@/components/data-table";
 import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
 import type { BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 
-import { CreateRoomDialog } from "./create-room-dialog";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { roomsColumns } from "./rooms-columns";
 
 interface Props {
@@ -104,7 +106,12 @@ export function RoomsClient({ rooms, branches }: Props) {
           <CardDescription>Danh sách tất cả phòng ({rooms.length} phòng).</CardDescription>
         </div>
         <div data-slot="card-action" className="flex items-start justify-end">
-          <CreateRoomDialog branches={branches} />
+          <Button size="sm" asChild>
+            <Link href="/dashboard/rooms/create">
+              <Plus className="mr-1.5 size-3.5" />
+              Thêm phòng
+            </Link>
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="px-0">
