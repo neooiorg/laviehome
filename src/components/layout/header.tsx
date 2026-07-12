@@ -1,9 +1,8 @@
 import React from 'react';
 import { SidebarTrigger } from '../ui/sidebar';
 import { Separator } from '../ui/separator';
-import { Breadcrumbs } from '../breadcrumbs';
-import SearchInput from '../search-input';
-import { ThemeSelector } from '../themes/theme-selector';
+import { BreadcrumbNav } from '@/app/(admin)/dashboard/_components/sidebar/breadcrumb-nav';
+import { LayoutControls } from '@/app/(admin)/dashboard/_components/sidebar/layout-controls';
 import { ThemeModeToggle } from '../themes/theme-mode-toggle';
 import { NotificationCenter } from '@/features/notifications/components/notification-center';
 
@@ -13,18 +12,13 @@ export default function Header() {
       <div className='flex items-center gap-2 px-4'>
         <SidebarTrigger className='-ml-1' />
         <Separator orientation='vertical' className='mr-2 h-4' />
-        <Breadcrumbs />
+        <BreadcrumbNav />
       </div>
 
       <div className='flex items-center gap-2 px-4'>
-        <div className='hidden md:flex'>
-          <SearchInput />
-        </div>
         <ThemeModeToggle />
-        <div className='hidden sm:block'>
-          <ThemeSelector />
-        </div>
         <NotificationCenter />
+        <LayoutControls />
       </div>
     </header>
   );
