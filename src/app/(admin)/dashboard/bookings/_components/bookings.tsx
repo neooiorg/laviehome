@@ -2,7 +2,8 @@
 "use no memo";
 
 import * as React from "react";
-import { Download, Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Download, Plus, RefreshCw, Search } from "lucide-react";
 
 import {
   type ColumnFiltersState,
@@ -55,12 +56,23 @@ export function Bookings({
   branches: BranchRow[];
   rooms: RoomRow[];
 }) {
+  const router = useRouter();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [selectedBooking, setSelectedBooking] = React.useState<BookingSnapshot | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [lastRefresh, setLastRefresh] = React.useState(new Date());
+
+  // Auto-refresh every 30s so payment confirmations appear without manual reload
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      router.refresh();
+      setLastRefresh(new Date());
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [router]);
 
   // Client-side branch + date filters (separate from TanStack column filters)
   const [branchFilter, setBranchFilter] = React.useState("All");
@@ -119,6 +131,10 @@ export function Bookings({
             </CardDescription>
           </div>
           <div data-slot="card-action" className="flex items-start justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => { router.refresh(); setLastRefresh(new Date()); }}>
+              <RefreshCw className="mr-1.5 size-3.5" />
+              {lastRefresh.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </Button>
             <Button size="sm" variant="outline" onClick={() => exportCsv(visibleRows)}>
               <Download className="mr-1.5 size-3.5" />
               Xuất CSV
