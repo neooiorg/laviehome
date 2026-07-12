@@ -333,7 +333,7 @@ export async function getBookingById(id: string): Promise<BookingSnapshot | null
       b.created_at::text,
       coalesce(r.card_name, b.room_name, '') as card_name,
       coalesce(r.branch_name, b.branch_name, '') as branch_name,
-      coalesce(r.room_amenities, '') as room_amenities,
+      coalesce(r.room_amenities, '{}') as room_amenities,
       coalesce(r.price_from, b.amount, 0) as price_from,
       coalesce(r.price_to, b.amount, 0) as price_to,
       coalesce(r.full_day_price, 0) as full_day_price,
