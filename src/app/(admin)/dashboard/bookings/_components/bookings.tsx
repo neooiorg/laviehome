@@ -63,15 +63,16 @@ export function Bookings({
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [selectedBooking, setSelectedBooking] = React.useState<BookingSnapshot | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [lastRefresh, setLastRefresh] = React.useState(new Date());
+  const [lastRefresh, setLastRefresh] = React.useState<Date | null>(null);
 
-  // Auto-refresh every 30s so payment confirmations appear without manual reload
+  // Real-time: listen for payment confirmations pushed by the SePay webhook via SSE
   React.useEffect(() => {
-    const id = setInterval(() => {
+    const es = new EventSource("/api/booking-events");
+    es.onmessage = () => {
       router.refresh();
       setLastRefresh(new Date());
-    }, 30_000);
-    return () => clearInterval(id);
+    };
+    return () => es.close();
   }, [router]);
 
   // Client-side branch + date filters (separate from TanStack column filters)
@@ -131,9 +132,9 @@ export function Bookings({
             </CardDescription>
           </div>
           <div data-slot="card-action" className="flex items-start justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => { router.refresh(); setLastRefresh(new Date()); }}>
+            <Button size="sm" variant="outline" onClick={() => { router.refresh(); setLastRefresh(new Date()); }} title="Làm mới dữ liệu">
               <RefreshCw className="mr-1.5 size-3.5" />
-              {lastRefresh.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              {lastRefresh ? lastRefresh.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Live'}
             </Button>
             <Button size="sm" variant="outline" onClick={() => exportCsv(visibleRows)}>
               <Download className="mr-1.5 size-3.5" />

@@ -43,6 +43,15 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     if (result.rowCount && result.rowCount > 0) {
       logger.info(`Booking ${bookingId} confirmed.`);
+      // Notify frontend SSE clients so admin dashboard updates instantly
+      const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
+      if (frontendUrl) {
+        fetch(`${frontendUrl}/api/booking-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingId, status: "Đã xác nhận" }),
+        }).catch((e) => logger.warn(`booking-notify failed: ${e.message}`));
+      }
       return res.status(200).json({ success: true, message: `Booking ${bookingId} confirmed.` });
     } else {
       logger.warn(`Booking ${bookingId} not found.`);
