@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/site-header';
 import { BottomNav } from '@/components/bottom-nav';
 import { CheckoutExperience } from './checkout-experience';
 import { getPublicBranches } from '@/lib/homestay-dashboard';
+import { query } from '@/lib/postgres';
 import { compactPhone } from '@/lib/format';
 
 type CheckoutSearchParams = Record<string, string | string[] | undefined>;
@@ -53,24 +54,25 @@ async function resolveCheckout(params: CheckoutSearchParams) {
 
 async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<typeof resolveCheckout>>) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    await fetch(`${baseUrl}/api/bookings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    await query(
+      `INSERT INTO bookings (
+        id, guest_name, room_name, branch_id, branch_name, date_label, time_range, timeslot_ids, amount
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (id) DO NOTHING`,
+      [
         id,
-        room_name: checkout.roomName,
-        branch_id: checkout.branchId,
-        branch_name: checkout.branchName,
-        date_label: checkout.date,
-        time_range: checkout.timeRange,
-        timeslot_ids: checkout.timeslotIds,
-        amount: checkout.price,
-      }),
-      cache: 'no-store',
-    });
+        '',
+        checkout.roomName ?? null,
+        checkout.branchId ? Number(checkout.branchId) : null,
+        checkout.branchName ?? null,
+        checkout.date ?? null,
+        checkout.timeRange ?? null,
+        checkout.timeslotIds ?? null,
+        checkout.price ?? 0,
+      ]
+    );
   } catch {
-    // non-blocking — booking will be created on form submit instead
+    // non-blocking — booking will be completed on form submit
   }
 }
 

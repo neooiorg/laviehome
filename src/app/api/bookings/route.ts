@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       cccd_front,
       cccd_back,
     } = body;
+    const guest_name: string = customer_name ?? '';
 
     if (!id) {
       return NextResponse.json({ error: "Missing booking id" }, { status: 400 });
@@ -90,11 +91,12 @@ export async function POST(req: NextRequest) {
 
     await db.query(
       `INSERT INTO bookings (
-        id, room_name, branch_id, branch_name, date_label, time_range,
+        id, guest_name, room_name, branch_id, branch_name, date_label, time_range,
         timeslot_ids, amount, customer_name, customer_phone, discount_code,
         notes, guest_count, has_car, has_decoration, cccd_front, cccd_back
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       ON CONFLICT (id) DO UPDATE SET
+        guest_name = COALESCE(NULLIF(EXCLUDED.guest_name, ''), bookings.guest_name),
         customer_name = COALESCE(EXCLUDED.customer_name, bookings.customer_name),
         customer_phone = COALESCE(EXCLUDED.customer_phone, bookings.customer_phone),
         notes = COALESCE(EXCLUDED.notes, bookings.notes),
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
         updated_at = NOW()`,
       [
         id,
+        guest_name,
         room_name ?? null,
         branch_id ? Number(branch_id) : null,
         branch_name ?? null,

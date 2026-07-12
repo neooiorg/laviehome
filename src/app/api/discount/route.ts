@@ -79,10 +79,11 @@ export async function POST(req: NextRequest) {
   try {
     const db = getPool();
     await ensureTable(db);
-    await db.query(
-      `UPDATE discount_codes SET used_count = used_count + 1 WHERE code = $1`,
+    const { rowCount } = await db.query(
+      `UPDATE discount_codes SET used_count = used_count + 1 WHERE code = $1 AND active = TRUE`,
       [code.trim().toUpperCase()]
     );
+    if (!rowCount) return NextResponse.json({ ok: false, error: 'Mã không hợp lệ' });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: true }); // non-blocking
