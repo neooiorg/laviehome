@@ -25,11 +25,10 @@ import type { BookingSnapshot, BranchRow, RoomRow } from "@/lib/homestay-dashboa
 
 import { DataTable } from "@/components/data-table";
 import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
-import { BookingDetailSheet } from "./booking-detail-sheet";
 import { bookingsColumns } from "./bookings-columns";
 import { CreateBookingSheet } from "./create-booking-sheet";
 
-const STATUSES = ["All", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+const STATUSES = ["All", "Chờ thanh toán", "Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
 
 function exportCsv(bookings: BookingSnapshot[]) {
   const headers = ["ID", "Khách", "SĐT", "Phòng", "Chi nhánh", "Ngày", "Giờ", "Kênh", "Trạng thái", "Số tiền", "Tạo lúc"];
@@ -61,7 +60,6 @@ export function Bookings({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
-  const [selectedBooking, setSelectedBooking] = React.useState<BookingSnapshot | null>(null);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState<Date | null>(null);
 
@@ -103,7 +101,6 @@ export function Bookings({
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    meta: { onDetail: setSelectedBooking },
   });
 
   const searchQuery = (table.getColumn("search")?.getFilterValue() as string | undefined) ?? "";
@@ -222,11 +219,6 @@ export function Bookings({
           <DataTable table={table} emptyMessage="Không có booking nào." />
         </CardContent>
       </Card>
-
-      <BookingDetailSheet
-        booking={selectedBooking}
-        onClose={() => setSelectedBooking(null)}
-      />
 
       <CreateBookingSheet
         open={createOpen}

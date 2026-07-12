@@ -1,6 +1,7 @@
 "use client";
 "use no memo";
 
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye } from "lucide-react";
 
@@ -10,6 +11,14 @@ import { cn } from "@/lib/utils";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 
 const statusMeta: Record<string, { badgeClass: string; dotClass: string }> = {
+  "Chờ thanh toán": {
+    badgeClass: "border-orange-200 text-orange-700 dark:border-orange-500/30 dark:text-orange-400",
+    dotClass: "bg-orange-500",
+  },
+  "Đã thanh toán": {
+    badgeClass: "border-emerald-200 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-400",
+    dotClass: "bg-emerald-500",
+  },
   "Đã xác nhận": {
     badgeClass: "border-blue-200 text-blue-700 dark:border-blue-500/30 dark:text-blue-400",
     dotClass: "bg-blue-500",
@@ -119,20 +128,19 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: Booki
   {
     id: "actions",
     header: "",
-    cell: ({ row, table }) => {
-      const onDetail = (table.options.meta as { onDetail?: (b: BookingSnapshot) => void } | undefined)?.onDetail;
-      return (
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          className="size-7 text-muted-foreground"
-          onClick={() => onDetail?.(row.original)}
-          aria-label="Xem chi tiết"
-        >
+    cell: ({ row }) => (
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        className="size-7 text-muted-foreground"
+        asChild
+        aria-label="Xem chi tiết"
+      >
+        <Link href={`/dashboard/bookings/${row.original.id}`}>
           <Eye className="size-3.5" />
-        </Button>
-      );
-    },
+        </Link>
+      </Button>
+    ),
     enableSorting: false,
     enableHiding: false,
   },

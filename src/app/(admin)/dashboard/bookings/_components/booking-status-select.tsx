@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { updateBookingStatus } from "@/lib/booking-actions";
 import type { BookingStatus } from "@/lib/homestay-dashboard";
 
-const STATUSES: BookingStatus[] = ["Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
 
 interface Props {
   id: string;

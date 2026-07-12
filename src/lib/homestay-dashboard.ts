@@ -9,7 +9,7 @@ export type DashboardMetric = {
   note: string;
 };
 
-export type BookingStatus = 'Đã xác nhận' | 'Chờ cọc' | 'Đang ở' | 'Hoàn tất';
+export type BookingStatus = 'Chờ thanh toán' | 'Đã thanh toán' | 'Đã xác nhận' | 'Chờ cọc' | 'Đang ở' | 'Hoàn tất';
 
 export type BookingSnapshot = {
   id: string;
@@ -321,6 +321,78 @@ export async function getRoomSummaries(limit = 8): Promise<RoomSummary[]> {
       isFeatured: room.price_from >= 250000 || amenityCount >= 8
     };
   });
+}
+
+export async function getBookingById(id: string): Promise<BookingSnapshot | null> {
+  const rows = await query<BookingRow>(
+    `
+    select
+      b.id, b.room_id, b.branch_id, b.guest_name, b.customer_name, b.customer_phone,
+      b.stay_date::text, b.time_range, b.channel, b.status, b.amount, b.guest_count,
+      b.has_car, b.has_decoration, b.discount_code, b.notes, b.cccd_front, b.cccd_back,
+      b.created_at::text,
+      coalesce(r.card_name, b.room_name, '') as card_name,
+      coalesce(r.branch_name, b.branch_name, '') as branch_name,
+      coalesce(r.room_amenities, '') as room_amenities,
+      coalesce(r.price_from, b.amount, 0) as price_from,
+      coalesce(r.price_to, b.amount, 0) as price_to,
+      coalesce(r.full_day_price, 0) as full_day_price,
+      r.main_image, r.is_classic, r.images,
+      br.hotline as branch_hotline, br.google_maps_link as branch_maps,
+      br.active as branch_active, br.classic_booking_enabled as branch_classic
+    from bookings b
+    left join rooms r on r.id = b.room_id
+    left join branches br on br.id = b.branch_id
+    where upper(b.id) = upper($1)
+    limit 1
+    `,
+    [id]
+  );
+  if (!rows[0]) return null;
+  const booking = rows[0];
+  return {
+    id: booking.id,
+    guestName: booking.guest_name,
+    room: {
+      id: booking.room_id,
+      branch_id: booking.branch_id,
+      card_name: booking.card_name,
+      branch_name: booking.branch_name,
+      room_amenities: booking.room_amenities,
+      price_from: booking.price_from,
+      price_to: booking.price_to,
+      full_day_price: booking.full_day_price,
+      main_image: booking.main_image,
+      is_classic: booking.is_classic,
+      images: booking.images,
+    },
+    branch: {
+      id: booking.branch_id,
+      name: booking.branch_name,
+      active: booking.branch_active,
+      hotline: booking.branch_hotline,
+      google_maps_link: booking.branch_maps,
+      classic_booking_enabled: booking.branch_classic,
+    },
+    stayDate: booking.stay_date?.slice(0, 10) ?? '',
+    dateLabel: booking.stay_date
+      ? new Date(booking.stay_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '',
+    timeRange: booking.time_range,
+    channel: booking.channel,
+    status: booking.status,
+    amount: booking.amount,
+    customerName: booking.customer_name,
+    customerPhone: booking.customer_phone,
+    guestCount: booking.guest_count,
+    hasCar: booking.has_car ?? false,
+    hasDecoration: booking.has_decoration ?? false,
+    discountCode: booking.discount_code,
+    notes: booking.notes,
+    cccdFront: booking.cccd_front,
+    cccdBack: booking.cccd_back,
+    createdAt: booking.created_at,
+  };
 }
 
 export async function getBookingSnapshots(limit = 12): Promise<BookingSnapshot[]> {

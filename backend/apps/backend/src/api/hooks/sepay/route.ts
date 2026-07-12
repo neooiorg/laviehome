@@ -37,7 +37,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const db = getPool();
     const result = await db.query(
-      `UPDATE bookings SET status = 'Đã xác nhận', updated_at = NOW() WHERE UPPER(id) = $1`,
+      `UPDATE bookings SET status = 'Đã thanh toán', updated_at = NOW() WHERE UPPER(id) = $1`,
       [bookingId]
     );
 
@@ -49,7 +49,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         fetch(`${frontendUrl}/api/booking-notify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookingId, status: "Đã xác nhận" }),
+          body: JSON.stringify({ bookingId, status: "Đã thanh toán" }),
         }).catch((e) => logger.warn(`booking-notify failed: ${e.message}`));
       }
       return res.status(200).json({ success: true, message: `Booking ${bookingId} confirmed.` });

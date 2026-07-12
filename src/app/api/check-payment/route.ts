@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       [bookingId.toUpperCase()]
     );
 
-    if (res.rows.length > 0 && res.rows[0].status === "Đã xác nhận") {
+    if (res.rows.length > 0 && ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"].includes(res.rows[0].status)) {
       return NextResponse.json({ paid: true });
     }
 
