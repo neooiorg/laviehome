@@ -58,14 +58,15 @@ async function ensureTable(db: Pool) {
   `);
   // Patch NOT NULL columns from the legacy admin schema so customer bookings
   // created via this route (which don't supply every legacy field) don't fail.
-  await db.query(`
-    ALTER TABLE bookings
-      ALTER COLUMN guest_name SET DEFAULT '',
-      ALTER COLUMN stay_date SET DEFAULT CURRENT_DATE,
-      ALTER COLUMN channel SET DEFAULT 'Online'
-  `).catch(() => {
-    // Columns may not exist in all environments — silently ignore
-  });
+  // Each statement is isolated so one missing column doesn't block the others.
+  for (const stmt of [
+    `ALTER TABLE bookings ALTER COLUMN guest_name SET DEFAULT ''`,
+    `ALTER TABLE bookings ALTER COLUMN stay_date SET DEFAULT CURRENT_DATE`,
+    `ALTER TABLE bookings ALTER COLUMN channel SET DEFAULT 'Online'`,
+    `ALTER TABLE bookings ALTER COLUMN status SET DEFAULT 'Chờ thanh toán'`,
+  ]) {
+    await db.query(stmt).catch(() => {});
+  }
 }
 
 export async function POST(req: NextRequest) {
