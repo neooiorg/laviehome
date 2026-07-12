@@ -56,6 +56,16 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS cccd_back TEXT,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
+  // Patch NOT NULL columns from the legacy admin schema so customer bookings
+  // created via this route (which don't supply every legacy field) don't fail.
+  await db.query(`
+    ALTER TABLE bookings
+      ALTER COLUMN guest_name SET DEFAULT '',
+      ALTER COLUMN stay_date SET DEFAULT CURRENT_DATE,
+      ALTER COLUMN channel SET DEFAULT 'Online'
+  `).catch(() => {
+    // Columns may not exist in all environments — silently ignore
+  });
 }
 
 export async function POST(req: NextRequest) {
