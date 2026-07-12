@@ -18,17 +18,16 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { BookingSnapshot, BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 
 import { DataTable } from "@/components/data-table";
-import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { bookingsColumns } from "./bookings-columns";
 import { CreateBookingSheet } from "./create-booking-sheet";
-
-const STATUSES = ["All", "Chờ thanh toán", "Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
 
 function exportCsv(bookings: BookingSnapshot[]) {
   const headers = ["ID", "Khách", "SĐT", "Phòng", "Chi nhánh", "Ngày", "Giờ", "Kênh", "Trạng thái", "Số tiền", "Tạo lúc"];
@@ -104,18 +103,6 @@ export function Bookings({
   });
 
   const searchQuery = (table.getColumn("search")?.getFilterValue() as string | undefined) ?? "";
-  const statusFilter = (table.getColumn("status")?.getFilterValue() as string | undefined) ?? "All";
-
-  function setStatusFilter(value: string) {
-    table.getColumn("status")?.setFilterValue(value === "All" ? undefined : value);
-    table.setPageIndex(0);
-  }
-
-  function handleBranchFilter(value: string) {
-    setBranchFilter(value);
-    table.setPageIndex(0);
-  }
-
   const visibleRows = table.getFilteredRowModel().rows.map((r) => r.original);
 
   return (
@@ -145,14 +132,15 @@ export function Bookings({
         </CardHeader>
 
         <CardContent className="flex flex-col gap-4 px-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <InputGroup className="h-7 w-full md:w-56">
+          <div className="px-4 pt-4">
+            <DataTableToolbar table={table}>
+              {/* Search */}
+              <InputGroup className="h-8 w-full md:w-56">
                 <InputGroupAddon align="inline-start">
                   <Search className="size-3.5" />
                 </InputGroupAddon>
                 <InputGroupInput
-                  className="h-7"
+                  className="h-8"
                   placeholder="Tìm khách, SĐT, phòng..."
                   value={searchQuery}
                   onChange={(e) => {
@@ -162,22 +150,9 @@ export function Bookings({
                 />
               </InputGroup>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger size="sm">
-                  <span className="text-muted-foreground">Trạng thái:</span>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" align="start">
-                  <SelectGroup>
-                    {STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              <Select value={branchFilter} onValueChange={handleBranchFilter}>
-                <SelectTrigger size="sm">
+              {/* Branch filter */}
+              <Select value={branchFilter} onValueChange={(v) => { setBranchFilter(v); table.setPageIndex(0); }}>
+                <SelectTrigger size="sm" className="h-8">
                   <span className="text-muted-foreground">Chi nhánh:</span>
                   <SelectValue />
                 </SelectTrigger>
@@ -191,29 +166,26 @@ export function Bookings({
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="date"
-                  className="h-7 rounded-md border bg-background px-2 text-xs text-foreground"
-                  value={dateFrom}
-                  onChange={(e) => { setDateFrom(e.target.value); table.setPageIndex(0); }}
-                />
-                <span className="text-xs text-muted-foreground">–</span>
-                <input
-                  type="date"
-                  className="h-7 rounded-md border bg-background px-2 text-xs text-foreground"
-                  value={dateTo}
-                  onChange={(e) => { setDateTo(e.target.value); table.setPageIndex(0); }}
-                />
-              </div>
-            </div>
+              {/* Date range */}
+              <DatePicker
+                value={dateFrom}
+                onChange={(v) => { setDateFrom(v); table.setPageIndex(0); }}
+                placeholder="Từ ngày"
+                className="h-8 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">–</span>
+              <DatePicker
+                value={dateTo}
+                onChange={(v) => { setDateTo(v); table.setPageIndex(0); }}
+                placeholder="Đến ngày"
+                className="h-8 text-xs"
+              />
 
-            <div className="flex items-center gap-3">
+              {/* Row count */}
               <span className="text-sm text-muted-foreground tabular-nums">
                 {table.getFilteredRowModel().rows.length} booking
               </span>
-              <DataTableViewOptions table={table} />
-            </div>
+            </DataTableToolbar>
           </div>
 
           <DataTable table={table} emptyMessage="Không có booking nào." />

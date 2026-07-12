@@ -115,7 +115,20 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: Booki
   {
     accessorKey: "status",
     header: "Trạng thái",
-    filterFn: "equalsString",
+    filterFn: (row, _id, filterValues: string[]) =>
+      !filterValues.length || filterValues.includes(row.original.status),
+    meta: {
+      label: "Trạng thái",
+      variant: "multiSelect" as const,
+      options: [
+        { label: "Chờ thanh toán", value: "Chờ thanh toán" },
+        { label: "Đã thanh toán", value: "Đã thanh toán" },
+        { label: "Đã xác nhận", value: "Đã xác nhận" },
+        { label: "Chờ cọc", value: "Chờ cọc" },
+        { label: "Đang ở", value: "Đang ở" },
+        { label: "Hoàn tất", value: "Hoàn tất" },
+      ],
+    },
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
   {

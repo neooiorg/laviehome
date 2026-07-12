@@ -17,6 +17,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -248,7 +249,7 @@ function CreateDiscountDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Hết hạn</Label>
-              <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+              <DatePicker value={expiresAt} onChange={(v) => setExpiresAt(v)} className="w-full" />
             </div>
           </div>
           <div className="flex items-center justify-between rounded-lg border p-3">

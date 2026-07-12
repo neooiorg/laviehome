@@ -1,8 +1,9 @@
 'use client';
 
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { TrendingUp } from 'lucide-react';
 
 export interface TrendPoint {
   month: string;
@@ -17,59 +18,103 @@ const chartConfig = {
 
 export function AreaGraph({ data }: { data: TrendPoint[] }) {
   const hasData = data.length > 0 && data.some((d) => d.bookings > 0);
+  const totalBookings = data.reduce((s, d) => s + d.bookings, 0);
+  const lastMonth = data[data.length - 1];
+  const prevMonth = data[data.length - 2];
+  const trend = prevMonth && prevMonth.bookings > 0
+    ? Math.round(((lastMonth?.bookings ?? 0) - prevMonth.bookings) / prevMonth.bookings * 100)
+    : null;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Xu hướng đặt phòng</CardTitle>
-        <CardDescription>
-          {data.length > 0
-            ? `${data[0]?.month} – ${data[data.length - 1]?.month}`
-            : 'Chưa có dữ liệu'}
-        </CardDescription>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>Xu hướng đặt phòng</CardTitle>
+            <CardDescription className="mt-1">
+              {data.length > 0
+                ? `${data[0]?.month} – ${data[data.length - 1]?.month}`
+                : 'Chưa có dữ liệu'}
+            </CardDescription>
+          </div>
+          {hasData && totalBookings > 0 && (
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+              {totalBookings} tổng
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {hasData ? (
-          <ChartContainer config={chartConfig}>
-            <AreaChart accessibilityLayer data={data}>
-              <CartesianGrid vertical={false} strokeDasharray='3 3' />
-              <XAxis dataKey='month' tickLine={false} axisLine={false} tickMargin={8} />
-              <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+          <ChartContainer config={chartConfig} className="h-[200px] w-full">
+            <AreaChart data={data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
               <defs>
-                <pattern id='area-dots-bookings' x='0' y='0' width='7' height='7' patternUnits='userSpaceOnUse'>
-                  <circle cx='5' cy='5' r='1.5' fill='var(--chart-1)' opacity={0.5} />
-                </pattern>
-                <pattern id='area-dots-premium' x='0' y='0' width='7' height='7' patternUnits='userSpaceOnUse'>
-                  <circle cx='5' cy='5' r='1.5' fill='var(--chart-2)' opacity={0.5} />
-                </pattern>
+                <linearGradient id="area-grad-bookings" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="area-grad-premium" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.02} />
+                </linearGradient>
               </defs>
+              <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartLegend content={<ChartLegendContent />} />
               <Area
-                dataKey='bookings'
-                type='natural'
-                fill='url(#area-dots-bookings)'
-                fillOpacity={0.4}
-                stroke='var(--color-bookings)'
-                stackId='a'
-                strokeWidth={0.8}
+                dataKey="bookings"
+                type="natural"
+                fill="url(#area-grad-bookings)"
+                stroke="var(--color-bookings)"
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive
+                animationDuration={700}
+                animationEasing="ease-out"
               />
               <Area
-                dataKey='premium'
-                type='natural'
-                fill='url(#area-dots-premium)'
-                fillOpacity={0.4}
-                stroke='var(--color-premium)'
-                stackId='a'
-                strokeWidth={0.8}
+                dataKey="premium"
+                type="natural"
+                fill="url(#area-grad-premium)"
+                stroke="var(--color-premium)"
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive
+                animationDuration={800}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ChartContainer>
         ) : (
-          <div className='flex h-[200px] items-center justify-center text-sm text-muted-foreground'>
+          <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
             Chưa có booking nào để hiển thị biểu đồ.
           </div>
         )}
       </CardContent>
+      {trend !== null && (
+        <CardFooter>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <TrendingUp className={`size-3.5 ${trend >= 0 ? 'text-emerald-500' : 'text-red-500 rotate-180'}`} />
+            <span>
+              {trend >= 0 ? '+' : ''}{trend}% so với tháng trước
+            </span>
+          </div>
+        </CardFooter>
+      )}
     </Card>
   );
 }

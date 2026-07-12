@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -95,7 +96,7 @@ export function CreateBookingSheet({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label>Ngày ở *</Label>
-              <Input type="date" value={stayDate} onChange={(e) => setStayDate(e.target.value)} />
+              <DatePicker value={stayDate} onChange={(v) => setStayDate(v)} className="w-full" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Khung giờ</Label>
