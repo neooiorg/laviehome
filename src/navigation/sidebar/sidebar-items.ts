@@ -1,10 +1,8 @@
 import {
-  BarChart3,
   BedDouble,
   BookOpen,
   Building2,
   LayoutDashboard,
-  MessageSquare,
   Tag,
   UtensilsCrossed,
   Users,
@@ -101,24 +99,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Khách hàng",
         url: "/dashboard/customers",
         icon: Users,
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: "Báo cáo",
-    items: [
-      {
-        id: "analytics",
-        title: "Thống kê",
-        url: "/dashboard/analytics",
-        icon: BarChart3,
-      },
-      {
-        id: "chat",
-        title: "Chat",
-        url: "/dashboard/chat",
-        icon: MessageSquare,
       },
     ],
   },
