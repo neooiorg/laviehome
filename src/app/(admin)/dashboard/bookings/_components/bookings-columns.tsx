@@ -134,9 +134,12 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: Booki
   {
     accessorKey: "amount",
     header: "Số tiền",
-    cell: ({ row }) => (
-      <div className="whitespace-nowrap text-sm font-medium">{money(row.original.amount)}đ</div>
-    ),
+    cell: ({ row }) => {
+      const total = row.original.amount + (row.original.menuItemsTotal ?? 0);
+      return (
+        <div className="whitespace-nowrap text-sm font-medium">{money(total)}đ</div>
+      );
+    },
   },
   {
     id: "actions",

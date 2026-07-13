@@ -95,10 +95,21 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               <Field label="Khung giờ" value={booking.timeRange} />
               <Field label="Kênh" value={booking.channel} />
               <Field label="Mã giảm giá" value={booking.discountCode} />
-              <Field
-                label="Số tiền"
-                value={<span className="text-base font-semibold">{money(booking.amount)}đ</span>}
-              />
+              {booking.menuItemsTotal > 0 ? (
+                <>
+                  <Field label="Tiền phòng" value={<span className="text-sm">{money(booking.amount)}đ</span>} />
+                  <Field label="Menu items" value={<span className="text-sm">+{money(booking.menuItemsTotal)}đ</span>} />
+                  <Field
+                    label="Tổng cộng"
+                    value={<span className="text-base font-semibold text-primary">{money(booking.amount + booking.menuItemsTotal)}đ</span>}
+                  />
+                </>
+              ) : (
+                <Field
+                  label="Số tiền"
+                  value={<span className="text-base font-semibold">{money(booking.amount)}đ</span>}
+                />
+              )}
             </CardContent>
           </Card>
 

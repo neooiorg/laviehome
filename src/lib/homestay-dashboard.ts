@@ -24,6 +24,7 @@ export type BookingSnapshot = {
   channel: string;
   status: BookingStatus;
   amount: number;
+  menuItemsTotal: number;
   guestCount: number | null;
   hasCar: boolean;
   hasDecoration: boolean;
@@ -134,6 +135,7 @@ type BookingRow = {
   channel: string;
   status: BookingStatus;
   amount: number;
+  menu_items_total: number;
   guest_count: number | null;
   has_car: boolean;
   has_decoration: boolean;
@@ -211,6 +213,7 @@ async function getBookings(limit = 12) {
       b.channel,
       b.status,
       b.amount,
+      coalesce(b.menu_items_total, 0) as menu_items_total,
       b.guest_count,
       b.has_car,
       b.has_decoration,
@@ -328,7 +331,9 @@ export async function getBookingById(id: string): Promise<BookingSnapshot | null
     `
     select
       b.id, b.room_id, b.branch_id, b.guest_name, b.customer_name, b.customer_phone,
-      b.stay_date::text, b.time_range, b.channel, b.status, b.amount, b.guest_count,
+      b.stay_date::text, b.time_range, b.channel, b.status, b.amount,
+      coalesce(b.menu_items_total, 0) as menu_items_total,
+      b.guest_count,
       b.has_car, b.has_decoration, b.discount_code, b.notes, b.cccd_front, b.cccd_back,
       b.created_at::text,
       coalesce(r.card_name, b.room_name, '') as card_name,
@@ -382,6 +387,7 @@ export async function getBookingById(id: string): Promise<BookingSnapshot | null
     channel: booking.channel,
     status: booking.status,
     amount: booking.amount,
+    menuItemsTotal: booking.menu_items_total,
     customerName: booking.customer_name,
     customerPhone: booking.customer_phone,
     guestCount: booking.guest_count,
@@ -432,6 +438,7 @@ export async function getBookingSnapshots(limit = 12): Promise<BookingSnapshot[]
     channel: booking.channel,
     status: booking.status,
     amount: booking.amount,
+    menuItemsTotal: booking.menu_items_total,
     customerName: booking.customer_name,
     customerPhone: booking.customer_phone,
     guestCount: booking.guest_count,
@@ -711,7 +718,9 @@ export async function getBookingSnapshotsFiltered(options?: {
     `
     select
       b.id, b.room_id, b.branch_id, b.guest_name, b.customer_name, b.customer_phone,
-      b.stay_date::text, b.time_range, b.channel, b.status, b.amount, b.guest_count,
+      b.stay_date::text, b.time_range, b.channel, b.status, b.amount,
+      coalesce(b.menu_items_total, 0) as menu_items_total,
+      b.guest_count,
       b.has_car, b.has_decoration, b.discount_code, b.notes, b.cccd_front, b.cccd_back,
       b.created_at::text,
       r.card_name, r.branch_name, r.room_amenities, r.price_from, r.price_to,
@@ -760,6 +769,7 @@ export async function getBookingSnapshotsFiltered(options?: {
     channel: booking.channel,
     status: booking.status,
     amount: booking.amount,
+    menuItemsTotal: booking.menu_items_total,
     customerName: booking.customer_name,
     customerPhone: booking.customer_phone,
     guestCount: booking.guest_count,
