@@ -1,5 +1,4 @@
 'use client';
-import { ClerkProvider } from '@clerk/nextjs';
 import React from 'react';
 import { ActiveThemeProvider } from '../themes/active-theme';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -15,31 +14,9 @@ export default function Providers({
   return (
     <>
       <ActiveThemeProvider initialTheme={activeThemeValue}>
-        <ClerkProvider
-          signInUrl="/auth/v2/login"
-          signUpUrl="/auth/v2/register"
-          afterSignOutUrl="/auth/v2/login"
-          appearance={{
-            variables: {
-              colorPrimary: 'var(--primary)',
-              colorPrimaryForeground: 'var(--primary-foreground)',
-              colorDanger: 'var(--destructive)',
-              colorBackground: 'var(--card)',
-              colorForeground: 'var(--foreground)',
-              colorMuted: 'var(--muted)',
-              colorMutedForeground: 'var(--muted-foreground)',
-              colorInput: 'var(--input)',
-              colorInputForeground: 'var(--foreground)',
-              colorBorder: 'var(--border)',
-              colorRing: 'var(--ring)',
-              fontFamily: 'var(--font-sans)'
-            }
-          }}
-        >
-          <QueryProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-          </QueryProvider>
-        </ClerkProvider>
+        <QueryProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </QueryProvider>
       </ActiveThemeProvider>
     </>
   );

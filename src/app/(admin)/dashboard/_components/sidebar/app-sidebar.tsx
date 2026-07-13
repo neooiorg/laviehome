@@ -1,6 +1,5 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -12,13 +11,14 @@ import {
 } from "@/components/ui/sidebar";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
+import { authClient } from "@/lib/auth-client";
 
 import { NavMain } from "./nav-main";
 import { OrgSwitcher } from "./org-switcher";
 import { AccountSwitcher } from "./account-switcher";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useUser();
+  const { data: session } = authClient.useSession();
   const { sidebarVariant, sidebarCollapsible, isSynced } = usePreferencesStore(
     useShallow((s) => ({
       sidebarVariant: s.values.sidebar_variant,
@@ -31,10 +31,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const collapsible = isSynced ? sidebarCollapsible : props.collapsible;
 
   const currentUser = {
-    id: user?.id || "1",
-    name: user?.fullName ?? user?.username ?? "Admin User",
-    email: user?.primaryEmailAddress?.emailAddress ?? "admin@laviehome.com",
-    avatar: user?.imageUrl ?? "",
+    id: session?.user?.id ?? "1",
+    name: session?.user?.name ?? "Admin User",
+    email: session?.user?.email ?? "admin@laviehome.vn",
+    avatar: session?.user?.image ?? "",
     role: "admin",
   };
 

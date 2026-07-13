@@ -48,7 +48,8 @@ jobs:
       - run: npx eslint .
       - run: npm run build
         env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          BETTER_AUTH_SECRET: ci-build-placeholder
+          BETTER_AUTH_URL: http://localhost:3000
       - name: Notify Telegram - CI failure
         if: failure()
         env:
@@ -79,7 +80,8 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           build-args: |
-            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
       - name: Notify Telegram - image build failure
         if: failure()
         env:

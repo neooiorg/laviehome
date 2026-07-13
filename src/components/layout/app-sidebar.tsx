@@ -27,8 +27,8 @@ import {
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { navGroups } from '@/config/nav-config';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { useClerk, useOrganization, useUser } from '@clerk/nextjs';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
+import { authClient } from '@/lib/auth-client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -38,15 +38,21 @@ import { OrgSwitcher } from '../org-switcher';
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
-  const { user } = useUser();
-  const { organization } = useOrganization();
-  const { signOut } = useClerk();
+  const { data: session } = authClient.useSession();
   const router = useRouter();
   const filteredGroups = useFilteredNavGroups(navGroups);
 
   React.useEffect(() => {
     // Side effects based on sidebar state changes
   }, [isOpen]);
+
+  const user = session?.user
+    ? {
+        fullName: session.user.name,
+        emailAddresses: [{ emailAddress: session.user.email }],
+        imageUrl: session.user.image ?? '',
+      }
+    : null;
 
   return (
     <Sidebar collapsible='icon'>
@@ -138,7 +144,6 @@ export default function AppSidebar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
                     <Icons.account className='mr-2 h-4 w-4' />
@@ -151,7 +156,11 @@ export default function AppSidebar() {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={() => signOut({ redirectUrl: '/auth/v2/login' })}
+                  onSelect={() =>
+                    authClient.signOut({
+                      fetchOptions: { onSuccess: () => router.push('/auth/v2/login') },
+                    })
+                  }
                 >
                   <Icons.logout className='mr-2 h-4 w-4' />
                   Đăng xuất

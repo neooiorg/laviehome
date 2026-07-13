@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 import { BadgeCheck, Bell, Check, CreditCard, LogOut } from "lucide-react";
 
@@ -21,6 +21,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { cn, getInitials } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 export function AccountSwitcher({
   users,
@@ -34,7 +35,7 @@ export function AccountSwitcher({
   }>;
 }) {
   const [activeUser, setActiveUser] = useState(users[0]);
-  const { signOut } = useClerk();
+  const router = useRouter();
 
   if (!activeUser) {
     return null;
@@ -118,16 +119,18 @@ export function AccountSwitcher({
                 Tài khoản
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <CreditCard />
-                Thanh toán
-              </DropdownMenuItem>
-              <DropdownMenuItem>
                 <Bell />
                 Thông báo
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => signOut({ redirectUrl: '/auth/v2/login' })}>
+            <DropdownMenuItem
+              onSelect={() =>
+                authClient.signOut({
+                  fetchOptions: { onSuccess: () => router.push("/auth/v2/login") },
+                })
+              }
+            >
               <LogOut />
               Đăng xuất
             </DropdownMenuItem>

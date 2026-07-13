@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useOrganization } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { Loader2, Trash2 } from 'lucide-react';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,37 +16,34 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Icons } from '@/components/icons';
 import { getInitials } from '@/lib/utils';
+import type { AdminUser } from '../page';
 
 function roleLabel(role: string) {
   switch (role) {
-    case 'org:admin':
+    case 'admin':
       return 'Quản trị viên';
-    case 'org:member':
+    case 'member':
       return 'Thành viên';
     default:
-      return role.replace(/^org:/, '');
+      return role;
   }
 }
 
-export function MembersList() {
-  const { memberships, invitations } = useOrganization({
-    memberships: { infinite: true, keepPreviousData: true },
-    invitations: { infinite: true, keepPreviousData: true, status: ['pending'] }
-  });
-
+export function MembersList({ members }: { members: AdminUser[] }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const router = useRouter();
 
-  type Membership = NonNullable<NonNullable<typeof memberships>['data']>[number];
-  type Invitation = NonNullable<NonNullable<typeof invitations>['data']>[number];
-
-  const handleRemoveMember = async (membership: Membership) => {
-    setPendingId(membership.id);
+  const handleRemove = async (id: string, email: string) => {
+    setPendingId(id);
     try {
-      await membership.destroy();
-      await memberships?.revalidate?.();
-      toast.success('Đã xoá thành viên.');
+      const res = await fetch(`/api/members/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        toast.error('Không thể xoá thành viên.');
+        return;
+      }
+      toast.success(`Đã xoá ${email}.`);
+      router.refresh();
     } catch {
       toast.error('Không thể xoá thành viên.');
     } finally {
@@ -53,129 +51,77 @@ export function MembersList() {
     }
   };
 
-  const handleRevoke = async (invitation: Invitation) => {
-    setPendingId(invitation.id);
-    try {
-      await invitation.revoke();
-      await invitations?.revalidate?.();
-      toast.success('Đã thu hồi lời mời.');
-    } catch {
-      toast.error('Không thể thu hồi lời mời.');
-    } finally {
-      setPendingId(null);
-    }
-  };
-
   return (
-    <div className='flex flex-col gap-8'>
-      <section>
-        <h3 className='mb-3 text-sm font-medium text-muted-foreground'>
-          Thành viên ({memberships?.data?.length ?? 0})
-        </h3>
-        <div className='rounded-lg border'>
-          <Table>
-            <TableHeader>
+    <div className='flex flex-col gap-4'>
+      <h3 className='text-sm font-medium text-muted-foreground'>
+        Thành viên ({members.length})
+      </h3>
+      <div className='rounded-lg border'>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Thành viên</TableHead>
+              <TableHead>Vai trò</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className='w-16' />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {!members.length ? (
               <TableRow>
-                <TableHead>Thành viên</TableHead>
-                <TableHead>Vai trò</TableHead>
-                <TableHead className='w-16' />
+                <TableCell colSpan={4} className='text-center text-muted-foreground'>
+                  Chưa có thành viên nào.
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!memberships?.data?.length ? (
-                <TableRow>
-                  <TableCell colSpan={3} className='text-center text-muted-foreground'>
-                    Chưa có thành viên nào.
+            ) : (
+              members.map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell>
+                    <div className='flex items-center gap-3'>
+                      <Avatar className='h-8 w-8'>
+                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                      </Avatar>
+                      <div className='flex flex-col'>
+                        <span className='text-sm font-medium'>{member.name}</span>
+                        <span className='text-xs text-muted-foreground'>{member.email}</span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant='secondary'>{roleLabel(member.role)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {member.emailVerified ? (
+                      <Badge variant='outline' className='text-emerald-600 border-emerald-200'>
+                        Đã xác thực
+                      </Badge>
+                    ) : (
+                      <Badge variant='outline' className='text-amber-600 border-amber-200'>
+                        Chờ đăng nhập
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      disabled={pendingId === member.id}
+                      onClick={() => handleRemove(member.id, member.email)}
+                      aria-label='Xoá thành viên'
+                    >
+                      {pendingId === member.id ? (
+                        <Loader2 className='h-4 w-4 animate-spin' />
+                      ) : (
+                        <Trash2 className='h-4 w-4 text-destructive' />
+                      )}
+                    </Button>
                   </TableCell>
                 </TableRow>
-              ) : (
-                memberships.data.map((membership) => {
-                  const u = membership.publicUserData;
-                  const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ') || u?.identifier || '—';
-                  return (
-                    <TableRow key={membership.id}>
-                      <TableCell>
-                        <div className='flex items-center gap-3'>
-                          <Avatar className='h-8 w-8'>
-                            <AvatarImage src={u?.imageUrl || undefined} alt={name} />
-                            <AvatarFallback>{getInitials(name)}</AvatarFallback>
-                          </Avatar>
-                          <div className='flex flex-col'>
-                            <span className='text-sm font-medium'>{name}</span>
-                            <span className='text-xs text-muted-foreground'>{u?.identifier}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant='secondary'>{roleLabel(membership.role)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          disabled={pendingId === membership.id}
-                          onClick={() => handleRemoveMember(membership)}
-                          aria-label='Xoá thành viên'
-                        >
-                          {pendingId === membership.id ? (
-                            <Icons.spinner className='h-4 w-4 animate-spin' />
-                          ) : (
-                            <Icons.trash className='h-4 w-4 text-destructive' />
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
-
-      {!!invitations?.data?.length && (
-        <section>
-          <h3 className='mb-3 text-sm font-medium text-muted-foreground'>
-            Lời mời đang chờ ({invitations.data.length})
-          </h3>
-          <div className='rounded-lg border'>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Vai trò</TableHead>
-                  <TableHead className='w-16' />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invitations.data.map((invitation) => (
-                  <TableRow key={invitation.id}>
-                    <TableCell className='text-sm'>{invitation.emailAddress}</TableCell>
-                    <TableCell>
-                      <Badge variant='outline'>{roleLabel(invitation.role)}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        disabled={pendingId === invitation.id}
-                        onClick={() => handleRevoke(invitation)}
-                        aria-label='Thu hồi lời mời'
-                      >
-                        {pendingId === invitation.id ? (
-                          <Icons.spinner className='h-4 w-4 animate-spin' />
-                        ) : (
-                          <Icons.close className='h-4 w-4' />
-                        )}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
-      )}
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

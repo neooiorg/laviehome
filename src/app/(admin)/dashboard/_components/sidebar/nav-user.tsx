@@ -1,6 +1,6 @@
 "use client";
 
-import { useClerk, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { CircleUser, ChevronsUpDown, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,14 +15,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { getInitials } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 export function NavUser() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { data: session } = authClient.useSession();
+  const router = useRouter();
 
-  const name = user?.fullName ?? user?.username ?? "Admin";
-  const email = user?.primaryEmailAddress?.emailAddress ?? "";
-  const avatar = user?.imageUrl ?? "";
+  const name = session?.user?.name ?? "Admin";
+  const email = session?.user?.email ?? "";
+  const avatar = session?.user?.image ?? "";
 
   return (
     <SidebarMenu>
@@ -70,7 +71,13 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => signOut({ redirectUrl: '/auth/v2/login' })}>
+            <DropdownMenuItem
+              onSelect={() =>
+                authClient.signOut({
+                  fetchOptions: { onSuccess: () => router.push("/auth/v2/login") },
+                })
+              }
+            >
               <LogOut />
               Đăng xuất
             </DropdownMenuItem>
