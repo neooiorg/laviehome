@@ -10,9 +10,13 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
 import { createBookingAdmin } from "@/lib/booking-actions";
+import { MenuItemsSelector } from "../menu-items-selector";
+import { getMenuItemsByBranch } from "@/lib/menu-actions";
+import type { MenuItem } from "@/lib/menu-actions";
 
 const CHANNELS = ["Admin", "Walk-in", "Phone", "Facebook", "Zalo", "Booking.com", "Agoda", "Khác"];
 const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
@@ -31,10 +35,26 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
   const [amount, setAmount] = React.useState("");
   const [guestCount, setGuestCount] = React.useState("2");
   const [notes, setNotes] = React.useState("");
+  const [selectedMenuItems, setSelectedMenuItems] = React.useState<number[]>([]);
+  const [menuItems, setMenuItems] = React.useState<MenuItem[]>([]);
+  const [loadingMenuItems, setLoadingMenuItems] = React.useState(false);
 
   const selectedRoom = rooms.find((r) => r.id === Number(roomId));
   const branchId = selectedRoom?.branch_id;
   const branchName = selectedRoom ? branches.find((b) => b.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name : "";
+
+  // Fetch menu items when branch changes
+  React.useEffect(() => {
+    if (branchId) {
+      setLoadingMenuItems(true);
+      getMenuItemsByBranch(branchId)
+        .then(setMenuItems)
+        .finally(() => setLoadingMenuItems(false));
+    } else {
+      setMenuItems([]);
+      setSelectedMenuItems([]);
+    }
+  }, [branchId]);
 
   async function handleCreate() {
     if (!roomId || !guestName || !stayDate || !branchId) return;
@@ -52,6 +72,7 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
       amount: Number(amount) || 0,
       guestCount: Number(guestCount) || 1,
       notes,
+      menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
     });
     router.push("/dashboard/bookings");
   }
@@ -129,6 +150,24 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
             </Select>
           </div>
         </div>
+
+        {branchId && menuItems.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-2">
+              <Label className="text-base font-semibold">Menu Items (Tùy chọn)</Label>
+              {loadingMenuItems ? (
+                <div className="text-sm text-muted-foreground">Đang tải menu items...</div>
+              ) : (
+                <MenuItemsSelector
+                  items={menuItems}
+                  selectedIds={selectedMenuItems}
+                  onSelectionChange={setSelectedMenuItems}
+                />
+              )}
+            </div>
+          </>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <Label>Ghi chú</Label>

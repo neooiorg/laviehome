@@ -7,6 +7,7 @@ import {
   Instrument_Sans,
   Inter,
   JetBrains_Mono,
+  Manrope,
   Merriweather,
   Mulish,
   Playfair_Display,
@@ -90,6 +91,11 @@ const fontPlayfairDisplay = Playfair_Display({
   variable: '--font-playfair-display'
 });
 
+const fontManrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope'
+});
+
 export const fontVariables = cn(
   fontSans.variable,
   fontMono.variable,
@@ -104,5 +110,8 @@ export const fontVariables = cn(
   fontSpaceMono.variable,
   fontJetBrainsMono.variable,
   fontMerriweather.variable,
-  fontPlayfairDisplay.variable
+  fontPlayfairDisplay.variable,
+  fontManrope.variable
 );
+
+export { fontManrope };

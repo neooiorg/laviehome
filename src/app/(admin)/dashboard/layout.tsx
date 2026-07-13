@@ -6,6 +6,8 @@ import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { PREFERENCE_DEFAULTS } from '@/lib/preferences/preferences-config';
 import { PreferencesStoreProvider } from '@/stores/preferences/preferences-provider';
+import { fontManrope } from '@/components/themes/font.config';
+import { cn } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
@@ -22,19 +24,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
   return (
-    <PreferencesStoreProvider initialValues={PREFERENCE_DEFAULTS}>
-      <KBar>
-        <SidebarProvider defaultOpen={defaultOpen}>
-          <AppSidebar />
-          <SidebarInset>
-            <Header />
-            <InfobarProvider defaultOpen={false}>
-              {children}
-              <InfoSidebar side='right' />
-            </InfobarProvider>
-          </SidebarInset>
-        </SidebarProvider>
-      </KBar>
-    </PreferencesStoreProvider>
+    <div className={cn(fontManrope.variable, '[font-family:var(--font-manrope)]')}>
+      <PreferencesStoreProvider initialValues={PREFERENCE_DEFAULTS}>
+        <KBar>
+          <SidebarProvider defaultOpen={defaultOpen}>
+            <AppSidebar />
+            <SidebarInset>
+              <Header />
+              <InfobarProvider defaultOpen={false}>
+                {children}
+                <InfoSidebar side='right' />
+              </InfobarProvider>
+            </SidebarInset>
+          </SidebarProvider>
+        </KBar>
+      </PreferencesStoreProvider>
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Tag,
+  UtensilsCrossed,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -82,6 +83,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Phòng",
         url: "/dashboard/rooms",
         icon: BedDouble,
+      },
+      {
+        id: "menu-items",
+        title: "Menu Items",
+        url: "/dashboard/menu-items",
+        icon: UtensilsCrossed,
       },
       {
         id: "discounts",
