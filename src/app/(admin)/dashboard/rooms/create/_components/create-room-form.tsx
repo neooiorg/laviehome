@@ -28,9 +28,31 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
   const [amenities, setAmenities] = React.useState<string[]>([]);
   const [isClassic, setIsClassic] = React.useState(false);
   const [newAmenity, setNewAmenity] = React.useState("");
+  const [uploading, setUploading] = React.useState(false);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.url) setMainImage(data.url);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleCreate() {
     if (!cardName.trim() || !branchId) return;
+    const pf = Number(priceFrom) || 0;
+    const pt = Number(priceTo) || 0;
+    if (pf > pt && pt > 0) {
+      alert("Giá từ không được lớn hơn giá đến");
+      return;
+    }
     setSaving(true);
     const selectedBranch = branches.find((b) => b.id === Number(branchId));
     await createRoom({
@@ -92,8 +114,17 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Ảnh chính (URL)</Label>
-            <Input value={mainImage} onChange={(e) => setMainImage(e.target.value)} placeholder="https://..." />
+            <Label>Ảnh chính</Label>
+            <div className="flex gap-2">
+              <Input value={mainImage} onChange={(e) => setMainImage(e.target.value)} placeholder="https://..." className="flex-1" />
+              <label className="cursor-pointer">
+                <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+                  <span>{uploading ? "Đang tải..." : "Tải lên"}</span>
+                </Button>
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              </label>
+            </div>
+            {mainImage && <img src={mainImage} alt="preview" className="mt-2 h-24 w-auto rounded-lg object-cover" />}
           </div>
 
           <div className="flex flex-col gap-2">

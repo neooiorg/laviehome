@@ -8,15 +8,10 @@ export const metadata: Metadata = {
   title: 'Chỉnh sửa Menu Item - Admin Dashboard',
 };
 
-interface EditMenuItemPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function EditMenuItemPage({ params }: EditMenuItemPageProps) {
+export default async function EditMenuItemPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const [menuItem, branches] = await Promise.all([
-    getMenuItemById(Number(params.id)),
+    getMenuItemById(Number(id)),
     getBranches(),
   ]);
 

@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 import { money } from "@/lib/format";
+import { RoomMenuOptions } from "./_components/room-menu-options";
+import type { MenuItem } from "@/lib/menu-actions";
 
 type BookingRoom = {
   id: number;
@@ -64,6 +66,17 @@ function makeDates() {
   });
 }
 
+function isSlotPast(dayIndex: number, slotLabel: string): boolean {
+  if (dayIndex !== 0) return false;
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const startTime = slotLabel.split(" - ")[0];
+  if (!startTime) return false;
+  const [h, m] = startTime.split(":").map(Number);
+  const slotStart = h * 60 + (m || 0);
+  return nowMinutes > slotStart;
+}
+
 function isSlotBooked(roomName: string, dayIndex: number, slotIndex: number) {
   if (roomName.includes("Honey") && dayIndex === 0 && (slotIndex === 0 || slotIndex === 1)) return true;
   if (roomName.includes("Squid") && dayIndex === 0 && slotIndex <= 2) return true;
@@ -83,6 +96,8 @@ function formatCheckoutDate(iso: string) {
 
 export function RoomBooking({ room }: { room: BookingRoom }) {
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
+  const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
+  const [menuTotal, setMenuTotal] = useState(0);
   const dates = useMemo(() => makeDates(), []);
   const slots = useMemo(() => getRoomSlots(room.card_name), [room.card_name]);
 
@@ -113,6 +128,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
   function goToCheckout() {
     if (!selectedSlots.length) return;
     const first = selectedSlots[0];
+    const totalWithMenu = comboTotal + menuTotal;
     const payload = {
       timeslot_ids: selectedSlots.map((slot) => slot.id).join(","),
       room_name: room.card_name,
@@ -120,7 +136,8 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
       branch_id: String(room.branch_id),
       date: formatCheckoutDate(first.dateIso),
       time_range: selectedSlots.map((slot) => slot.time).join(", "),
-      price: comboTotal,
+      price: totalWithMenu,
+      menu_item_ids: selectedMenuItems.map((item) => item.id).join(","),
     };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const params = new URLSearchParams({
@@ -132,6 +149,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
       date: payload.date,
       time_range: payload.time_range,
       price: String(payload.price),
+      menu_item_ids: payload.menu_item_ids,
     });
     window.location.href = `/checkout/?${params.toString()}`;
   }
@@ -156,7 +174,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
       </div>
 
       <div className="glass-panel booking-panel rounded-3xl overflow-hidden border border-white/10 bg-white/2">
-        <div className="overflow-x-auto hide-scrollbar">
+        <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-y hide-scrollbar">
           <table className="min-w-max w-full text-center">
             <thead>
               <tr className="border-b border-white/10 bg-white/5">
@@ -187,6 +205,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
                   {slots.map((slot, slotIndex) => {
                     const id = `${room.id}-${date.iso}-${slotIndex}`;
                     const booked = isSlotBooked(room.card_name, dayIndex, slotIndex);
+                    const past = !booked && isSlotPast(dayIndex, slot.label);
                     const selected = selectedSlots.some((item) => item.id === id);
                     const promo = isSlotPromo(dayIndex);
                     const price = slot.isOvernight ? room.full_day_price : room.price_from;
@@ -194,7 +213,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
                       <td key={id} className="px-1 py-1 border-r border-white/5 align-middle min-w-[104px]">
                         <button
                           type="button"
-                          disabled={booked}
+                          disabled={booked || past}
                           onClick={() =>
                             toggleSlot({
                               id,
@@ -205,17 +224,19 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
                               position: dayIndex * slots.length + slotIndex,
                             })
                           }
-                          title={booked ? "Đã đặt" : `${slot.label} - ${money(price)}đ`}
+                          title={booked ? "Đã đặt" : past ? "Đã qua" : `${slot.label} - ${money(price)}đ`}
                           className={`
                             mx-auto flex h-9 w-[92px] items-center justify-center rounded-xl border text-[10px] font-bold transition-all duration-200 outline-none
                             ${
                               booked
                                 ? "bg-rose-500 border-transparent text-white/50 cursor-not-allowed"
-                                : selected
-                                  ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)]"
-                                  : promo
-                                    ? "border-transparent bg-white/5 hover:bg-white/10 ring-1 ring-pink-500/50 text-white cursor-pointer"
-                                    : "border-rose-500/60 bg-white/5 hover:bg-white/10 hover:border-rose-400 text-white cursor-pointer"
+                                : past
+                                  ? "bg-white/5 border-transparent text-white/20 cursor-not-allowed opacity-40"
+                                  : selected
+                                    ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)]"
+                                    : promo
+                                      ? "border-transparent bg-white/5 hover:bg-white/10 ring-1 ring-pink-500/50 text-white cursor-pointer"
+                                      : "border-rose-500/60 bg-white/5 hover:bg-white/10 hover:border-rose-400 text-white cursor-pointer"
                             }
                           `}
                         >
@@ -230,6 +251,14 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
           </table>
         </div>
       </div>
+
+      <RoomMenuOptions
+        branchId={room.branch_id}
+        onMenuItemsChange={(items, total) => {
+          setSelectedMenuItems(items);
+          setMenuTotal(total);
+        }}
+      />
 
       {/* Selected summary */}
       {selectedSlots.length > 0 && (
@@ -259,7 +288,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-white/10 pt-6">
         <div className="text-lg font-extrabold text-white flex items-baseline gap-2">
           <span>Tổng tạm tính:</span>
-          <span className="text-2xl text-yellow-200">{money(comboTotal)}đ</span>
+          <span className="text-2xl text-yellow-200">{money(comboTotal + menuTotal)}đ</span>
         </div>
         <button
           type="button"
@@ -276,6 +305,22 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
           ** Giảm 5% + tặng 30 phút khi đặt 2 khung giờ liền kề, 10% + 60 phút khi đặt 3–4 khung giờ
         </p>
       </div>
+
+      {/* Mobile sticky summary bar */}
+      {selectedSlots.length > 0 && (
+        <button
+          type="button"
+          onClick={goToCheckout}
+          className="fixed inset-x-3 bottom-[4.6rem] z-50 flex items-center justify-between gap-3 rounded-2xl border border-yellow-300/60 bg-[#2a1730] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
+        >
+          <span className="text-left text-xs font-bold text-white/85">
+            Đã chọn {selectedSlots.length} khung giờ
+            <br />
+            <span className="text-base font-black text-yellow-200">{money(comboTotal + menuTotal)}đ</span>
+          </span>
+          <span className="primary-button !min-h-9 px-4 text-xs">Đặt phòng ngay</span>
+        </button>
+      )}
     </section>
   );
 }

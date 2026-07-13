@@ -117,6 +117,17 @@ function makeDates() {
   });
 }
 
+function isSlotPast(dayIndex: number, slotLabel: string): boolean {
+  if (dayIndex !== 0) return false;
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const startTime = slotLabel.split(" - ")[0];
+  if (!startTime) return false;
+  const [h, m] = startTime.split(":").map(Number);
+  const slotStart = h * 60 + (m || 0);
+  return nowMinutes > slotStart;
+}
+
 function isSlotBooked(roomName: string, dayIndex: number, slotIndex: number) {
   // Today (day 0) Honey's slots 0 and 1 are booked
   if (roomName.includes("Honey") && dayIndex === 0 && (slotIndex === 0 || slotIndex === 1)) {
@@ -468,10 +479,10 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
             })}
           </div>
 
-          {featuredRooms[0] && (
+          {allBranchRooms[0] && (
             <div className="mt-5 relative aspect-[21/9] rounded-2xl overflow-hidden border border-white/10">
               <Image
-                src={safeImg(featuredRooms[0].main_image)}
+                src={safeImg(allBranchRooms[0].main_image)}
                 alt={currentBranch?.name ?? "Chi nhánh"}
                 fill
                 sizes="(min-width: 1024px) 1360px, 100vw"
@@ -606,7 +617,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                   <p className="text-sm">Vui lòng chọn chi nhánh khác hoặc liên hệ hotline để đặt thủ công.</p>
                 </div>
               ) : (
-              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain">
+              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-y">
                 <table className="booking-table min-w-max text-center">
                   <thead>
                     {/* Row 1: Tên phòng */}
@@ -664,6 +675,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                           return slots.map((slot, slotIndex) => {
                             const id = `${room.id}-${date.iso}-${slotIndex}`;
                             const booked = isSlotBooked(room.card_name, dayIndex, slotIndex);
+                            const past = !booked && isSlotPast(dayIndex, slot.label);
                             const selected = selectedSlots.some((item) => item.id === id);
                             const promo = isSlotPromo(room.card_name, dayIndex, slotIndex);
                             const hasBlindBag = isSlotBlindBag(room.card_name, dayIndex, slotIndex);
@@ -672,7 +684,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                             return (
                               <td key={id} className="py-1 px-1 text-center border-r border-white/5 align-middle min-w-[82px]">
                                 <button
-                                  disabled={booked}
+                                  disabled={booked || past}
                                   onClick={() =>
                                     toggleSlot({
                                       id,
@@ -689,14 +701,16 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                                     ${
                                       booked
                                         ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
-                                        : selected
-                                          ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)] hover:bg-yellow-300"
-                                          : promo
-                                            ? "border-transparent bg-white/5 hover:bg-white/10 ring-1 ring-pink-500/50 shadow-[0_0_8px_rgba(244,63,94,0.15)]"
-                                            : "border-rose-500/60 bg-white/5 hover:bg-white/10 hover:border-rose-400"
+                                        : past
+                                          ? "bg-white/5 border-transparent cursor-not-allowed opacity-30"
+                                          : selected
+                                            ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)] hover:bg-yellow-300"
+                                            : promo
+                                              ? "border-transparent bg-white/5 hover:bg-white/10 ring-1 ring-pink-500/50 shadow-[0_0_8px_rgba(244,63,94,0.15)]"
+                                              : "border-rose-500/60 bg-white/5 hover:bg-white/10 hover:border-rose-400"
                                     }
                                   `}
-                                  title={booked ? "Đã đặt" : `Khung giờ ${slot.label} - Giá: ${money(price)}đ`}
+                                  title={booked ? "Đã đặt" : past ? "Đã qua" : `Khung giờ ${slot.label} - Giá: ${money(price)}đ`}
                                 >
                                   {booked ? (
                                     <span className="text-[10px] font-bold text-white/50">-</span>
@@ -887,7 +901,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
         <>
           {/* Mobile floating bar */}
           <button
-            onClick={() => document.getElementById("booking-summary")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            onClick={goToCheckout}
             className="fixed inset-x-3 bottom-[4.6rem] z-50 flex items-center justify-between gap-3 rounded-2xl border border-yellow-300/60 bg-[#2a1730] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
           >
             <span className="text-left text-xs font-bold text-white/85">
@@ -895,7 +909,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               <br />
               <span className="text-base font-black text-yellow-200">{money(Math.max(comboTotal, 0))}đ</span>
             </span>
-            <span className="primary-button !min-h-9 px-4 text-xs">Xem chi tiết</span>
+            <span className="primary-button !min-h-9 px-4 text-xs">Đặt phòng ngay</span>
           </button>
           {/* Desktop floating bar */}
           <div className="hidden md:flex fixed bottom-0 inset-x-0 z-40 items-center justify-between gap-4 border-t-2 border-yellow-300/30 bg-[#1b1024]/95 backdrop-blur-xl px-8 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.4)]">

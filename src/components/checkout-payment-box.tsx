@@ -99,7 +99,7 @@ export function CheckoutPaymentBox({
       
       <div className="mt-5 border-2 border-white/20 bg-white p-5 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_rgba(255,255,255,0.05)]">
         <img
-          src={`https://img.vietqr.io/image/vietinbank-101878956230-compact2.png?amount=${price}&addInfo=${transferCode}&accountName=LAVIE%20HOME`}
+          src={`https://img.vietqr.io/image/ICB-101878956230-compact2.png?amount=${price}&addInfo=${transferCode}&accountName=LAVIE%20HOME`}
           alt="Mã QR Chuyển Khoản VietQR"
           width={220}
           height={220}

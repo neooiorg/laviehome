@@ -34,6 +34,12 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   const [newAmenity, setNewAmenity] = React.useState("");
 
   async function handleSave() {
+    const pf = Number(priceFrom);
+    const pt = Number(priceTo);
+    if (pt > 0 && pf > pt) {
+      alert("Giá từ không được lớn hơn giá đến");
+      return;
+    }
     setSaving(true);
     const selectedBranch = branches.find((b) => b.id === Number(branchId));
     await updateRoom(room.id, {
