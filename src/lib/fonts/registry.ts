@@ -107,6 +107,8 @@ const playfairDisplay = Playfair_Display({
   variable: "--font-playfair-display",
 });
 
+export { fontKeys, fontOptions, type FontKey } from "./font-keys";
+
 export const fontRegistry = {
   geist: {
     label: "Geist",
@@ -182,15 +184,6 @@ export const fontRegistry = {
   },
 } as const;
 
-export type FontKey = keyof typeof fontRegistry;
-
-export const fontKeys = Object.keys(fontRegistry) as FontKey[];
-
 export const fontVars = Object.values(fontRegistry)
   .map(({ font }) => font.variable)
   .join(" ");
-
-export const fontOptions = fontKeys.map((key) => ({
-  key,
-  label: fontRegistry[key].label,
-}));
