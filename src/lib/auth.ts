@@ -27,6 +27,7 @@ export const auth = betterAuth({
     }),
   ],
   user: {
+    modelName: "auth_user",
     additionalFields: {
       role: {
         type: "string",
@@ -34,6 +35,9 @@ export const auth = betterAuth({
       },
     },
   },
+  session: { modelName: "auth_session" },
+  account: { modelName: "auth_account" },
+  verification: { modelName: "auth_verification" },
 });
 
 export type Session = typeof auth.$Infer.Session;

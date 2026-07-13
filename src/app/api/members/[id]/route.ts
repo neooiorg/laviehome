@@ -18,7 +18,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Không thể xoá tài khoản của chính mình." }, { status: 400 });
   }
 
-  await query(`DELETE FROM "user" WHERE id = $1`, [id]);
+  await query(`DELETE FROM auth_user WHERE id = $1`, [id]);
 
   return NextResponse.json({ success: true });
 }

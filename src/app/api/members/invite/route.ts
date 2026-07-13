@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
   // Check for existing user
   const existing = await query<{ id: string }>(
-    `SELECT id FROM "user" WHERE email = $1`,
+    `SELECT id FROM auth_user WHERE email = $1`,
     [email]
   );
 
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     // Create new user
     userId = randomUUID();
     await query(
-      `INSERT INTO "user" (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+      `INSERT INTO auth_user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
        VALUES ($1, $2, $3, false, $4, now(), now())`,
       [userId, name ?? email, email, role]
     );

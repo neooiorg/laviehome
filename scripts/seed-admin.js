@@ -19,13 +19,13 @@ async function seed() {
   const client = await pool.connect();
   try {
     for (const admin of admins) {
-      const existing = await client.query('SELECT id FROM "user" WHERE email = $1', [admin.email]);
+      const existing = await client.query('SELECT id FROM auth_user WHERE email = $1', [admin.email]);
       if (existing.rows.length > 0) {
         console.log(`⏭  ${admin.email} already exists, skipping.`);
         continue;
       }
       await client.query(
-        `INSERT INTO "user" (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+        `INSERT INTO auth_user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
          VALUES ($1, $2, $3, true, $4, now(), now())`,
         [randomUUID(), admin.name, admin.email, admin.role]
       );

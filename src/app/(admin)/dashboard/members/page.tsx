@@ -15,7 +15,7 @@ export interface AdminUser extends Record<string, unknown> {
 
 async function getMembers(): Promise<AdminUser[]> {
   return query<AdminUser>(
-    `SELECT id, name, email, role, "emailVerified", "createdAt" FROM "user" ORDER BY "createdAt" ASC`
+    `SELECT id, name, email, role, "emailVerified", "createdAt" FROM auth_user ORDER BY "createdAt" ASC`
   );
 }
 
