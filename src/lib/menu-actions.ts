@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { query } from '@/lib/postgres';
 
-export interface MenuItem {
+export interface MenuItem extends Record<string, unknown> {
   id: number;
   branch_id: number;
   name: string;
