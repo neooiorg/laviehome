@@ -50,6 +50,7 @@ jobs:
         env:
           BETTER_AUTH_SECRET: ci-build-placeholder
           BETTER_AUTH_URL: http://localhost:3000
+          RESEND_API_KEY: re_placeholder
       - name: Notify Telegram - CI failure
         if: failure()
         env:

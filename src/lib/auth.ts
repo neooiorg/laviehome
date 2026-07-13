@@ -5,8 +5,6 @@ import { Resend } from "resend";
 import { MagicLinkEmail } from "@/emails/magic-link-email";
 import { createElement } from "react";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export const auth = betterAuth({
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -17,6 +15,7 @@ export const auth = betterAuth({
       expiresIn: 60 * 15, // 15 minutes
       disableSignUp: true, // only pre-seeded users can log in
       sendMagicLink: async ({ email, url }) => {
+        const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
           from: "Lavie Home <noreply@laviehome.vn>",
           to: email,

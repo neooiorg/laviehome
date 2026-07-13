@@ -6,8 +6,6 @@ import { createElement } from "react";
 import { MagicLinkEmail } from "@/emails/magic-link-email";
 import { randomUUID } from "crypto";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
   if (!session) {
@@ -55,6 +53,7 @@ export async function POST(req: Request) {
 
   const magicUrl = `${baseUrl}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
 
+  const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
     from: "Lavie Home <noreply@laviehome.vn>",
     to: email,
