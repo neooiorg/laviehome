@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
 import { createBookingAdmin } from "@/lib/booking-actions";
-import { MenuItemsSelector } from "../menu-items-selector";
+import { MenuItemsSelector } from "../../_components/menu-items-selector";
 import { getMenuItemsByBranch } from "@/lib/menu-actions";
 import type { MenuItem } from "@/lib/menu-actions";
 

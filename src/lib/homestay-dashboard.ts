@@ -180,7 +180,7 @@ function formatMonth(monthKey: string) {
   });
 }
 
-async function getBranches(): Promise<BranchRow[]> {
+export async function getBranches(): Promise<BranchRow[]> {
   return query<BranchRow>('select * from branches order by id');
 }
 

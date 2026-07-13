@@ -32,11 +32,11 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
   // Calculate menu items total
   let menuItemsTotal = 0;
   if (data.menuItemIds && data.menuItemIds.length > 0) {
-    const menuItemsResult = await query(
+    const menuItemsResult = await query<{ total: number }>(
       `SELECT SUM(price) as total FROM menu_items WHERE id = ANY($1)`,
       [data.menuItemIds]
     );
-    menuItemsTotal = menuItemsResult.rows[0]?.total || 0;
+    menuItemsTotal = menuItemsResult[0]?.total || 0;
   }
 
   // Create booking
@@ -49,11 +49,11 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
   // Add menu items to booking
   if (data.menuItemIds && data.menuItemIds.length > 0) {
     for (const menuItemId of data.menuItemIds) {
-      const menuItemResult = await query(
+      const menuItemResult = await query<{ price: number }>(
         `SELECT price FROM menu_items WHERE id = $1`,
         [menuItemId]
       );
-      const price = menuItemResult.rows[0]?.price || 0;
+      const price = menuItemResult[0]?.price || 0;
 
       await query(
         `INSERT INTO booking_menu_items (booking_id, menu_item_id, price) VALUES ($1, $2, $3)`,

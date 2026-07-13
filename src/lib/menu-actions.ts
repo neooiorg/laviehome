@@ -25,40 +25,38 @@ export interface MenuItemInput {
 }
 
 export async function getMenuItemsByBranch(branchId: number): Promise<MenuItem[]> {
-  const result = await query(
+  return query<MenuItem>(
     `SELECT id, branch_id, name, description, price, image_url, is_active, created_at, updated_at
      FROM menu_items WHERE branch_id = $1 ORDER BY created_at DESC`,
     [branchId]
   );
-  return result.rows as MenuItem[];
 }
 
 export async function getAllMenuItems(): Promise<MenuItem[]> {
-  const result = await query(
+  return query<MenuItem>(
     `SELECT id, branch_id, name, description, price, image_url, is_active, created_at, updated_at
      FROM menu_items ORDER BY branch_id, created_at DESC`
   );
-  return result.rows as MenuItem[];
 }
 
 export async function getMenuItemById(id: number): Promise<MenuItem | null> {
-  const result = await query(
+  const items = await query<MenuItem>(
     `SELECT id, branch_id, name, description, price, image_url, is_active, created_at, updated_at
      FROM menu_items WHERE id = $1`,
     [id]
   );
-  return (result.rows[0] as MenuItem) || null;
+  return items[0] || null;
 }
 
 export async function createMenuItem(data: MenuItemInput): Promise<number> {
-  const result = await query(
+  const result = await query<{ id: number }>(
     `INSERT INTO menu_items (branch_id, name, description, price, image_url, is_active)
      VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING id`,
     [data.branchId, data.name, data.description, data.price, data.imageUrl || null, data.isActive]
   );
   revalidatePath('/dashboard/menu-items');
-  return (result.rows[0] as { id: number }).id;
+  return result[0]?.id || 0;
 }
 
 export async function updateMenuItem(id: number, data: Partial<MenuItemInput>): Promise<void> {
