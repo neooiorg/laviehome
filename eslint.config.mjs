@@ -10,6 +10,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "backend/**",
+    "scripts/**",
     "next-env.d.ts",
     ".gemini/**",
   ]),
