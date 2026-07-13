@@ -19,7 +19,7 @@ export const auth = betterAuth({
         if (type !== "sign-in") return;
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: "Lavie Home <noreply@laviehome.vn>",
+          from: "Lavie Home <onboarding@resend.dev>",
           to: email,
           subject: `${otp} - Mã đăng nhập Lavie Home`,
           react: createElement(OtpEmail, { otp }),
