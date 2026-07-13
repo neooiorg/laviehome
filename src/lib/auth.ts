@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
-import { magicLink } from "better-auth/plugins";
+import { emailOTP } from "better-auth/plugins";
 import { Pool } from "pg";
 import { Resend } from "resend";
-import { MagicLinkEmail } from "@/emails/magic-link-email";
+import { OtpEmail } from "@/emails/otp-email";
 import { createElement } from "react";
 
 export const auth = betterAuth({
@@ -11,16 +11,18 @@ export const auth = betterAuth({
     ssl: { rejectUnauthorized: false },
   }),
   plugins: [
-    magicLink({
-      expiresIn: 60 * 15, // 15 minutes
+    emailOTP({
+      expiresIn: 60 * 10, // 10 minutes
+      otpLength: 6,
       disableSignUp: true, // only pre-seeded users can log in
-      sendMagicLink: async ({ email, url }) => {
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        if (type !== "sign-in") return;
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
           from: "Lavie Home <noreply@laviehome.vn>",
           to: email,
-          subject: "Đăng nhập vào Lavie Home Dashboard",
-          react: createElement(MagicLinkEmail, { url }),
+          subject: `${otp} - Mã đăng nhập Lavie Home`,
+          react: createElement(OtpEmail, { otp }),
         });
       },
     }),
