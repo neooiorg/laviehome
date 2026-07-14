@@ -137,6 +137,27 @@ export async function POST(req: NextRequest) {
     const db = getPool();
     await ensureTable(db);
 
+    // Conflict check: reject if another non-cancelled booking holds any of the same timeslots
+    if (timeslot_ids && room_name && date_label) {
+      const { rows: conflictRows } = await db.query(
+        `SELECT id FROM bookings
+         WHERE room_name = $1
+           AND date_label = $2
+           AND id != $3
+           AND status NOT IN ('Đã hủy', 'Hủy', 'Cancelled')
+           AND timeslot_ids IS NOT NULL
+           AND string_to_array(timeslot_ids, ',') && string_to_array($4, ',')
+         LIMIT 1`,
+        [room_name, date_label, id, timeslot_ids]
+      );
+      if (conflictRows.length > 0) {
+        return NextResponse.json(
+          { error: "Khung giờ đã được đặt bởi khách khác. Vui lòng chọn khung giờ khác." },
+          { status: 409 }
+        );
+      }
+    }
+
     // Compute final amount server-side — never trust client-provided amount
     const finalAmount = await resolveAmount(db, id, Number(guest_count ?? 2), discount_code ?? null);
 

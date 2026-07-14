@@ -25,6 +25,7 @@ type DiscountResult =
 export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutFormProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [conflictError, setConflictError] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
   const [discountResult, setDiscountResult] = useState<DiscountResult | null>(null);
   const [validating, setValidating] = useState(false);
@@ -114,6 +115,12 @@ export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutForm
         }),
       });
       const data = await res.json();
+
+      if (res.status === 409) {
+        setConflictError(data.error ?? "Khung giờ đã được đặt. Vui lòng chọn khung giờ khác.");
+        return;
+      }
+
       // Sync QR with server-computed amount
       if (data.amount) {
         onPricingChange?.({ guestCount, surcharge, discountPercent, discountAmount, finalAmount: data.amount });
@@ -335,9 +342,16 @@ export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutForm
         )}
       </section>
 
+      {conflictError && (
+        <div className="rounded-2xl border-2 border-red-500/60 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-300">
+          ⚠️ {conflictError}
+          <a href="/" className="block mt-2 underline text-white/70 font-semibold">Quay lại chọn khung giờ khác →</a>
+        </div>
+      )}
+
       <button
         type="submit"
-        disabled={saving || saved}
+        disabled={saving || saved || !!conflictError}
         className="primary-button w-full py-4 text-base disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {saving ? "Đang lưu..." : saved ? "Đã xác nhận — Chuyển đến thanh toán ↓" : "Xác Nhận & Chuyển Đến Thanh Toán"}

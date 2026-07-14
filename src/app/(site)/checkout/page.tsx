@@ -52,6 +52,30 @@ async function resolveCheckout(params: CheckoutSearchParams) {
   };
 }
 
+async function checkTimeslotConflict(
+  id: string,
+  roomName: string,
+  dateLabel: string,
+  timeslotIds: string
+): Promise<boolean> {
+  try {
+    const { rows } = await query(
+      `SELECT id FROM bookings
+       WHERE room_name = $1
+         AND date_label = $2
+         AND id != $3
+         AND status NOT IN ('Đã hủy', 'Hủy', 'Cancelled')
+         AND timeslot_ids IS NOT NULL
+         AND string_to_array(timeslot_ids, ',') && string_to_array($4, ',')
+       LIMIT 1`,
+      [roomName, dateLabel, id, timeslotIds]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<typeof resolveCheckout>>) {
   try {
     await query(
@@ -86,6 +110,35 @@ export default async function CheckoutPage({
   const transferCode = `LVH${String(checkout.branchId || '00').padStart(2, '0')}${String(checkout.timeslotIds)
     .replace(/\D/g, '')
     .slice(-6) || '000000'}`;
+
+  // Check for timeslot conflict before creating the booking
+  const hasConflict =
+    checkout.timeslotIds && checkout.timeslotIds !== 'N/A' && checkout.roomName && checkout.date
+      ? await checkTimeslotConflict(transferCode, checkout.roomName, checkout.date, checkout.timeslotIds)
+      : false;
+
+  if (hasConflict) {
+    return (
+      <main className='site-shell min-h-dvh text-white'>
+        <SiteHeader />
+        <div className='mx-auto w-[min(100%-2rem,1180px)] pb-16 pt-32 flex flex-col items-center gap-6 text-center'>
+          <div className='text-5xl'>⚠️</div>
+          <h1 className='text-2xl font-bold'>Khung giờ đã được đặt</h1>
+          <p className='text-white/70 max-w-md'>
+            Rất tiếc, khung giờ bạn chọn cho phòng <strong>{checkout.roomName}</strong> vào ngày{' '}
+            <strong>{checkout.date}</strong> đã có người đặt trước. Vui lòng quay lại và chọn khung giờ khác.
+          </p>
+          <Link
+            href='/'
+            className='rounded-xl bg-white text-black font-semibold px-6 py-3 hover:bg-white/90 transition-colors'
+          >
+            Quay lại đặt phòng
+          </Link>
+        </div>
+        <BottomNav />
+      </main>
+    );
+  }
 
   // Eagerly create booking so webhook can confirm it when payment arrives
   await upsertBookingRecord(transferCode, checkout);
