@@ -101,7 +101,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   <Field label="Menu items" value={<span className="text-sm">+{money(booking.menuItemsTotal)}đ</span>} />
                   <Field
                     label="Tổng cộng"
-                    value={<span className="text-base font-semibold text-primary">{money(booking.amount + booking.menuItemsTotal)}đ</span>}
+                    value={<span className="text-base font-semibold text-primary">{money(Number(booking.amount) + Number(booking.menuItemsTotal))}đ</span>}
                   />
                 </>
               ) : (
