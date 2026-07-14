@@ -99,7 +99,7 @@ export function CheckoutPaymentBox({
       
       <div className="mt-5 border-2 border-white/20 bg-white p-5 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_rgba(255,255,255,0.05)]">
         <img
-          src={`https://img.vietqr.io/image/ICB-101878956230-compact2.png?amount=${price}&addInfo=${transferCode}&accountName=LAVIE%20HOME`}
+          src={`https://img.vietqr.io/image/TPB-10004406614-compact2.png?amount=${price}&addInfo=${transferCode}&accountName=TKTT%20FREEGO`}
           alt="Mã QR Chuyển Khoản VietQR"
           width={220}
           height={220}
@@ -110,11 +110,11 @@ export function CheckoutPaymentBox({
       <div className="mt-5 grid gap-3 text-sm">
         <div className="flex justify-between border-b border-white/10 pb-2">
           <span className="text-white/60">Ngân hàng thụ hưởng</span>
-          <span className="font-bold text-white">Vietinbank</span>
+          <span className="font-bold text-white">TPBank</span>
         </div>
         <div className="flex justify-between border-b border-white/10 pb-2">
           <span className="text-white/60">Chủ tài khoản</span>
-          <span className="font-bold text-white">LAVIE HOME</span>
+          <span className="font-bold text-white">TKTT FREEGO</span>
         </div>
         <div className="flex justify-between border-b border-white/10 pb-2">
           <span className="text-white/60">Nội dung chuyển khoản</span>

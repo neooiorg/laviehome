@@ -75,6 +75,38 @@ async function ensureTable(db: Pool) {
   }
 }
 
+const SURCHARGE: Record<number, number> = { 3: 50000, 4: 100000 };
+
+async function resolveAmount(
+  db: Pool,
+  bookingId: string,
+  guestCount: number,
+  discountCode: string | null
+): Promise<number> {
+  // Base price is the server-recorded amount set when the booking was pre-created
+  const { rows } = await db.query(
+    'SELECT amount FROM bookings WHERE UPPER(id) = $1',
+    [bookingId.toUpperCase()]
+  );
+  const baseAmount = Number(rows[0]?.amount ?? 0);
+  const surcharge = SURCHARGE[guestCount] ?? 0;
+
+  let discountPercent = 0;
+  if (discountCode) {
+    const { rows: dcRows } = await db.query(
+      `SELECT percent FROM discount_codes
+       WHERE code = $1 AND active = TRUE
+         AND (expires_at IS NULL OR expires_at > NOW())
+         AND (max_uses IS NULL OR used_count < max_uses)`,
+      [discountCode.trim().toUpperCase()]
+    );
+    if (dcRows.length > 0) discountPercent = Number(dcRows[0].percent);
+  }
+
+  const discountAmount = Math.round(baseAmount * discountPercent / 100);
+  return baseAmount + surcharge - discountAmount;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -86,7 +118,6 @@ export async function POST(req: NextRequest) {
       date_label,
       time_range,
       timeslot_ids,
-      amount,
       customer_name,
       customer_phone,
       discount_code,
@@ -106,6 +137,9 @@ export async function POST(req: NextRequest) {
     const db = getPool();
     await ensureTable(db);
 
+    // Compute final amount server-side — never trust client-provided amount
+    const finalAmount = await resolveAmount(db, id, Number(guest_count ?? 2), discount_code ?? null);
+
     await db.query(
       `INSERT INTO bookings (
         id, guest_name, room_name, branch_id, branch_name, date_label, time_range,
@@ -121,6 +155,7 @@ export async function POST(req: NextRequest) {
         has_car = COALESCE(EXCLUDED.has_car, bookings.has_car),
         has_decoration = COALESCE(EXCLUDED.has_decoration, bookings.has_decoration),
         discount_code = COALESCE(EXCLUDED.discount_code, bookings.discount_code),
+        amount = EXCLUDED.amount,
         cccd_front = COALESCE(EXCLUDED.cccd_front, bookings.cccd_front),
         cccd_back = COALESCE(EXCLUDED.cccd_back, bookings.cccd_back),
         updated_at = NOW()`,
@@ -133,7 +168,7 @@ export async function POST(req: NextRequest) {
         date_label ?? null,
         time_range ?? null,
         timeslot_ids ?? null,
-        amount ? Number(amount) : 0,
+        finalAmount,
         customer_name ?? null,
         customer_phone ?? null,
         discount_code ?? null,
@@ -146,7 +181,7 @@ export async function POST(req: NextRequest) {
       ]
     );
 
-    return NextResponse.json({ success: true, id });
+    return NextResponse.json({ success: true, id, amount: finalAmount });
   } catch (error) {
     console.error("Create booking error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";

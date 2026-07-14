@@ -96,7 +96,7 @@ export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutForm
     const fd = new FormData(e.currentTarget);
 
     try {
-      await fetch("/api/bookings", {
+      const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -108,11 +108,16 @@ export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutForm
           has_car: fd.get("has_car") === "on",
           has_decoration: fd.get("has_decoration") === "on",
           discount_code: discountResult?.valid ? discountCode : null,
-          amount: finalAmount,
           cccd_front: cccdFront,
           cccd_back: cccdBack,
+          // amount intentionally omitted — server computes it from DB
         }),
       });
+      const data = await res.json();
+      // Sync QR with server-computed amount
+      if (data.amount) {
+        onPricingChange?.({ guestCount, surcharge, discountPercent, discountAmount, finalAmount: data.amount });
+      }
 
       // Increment used_count for the applied code
       if (discountResult?.valid && discountCode) {
