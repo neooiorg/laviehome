@@ -31,8 +31,8 @@ export function MenuItemForm({ branches, initialData, isEditing = false }: MenuI
   const [isActive, setIsActive] = React.useState(initialData?.is_active ?? true);
 
   async function handleSubmit() {
-    if (!name || !description || !price || !branchId) {
-      alert('Vui lòng điền tất cả trường bắt buộc');
+    if (!name || !description || !price || !branchId || !imageUrl) {
+      alert('Vui lòng điền tất cả trường bắt buộc (bao gồm URL ảnh)');
       return;
     }
 
@@ -118,12 +118,13 @@ export function MenuItemForm({ branches, initialData, isEditing = false }: MenuI
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>URL Ảnh</Label>
+            <Label>URL Ảnh *</Label>
             <Input
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://..."
               type="url"
+              required
             />
           </div>
         </div>

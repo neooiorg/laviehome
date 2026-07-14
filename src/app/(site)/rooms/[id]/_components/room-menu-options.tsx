@@ -35,7 +35,7 @@ export function RoomMenuOptions({ branchId, onMenuItemsChange }: RoomMenuOptions
 
     // Calculate total and notify parent
     const selectedMenuItems = menuItems.filter((item) => newSelected.includes(item.id));
-    const totalPrice = selectedMenuItems.reduce((sum, item) => sum + item.price, 0);
+    const totalPrice = selectedMenuItems.reduce((sum, item) => sum + Number(item.price), 0);
     onMenuItemsChange?.(selectedMenuItems, totalPrice);
   }
 
@@ -49,7 +49,7 @@ export function RoomMenuOptions({ branchId, onMenuItemsChange }: RoomMenuOptions
 
   const totalPrice = selectedItems.reduce((sum, id) => {
     const item = menuItems.find((i) => i.id === id);
-    return sum + (item?.price || 0);
+    return sum + Number(item?.price ?? 0);
   }, 0);
 
   return (
@@ -63,14 +63,22 @@ export function RoomMenuOptions({ branchId, onMenuItemsChange }: RoomMenuOptions
         {menuItems.map((item) => (
           <Card
             key={item.id}
-            className={`p-4 cursor-pointer transition-all ${
+            className={`cursor-pointer transition-all overflow-hidden ${
               selectedItems.includes(item.id)
                 ? 'bg-primary/10 border-primary shadow-sm'
                 : 'bg-white hover:bg-gray-50'
             }`}
             onClick={() => handleToggle(item.id)}
           >
-            <div className="flex items-start gap-3">
+            {item.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.image_url}
+                alt={item.name}
+                className="w-full h-32 object-cover"
+              />
+            )}
+            <div className="flex items-start gap-3 p-4">
               <Checkbox
                 checked={selectedItems.includes(item.id)}
                 onCheckedChange={() => handleToggle(item.id)}
@@ -82,7 +90,7 @@ export function RoomMenuOptions({ branchId, onMenuItemsChange }: RoomMenuOptions
                     {item.name}
                   </Label>
                   <span className="text-sm font-bold text-pink-500 whitespace-nowrap">
-                    {money(item.price)}
+                    {money(Number(item.price))}
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 mt-1 line-clamp-2">

@@ -34,7 +34,7 @@ export function MenuItemsSelector({ items, selectedIds, onSelectionChange }: Men
 
   const totalPrice = selectedIds.reduce((sum, id) => {
     const item = items.find((i) => i.id === id);
-    return sum + (item?.price || 0);
+    return sum + Number(item?.price ?? 0);
   }, 0);
 
   return (
