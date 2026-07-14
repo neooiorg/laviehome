@@ -59,7 +59,7 @@ async function checkTimeslotConflict(
   timeslotIds: string
 ): Promise<boolean> {
   try {
-    const { rows } = await query(
+    const rows = await query(
       `SELECT id FROM bookings
        WHERE room_name = $1
          AND date_label = $2
