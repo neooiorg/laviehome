@@ -345,7 +345,7 @@ export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutForm
       {conflictError && (
         <div className="rounded-2xl border-2 border-red-500/60 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-300">
           ⚠️ {conflictError}
-          <a href="/" className="block mt-2 underline text-white/70 font-semibold">Quay lại chọn khung giờ khác →</a>
+          <button type="button" onClick={() => window.history.back()} className="block mt-2 underline text-white/70 font-semibold">Quay lại chọn khung giờ khác →</button>
         </div>
       )}
 
