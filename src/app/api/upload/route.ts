@@ -1,11 +1,31 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { NextResponse } from "next/server";
+import { Pool } from "pg";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+
+let pool: Pool | null = null;
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+  return pool;
+}
+
+async function ensureTable(db: Pool) {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS uploads (
+      filename  TEXT PRIMARY KEY,
+      data      BYTEA NOT NULL,
+      mime_type TEXT NOT NULL DEFAULT 'image/webp',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+}
 
 export async function POST(req: Request) {
   const formData = await req.formData();
@@ -25,16 +45,19 @@ export async function POST(req: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${randomUUID()}.webp`;
-  const filepath = path.join(UPLOAD_DIR, filename);
-
-  await mkdir(UPLOAD_DIR, { recursive: true });
 
   const processed = await sharp(buffer)
     .resize({ width: 1920, height: 1920, fit: "inside", withoutEnlargement: true })
     .webp({ quality: 85 })
     .toBuffer();
 
-  await writeFile(filepath, processed);
+  const db = getPool();
+  await ensureTable(db);
+  await db.query(
+    `INSERT INTO uploads (filename, data, mime_type) VALUES ($1, $2, $3)
+     ON CONFLICT (filename) DO UPDATE SET data = EXCLUDED.data`,
+    [filename, processed, "image/webp"]
+  );
 
   return NextResponse.json({ url: `/api/upload/${filename}` });
 }
