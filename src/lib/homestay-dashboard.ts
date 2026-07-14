@@ -1,4 +1,4 @@
-﻿import 'server-only';
+import 'server-only';
 
 import { money } from '@/lib/format';
 import { query } from '@/lib/postgres';
@@ -9,7 +9,7 @@ export type DashboardMetric = {
   note: string;
 };
 
-export type BookingStatus = 'Chá» thanh toÃ¡n' | 'ÄÃ£ thanh toÃ¡n' | 'ÄÃ£ xÃ¡c nháº­n' | 'Chá» cá»c' | 'Äang á»Ÿ' | 'HoÃ n táº¥t';
+export type BookingStatus = 'Chờ thanh toán' | 'Đã thanh toán' | 'Đã xác nhận' | 'Chờ cọc' | 'Đang ở' | 'Hoàn tất';
 
 export type BookingSnapshot = {
   id: string;
@@ -42,7 +42,7 @@ export type BranchSummary = {
   roomCount: number;
   averageFrom: number;
   topRoom: RoomRow | null;
-  status: 'Äang má»Ÿ' | 'Táº¡m ngÆ°ng';
+  status: 'Đang mở' | 'Tạm ngưng';
   classic: boolean;
 };
 
@@ -169,10 +169,10 @@ function splitBranchName(name: string) {
 }
 
 function getPriceBand(priceFrom: number) {
-  if (priceFrom < 200000) return 'DÆ°á»›i 200k';
+  if (priceFrom < 200000) return 'Dưới 200k';
   if (priceFrom < 250000) return '200k - 249k';
   if (priceFrom < 300000) return '250k - 299k';
-  return 'Tá»« 300k';
+  return 'Từ 300k';
 }
 
 function formatMonth(monthKey: string) {
@@ -255,24 +255,24 @@ export async function getDashboardMetrics(): Promise<DashboardMetric[]> {
 
   return [
     {
-      label: 'Chi nhÃ¡nh Ä‘ang má»Ÿ',
+      label: 'Chi nhánh đang mở',
       value: String(branches.filter((branch) => branch.active === 1).length),
-      note: `${branches.length} cÆ¡ sá»Ÿ trong há»‡ thá»‘ng`
+      note: `${branches.length} cơ sở trong hệ thống`
     },
     {
-      label: 'PhÃ²ng Ä‘ang bÃ¡n',
+      label: 'Phòng đang bán',
       value: String(catalogRooms.length),
-      note: `Tá»•ng ${catalogRooms.length} phÃ²ng Ä‘ang active`
+      note: `Tổng ${catalogRooms.length} phòng đang active`
     },
     {
-      label: 'GiÃ¡ khá»Ÿi Ä‘iá»ƒm TB',
-      value: `${money(averagePriceFrom)}Ä‘`,
-      note: 'Dá»±a trÃªn cÃ¡c phÃ²ng Ä‘ang active'
+      label: 'Giá khởi điểm TB',
+      value: `${money(averagePriceFrom)}đ`,
+      note: 'Dựa trên các phòng đang active'
     },
     {
-      label: 'PhÃ²ng Ä‘á»§ ná»™i dung',
+      label: 'Phòng đủ nội dung',
       value: String(contentCompleteRooms),
-      note: `${premiumRooms} phÃ²ng premium tá»« 250k`
+      note: `${premiumRooms} phòng premium từ 250k`
     }
   ];
 }
@@ -295,7 +295,7 @@ export async function getBranchSummaries(limit = 6): Promise<BranchSummary[]> {
         roomCount: branchRooms.length,
         averageFrom,
         topRoom: branchRooms[0] ?? null,
-        status: branch.active === 1 ? ('Äang má»Ÿ' as const) : ('Táº¡m ngÆ°ng' as const),
+        status: branch.active === 1 ? ('Đang mở' as const) : ('Tạm ngưng' as const),
         classic: branch.classic_booking_enabled === 1
       };
     })
@@ -320,7 +320,7 @@ export async function getRoomSummaries(limit = 8): Promise<RoomSummary[]> {
       branch,
       amenityCount,
       priceBand: getPriceBand(room.price_from),
-      highlight: room.room_amenities[0] ?? 'ChÆ°a gáº¯n tiá»‡n Ã­ch',
+      highlight: room.room_amenities[0] ?? 'Chưa gắn tiện ích',
       isFeatured: room.price_from >= 250000 || amenityCount >= 8
     };
   });
@@ -454,7 +454,7 @@ export async function getBookingSnapshots(limit = 12): Promise<BookingSnapshot[]
 
 export async function getBookingStatusSummary(limit = 12): Promise<BookingStatusPoint[]> {
   const snapshots = await getBookingSnapshots(limit);
-  const bookingStatuses: BookingStatus[] = ['ÄÃ£ xÃ¡c nháº­n', 'Chá» cá»c', 'Äang á»Ÿ', 'HoÃ n táº¥t'];
+  const bookingStatuses: BookingStatus[] = ['Đã xác nhận', 'Chờ cọc', 'Đang ở', 'Hoàn tất'];
 
   return bookingStatuses.map((status) => {
     const count = snapshots.filter((snapshot) => snapshot.status === status).length;
@@ -471,7 +471,7 @@ export async function getPriceBands(): Promise<PriceBandPoint[]> {
   const catalogRooms = await getActiveCatalogRooms();
   const bands = [
     {
-      label: 'DÆ°á»›i 200k',
+      label: 'Dưới 200k',
       count: catalogRooms.filter((room) => room.price_from < 200000).length
     },
     {
@@ -483,7 +483,7 @@ export async function getPriceBands(): Promise<PriceBandPoint[]> {
       count: catalogRooms.filter((room) => room.price_from >= 250000 && room.price_from < 300000).length
     },
     {
-      label: 'Tá»« 300k',
+      label: 'Từ 300k',
       count: catalogRooms.filter((room) => room.price_from >= 300000).length
     }
   ];
@@ -555,40 +555,40 @@ export async function getOperationalAlerts(limit = 6): Promise<AlertItem[]> {
 
   if (placeholderRooms.length > 0) {
     alerts.push({
-      title: 'áº¢nh phÃ²ng cÃ²n placeholder',
-      detail: `${placeholderRooms.length} phÃ²ng váº«n Ä‘ang dÃ¹ng áº£nh máº«u, nÃªn thay trÆ°á»›c khi Ä‘áº©y lÃªn site.`,
+      title: 'Ảnh phòng còn placeholder',
+      detail: `${placeholderRooms.length} phòng vẫn đang dùng ảnh mẫu, nên thay trước khi đẩy lên site.`,
       tone: 'warning'
     });
   }
 
   if (emptyAmenityRooms.length > 0) {
     alerts.push({
-      title: 'PhÃ²ng thiáº¿u tiá»‡n Ã­ch',
-      detail: `${emptyAmenityRooms.length} phÃ²ng chÆ°a gáº¯n tiá»‡n Ã­ch, dá»… lÃ m ná»™i dung bá»‹ má»ng.`,
+      title: 'Phòng thiếu tiện ích',
+      detail: `${emptyAmenityRooms.length} phòng chưa gắn tiện ích, dễ làm nội dung bị mỏng.`,
       tone: 'critical'
     });
   }
 
   if (inactiveBranches.length > 0) {
     alerts.push({
-      title: 'Chi nhÃ¡nh táº¡m ngÆ°ng',
-      detail: `${inactiveBranches.length} cÆ¡ sá»Ÿ Ä‘ang táº¯t tráº¡ng thÃ¡i hoáº¡t Ä‘á»™ng.`,
+      title: 'Chi nhánh tạm ngưng',
+      detail: `${inactiveBranches.length} cơ sở đang tắt trạng thái hoạt động.`,
       tone: 'info'
     });
   }
 
   if (classicOffBranches.length > 0) {
     alerts.push({
-      title: 'ChÆ°a báº­t booking classic',
-      detail: `${classicOffBranches.length} chi nhÃ¡nh Ä‘ang chá» kÃ­ch hoáº¡t booking theo giá».`,
+      title: 'Chưa bật booking classic',
+      detail: `${classicOffBranches.length} chi nhánh đang chờ kích hoạt booking theo giờ.`,
       tone: 'warning'
     });
   }
 
   const premiumRooms = rooms.filter((room) => room.price_from >= 250000).length;
   alerts.push({
-    title: 'Æ¯u tiÃªn phÃ²ng premium',
-    detail: `${premiumRooms} phÃ²ng cÃ³ giÃ¡ tá»« 250k trá»Ÿ lÃªn, nÃªn Ä‘Æ°a lÃªn vá»‹ trÃ­ ná»•i báº­t.`,
+    title: 'Ưu tiên phòng premium',
+    detail: `${premiumRooms} phòng có giá từ 250k trở lên, nên đưa lên vị trí nổi bật.`,
     tone: 'info'
   });
 
@@ -640,7 +640,7 @@ export async function getGuestSummaries(limit = 8): Promise<GuestSummary[]> {
 }
 
 export function moneyRange(room: RoomSummary['room']) {
-  return `${money(room.price_from)}Ä‘ - ${money(room.price_to)}Ä‘`;
+  return `${money(room.price_from)}đ - ${money(room.price_to)}đ`;
 }
 
 export async function getPublicRoomById(id: number): Promise<RoomRow | null> {
