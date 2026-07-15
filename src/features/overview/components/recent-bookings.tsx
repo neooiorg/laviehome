@@ -29,6 +29,7 @@ export async function RecentBookings() {
               .map((w) => w[0])
               .join('')
               .toUpperCase();
+            const totalAmount = Number(b.amount) + Number(b.menuItemsTotal ?? 0);
             return (
               <div key={b.id} className='flex items-center'>
                 <Avatar className='h-9 w-9'>
@@ -39,7 +40,7 @@ export async function RecentBookings() {
                   <p className='text-muted-foreground text-xs'>{b.room.card_name}</p>
                 </div>
                 <div className='ml-auto flex flex-col items-end gap-1'>
-                  <span className='text-sm font-medium'>+{money(b.amount)}đ</span>
+                  <span className='text-sm font-medium'>+{money(totalAmount)}đ</span>
                   <Badge variant={STATUS_VARIANT[b.status] ?? 'secondary'} className='text-xs'>
                     {b.status}
                   </Badge>

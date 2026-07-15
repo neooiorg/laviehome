@@ -16,12 +16,21 @@ export async function GET(req: NextRequest) {
     const [branches, rooms, rawBookings] = await Promise.all([
       getPublicBranches(),
       getAllRooms(),
-      fetchRawBookings({ limit: 1500, branchId: Number.isFinite(branchId) ? branchId : undefined }),
+      fetchRawBookings({ limit: 1500 }),
     ]);
 
+    const targetBranch = Number.isFinite(branchId)
+      ? branches.find((branch) => branch.id === branchId) ?? null
+      : null;
     const branchRooms = Number.isFinite(roomId)
       ? rooms.filter((room) => room.id === roomId)
-      : rooms.filter((room) => room.branch_id === branchId);
+      : rooms.filter((room) => {
+          if (room.branch_id === branchId) {
+            return true;
+          }
+
+          return Boolean(targetBranch && room.branch_id == null && room.branch_name === targetBranch.name);
+        });
     const roomIds = new Set(branchRooms.map((room) => room.id));
 
     if (branchRooms.length === 0) {
