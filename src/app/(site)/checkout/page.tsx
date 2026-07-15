@@ -193,8 +193,6 @@ export default async function CheckoutPage({
           date={checkout.date}
           timeRange={checkout.timeRange}
           price={checkout.price}
-          hotline={checkout.hotline}
-          mapLink={checkout.map}
         />
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold text-white/50">

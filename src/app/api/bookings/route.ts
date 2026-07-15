@@ -26,15 +26,20 @@ async function ensureTable(db: Pool) {
   await db.query(`
     CREATE TABLE IF NOT EXISTS bookings (
       id VARCHAR(50) PRIMARY KEY,
+      guest_name VARCHAR(255) DEFAULT '',
+      room_id INTEGER,
       room_name VARCHAR(255),
       branch_id INTEGER,
       branch_name VARCHAR(255),
       customer_name VARCHAR(255),
       customer_phone VARCHAR(20),
+      stay_date DATE DEFAULT CURRENT_DATE,
       date_label VARCHAR(100),
       time_range VARCHAR(200),
       timeslot_ids TEXT,
+      channel VARCHAR(50) DEFAULT 'Online',
       amount BIGINT DEFAULT 0,
+      menu_items_total BIGINT DEFAULT 0,
       discount_code VARCHAR(50),
       status VARCHAR(50) DEFAULT 'Chờ thanh toán',
       notes TEXT,
@@ -49,14 +54,19 @@ async function ensureTable(db: Pool) {
   `);
   await db.query(`
     ALTER TABLE bookings
+      ADD COLUMN IF NOT EXISTS guest_name VARCHAR(255) DEFAULT '',
+      ADD COLUMN IF NOT EXISTS room_id INTEGER,
       ADD COLUMN IF NOT EXISTS room_name VARCHAR(255),
       ADD COLUMN IF NOT EXISTS branch_id INTEGER,
       ADD COLUMN IF NOT EXISTS branch_name VARCHAR(255),
       ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255),
       ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS stay_date DATE DEFAULT CURRENT_DATE,
       ADD COLUMN IF NOT EXISTS date_label VARCHAR(100),
       ADD COLUMN IF NOT EXISTS time_range VARCHAR(200),
       ADD COLUMN IF NOT EXISTS timeslot_ids TEXT,
+      ADD COLUMN IF NOT EXISTS channel VARCHAR(50) DEFAULT 'Online',
+      ADD COLUMN IF NOT EXISTS menu_items_total BIGINT DEFAULT 0,
       ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50),
       ADD COLUMN IF NOT EXISTS notes TEXT,
       ADD COLUMN IF NOT EXISTS guest_count INTEGER DEFAULT 2,
@@ -305,7 +315,16 @@ export async function GET(req: NextRequest) {
     }
 
     const result = await db.query(
-      `SELECT id, room_name, branch_name, date_label, time_range, amount, status, guest_count, created_at
+      `SELECT
+         id,
+         room_name,
+         branch_name,
+         date_label,
+         time_range,
+         amount + COALESCE(menu_items_total, 0) AS amount,
+         status,
+         guest_count,
+         created_at
        FROM bookings WHERE ${whereClauses} ORDER BY created_at DESC LIMIT 10`,
       params
     );

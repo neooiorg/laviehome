@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { money } from "@/lib/format";
@@ -8,16 +9,13 @@ import { money } from "@/lib/format";
 type CheckoutPaymentBoxProps = {
   price: number;
   transferCode: string;
-  hotline: string;
-  mapLink: string;
 };
 
 export function CheckoutPaymentBox({
   price,
   transferCode,
-  hotline,
-  mapLink,
 }: CheckoutPaymentBoxProps) {
+  const router = useRouter();
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [isPaid, setIsPaid] = useState(false);
 
@@ -58,6 +56,16 @@ export function CheckoutPaymentBox({
     return () => clearInterval(pollInterval);
   }, [transferCode, isPaid, timeLeft]);
 
+  useEffect(() => {
+    if (!isPaid) return;
+
+    const redirectTimer = setTimeout(() => {
+      router.push(`/checking?code=${encodeURIComponent(transferCode)}`);
+    }, 2500);
+
+    return () => clearTimeout(redirectTimer);
+  }, [isPaid, router, transferCode]);
+
   if (isPaid) {
     return (
       <section className="section-card p-6 md:p-8 text-center animate-fade-in">
@@ -73,9 +81,12 @@ export function CheckoutPaymentBox({
         <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-left text-xs font-semibold text-emerald-300">
           Quá trình đặt phòng đã hoàn tất. Nhân viên Lavie Home sẽ liên hệ với bạn trong giây lát để cung cấp mã mở khóa thông minh. Xin cảm ơn quý khách!
         </div>
+        <p className="mt-4 text-xs font-semibold text-white/60">
+          Đang chuyển bạn đến trang tra cứu để xem chi tiết đặt phòng...
+        </p>
         <Link
           className="primary-button mt-6 w-full text-center py-3.5 block"
-          href="/checking"
+          href={`/checking?code=${encodeURIComponent(transferCode)}`}
         >
           Tra Cứu Lịch Trình
         </Link>

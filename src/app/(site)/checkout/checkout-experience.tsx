@@ -22,8 +22,6 @@ type CheckoutExperienceProps = {
   date: string;
   timeRange: string;
   price: number;
-  hotline: string;
-  mapLink: string;
 };
 
 export function CheckoutExperience({
@@ -33,8 +31,6 @@ export function CheckoutExperience({
   date,
   timeRange,
   price,
-  hotline,
-  mapLink,
 }: CheckoutExperienceProps) {
   const [pricing, setPricing] = useState<CheckoutPricing>({
     guestCount: 2,
@@ -106,8 +102,6 @@ export function CheckoutExperience({
         <CheckoutPaymentBox
           price={pricing.finalAmount}
           transferCode={transferCode}
-          hotline={hotline}
-          mapLink={mapLink}
         />
       </aside>
     </section>
