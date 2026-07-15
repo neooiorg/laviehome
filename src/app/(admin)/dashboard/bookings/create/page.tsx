@@ -3,10 +3,11 @@ import { ArrowLeft } from "lucide-react";
 
 import PageContainer from "@/components/layout/page-container";
 import { getAllRooms, getPublicBranches } from "@/lib/homestay-dashboard";
+import { getAllMenuItems } from "@/lib/menu-actions";
 import { CreateBookingForm } from "./_components/create-booking-form";
 
 export default async function CreateBookingPage() {
-  const [rooms, branches] = await Promise.all([getAllRooms(), getPublicBranches()]);
+  const [rooms, branches, menuItems] = await Promise.all([getAllRooms(), getPublicBranches(), getAllMenuItems()]);
 
   return (
     <PageContainer>
@@ -20,7 +21,7 @@ export default async function CreateBookingPage() {
         <h1 className="text-2xl font-bold tracking-tight">Tạo đặt phòng</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Điền thông tin để tạo booking mới.</p>
       </div>
-      <CreateBookingForm rooms={rooms} branches={branches} />
+      <CreateBookingForm rooms={rooms} branches={branches} menuItems={menuItems} />
     </PageContainer>
   );
 }

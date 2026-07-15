@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
@@ -51,11 +50,17 @@ export function MenuItemsSelector({ items, selectedIds, onSelectionChange }: Men
             onClick={() => handleToggle(item.id)}
           >
             <div className="flex items-start gap-3">
-              <Checkbox
-                checked={selectedIds.includes(item.id)}
-                onCheckedChange={() => handleToggle(item.id)}
+              <div
                 className="mt-1"
-              />
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                <Checkbox
+                  checked={selectedIds.includes(item.id)}
+                  onCheckedChange={() => handleToggle(item.id)}
+                />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <Label className="font-semibold cursor-pointer">{item.name}</Label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 
 import { money } from "@/lib/format";
@@ -30,7 +30,7 @@ function isSlotPromo(dayIndex: number) {
   return dayIndex >= 1 && dayIndex <= 5;
 }
 
-export function RoomBooking({ room }: { room: BookingRoom }) {
+export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems: MenuItem[] }) {
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
   const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
   const [menuTotal, setMenuTotal] = useState(0);
@@ -67,6 +67,10 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
   const discountRate = selectedSlots.length === 2 ? 0.05 : selectedSlots.length >= 3 ? 0.1 : 0;
   const extraMinutes = selectedSlots.length === 2 ? 30 : selectedSlots.length >= 3 ? 60 : 0;
   const comboTotal = Math.max(subtotal - subtotal * discountRate, 0);
+  const handleMenuItemsChange = useCallback((items: MenuItem[], total: number) => {
+    setSelectedMenuItems(items);
+    setMenuTotal(total);
+  }, []);
 
   function toggleSlot(slot: SelectedSlot) {
     setSelectedSlots((current) => {
@@ -223,13 +227,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
         </div>
       </div>
 
-      <RoomMenuOptions
-        branchId={room.branch_id}
-        onMenuItemsChange={(items, total) => {
-          setSelectedMenuItems(items);
-          setMenuTotal(total);
-        }}
-      />
+      <RoomMenuOptions items={menuItems} onMenuItemsChange={handleMenuItemsChange} />
 
       {selectedSlots.length > 0 && (
         <div className="mt-5 rounded-3xl p-6 border-2 border-white/20 bg-[#1b111f] shadow-[6px_6px_0px_rgba(255,255,255,0.05)]">

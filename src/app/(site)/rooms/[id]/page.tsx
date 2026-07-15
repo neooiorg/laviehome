@@ -19,6 +19,7 @@ import {
 import { SiteHeader } from '@/components/site-header';
 import { BottomNav } from '@/components/bottom-nav';
 import { getPublicBranches, getPublicRoomById } from '@/lib/homestay-dashboard';
+import { getMenuItemsByBranch } from '@/lib/menu-actions';
 import { money } from '@/lib/format';
 import { compactPhone } from '@/lib/format';
 
@@ -57,6 +58,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
     return notFound();
   }
 
+  const menuItems = (await getMenuItemsByBranch(room.branch_id)).filter((item) => item.is_active);
   const branch = branches.find((b) => b.id === room.branch_id) ?? branches[0];
   const validImages = (room.images ?? []).filter((img) => img && (img.startsWith('http') || img.startsWith('/')));
   const allImages = validImages.length > 0 ? validImages : [safeImg(room.main_image)];
@@ -199,6 +201,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
               price_from: room.price_from,
               full_day_price: room.full_day_price,
             }}
+            menuItems={menuItems}
           />
         </div>
       </div>

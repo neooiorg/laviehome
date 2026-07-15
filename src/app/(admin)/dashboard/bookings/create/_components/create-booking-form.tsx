@@ -1,9 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
+import { createBookingAdmin } from "@/lib/booking-actions";
+import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
+import type { MenuItem } from "@/lib/menu-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -12,9 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { createBookingAdmin } from "@/lib/booking-actions";
-import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
-import { getMenuItemsByBranch, type MenuItem } from "@/lib/menu-actions";
 
 import { MenuItemsSelector } from "../../_components/menu-items-selector";
 
@@ -29,7 +29,13 @@ function normalizeWholeNumberInput(value: string) {
   return value.replace(/\D/g, "");
 }
 
-export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branches: BranchRow[] }) {
+interface CreateBookingFormProps {
+  rooms: RoomRow[];
+  branches: BranchRow[];
+  menuItems: MenuItem[];
+}
+
+export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingFormProps) {
   const router = useRouter();
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -45,31 +51,32 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
   const [guestCount, setGuestCount] = React.useState("2");
   const [notes, setNotes] = React.useState("");
   const [selectedMenuItems, setSelectedMenuItems] = React.useState<number[]>([]);
-  const [menuItems, setMenuItems] = React.useState<MenuItem[]>([]);
-  const [loadingMenuItems, setLoadingMenuItems] = React.useState(false);
 
   const selectedRoom = rooms.find((room) => room.id === Number(roomId));
   const branchId = selectedRoom?.branch_id;
   const branchName = selectedRoom
     ? branches.find((branch) => branch.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name
     : "";
+  const availableMenuItems = React.useMemo(
+    () => menuItems.filter((item) => item.branch_id === branchId),
+    [branchId, menuItems]
+  );
+
+  React.useEffect(() => {
+    if (!branchId) {
+      setSelectedMenuItems([]);
+      return;
+    }
+
+    const availableIds = new Set(availableMenuItems.map((item) => item.id));
+    setSelectedMenuItems((current) => current.filter((id) => availableIds.has(id)));
+  }, [availableMenuItems, branchId]);
+
   const selectedMenuItemsTotal = selectedMenuItems.reduce((sum, id) => {
-    const item = menuItems.find((menuItem) => menuItem.id === id);
+    const item = availableMenuItems.find((menuItem) => menuItem.id === id);
     return sum + Number(item?.price ?? 0);
   }, 0);
   const totalAmount = (Number(amount) || 0) + selectedMenuItemsTotal;
-
-  React.useEffect(() => {
-    if (branchId) {
-      setLoadingMenuItems(true);
-      getMenuItemsByBranch(branchId)
-        .then(setMenuItems)
-        .finally(() => setLoadingMenuItems(false));
-    } else {
-      setMenuItems([]);
-      setSelectedMenuItems([]);
-    }
-  }, [branchId]);
 
   async function handleCreate() {
     if (!roomId || !guestName || !stayDate || !branchId) return;
@@ -205,32 +212,26 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
           </div>
         </div>
 
-        {branchId && menuItems.length > 0 && (
+        {branchId && (
           <>
             <Separator />
             <div className="flex flex-col gap-2">
               <Label className="text-base font-semibold">Menu Items (Tùy chọn)</Label>
-              {loadingMenuItems ? (
-                <div className="text-sm text-muted-foreground">Đang tải menu items...</div>
-              ) : (
-                <>
-                  <MenuItemsSelector
-                    items={menuItems}
-                    selectedIds={selectedMenuItems}
-                    onSelectionChange={setSelectedMenuItems}
-                  />
-                  <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">Menu items</span>
-                      <span className="font-medium">{money(selectedMenuItemsTotal)}đ</span>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">Tổng thanh toán tạm tính</span>
-                      <span className="font-semibold">{money(totalAmount)}đ</span>
-                    </div>
-                  </div>
-                </>
-              )}
+              <MenuItemsSelector
+                items={availableMenuItems}
+                selectedIds={selectedMenuItems}
+                onSelectionChange={setSelectedMenuItems}
+              />
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Menu items</span>
+                  <span className="font-medium">{money(selectedMenuItemsTotal)}đ</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Tổng thanh toán tạm tính</span>
+                  <span className="font-semibold">{money(totalAmount)}đ</span>
+                </div>
+              </div>
             </div>
           </>
         )}

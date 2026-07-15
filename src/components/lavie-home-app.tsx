@@ -26,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import type { ElementType } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { compactPhone, money } from "@/lib/format";
@@ -171,7 +171,15 @@ type Room = {
   images: string[];
 };
 
-export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: Room[] }) {
+export function LavieHomeApp({
+  branches,
+  rooms,
+  menuItems,
+}: {
+  branches: Branch[];
+  rooms: Room[];
+  menuItems: MenuItem[];
+}) {
   const [activeBranchId, setActiveBranchId] = useState(branches[0]?.id ?? 30);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
   const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
@@ -226,6 +234,10 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
   const heroLoopRooms = [...heroMarqueeRooms, ...heroMarqueeRooms];
   const calendarRooms = (branchRooms.length > 0 ? branchRooms : allBranchRooms).slice(0, 8);
   const currentBranch = branches.find((branch) => branch.id === activeBranchId) ?? branches[0];
+  const availableMenuItems = useMemo(
+    () => menuItems.filter((item) => item.branch_id === activeBranchId && item.is_active),
+    [activeBranchId, menuItems]
+  );
   const dates = useMemo(() => makeDates(), []);
   const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
 
@@ -234,6 +246,10 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
   const extraMinutes = selectedSlots.length === 2 ? 30 : selectedSlots.length >= 3 ? 60 : 0;
   const comboTotal = subtotal - subtotal * discountRate;
   const grandTotal = Math.max(comboTotal, 0) + menuTotal;
+  const handleMenuItemsChange = useCallback((items: MenuItem[], total: number) => {
+    setSelectedMenuItems(items);
+    setMenuTotal(total);
+  }, []);
 
   function switchBranch(branchId: number) {
     setActiveBranchId(branchId);
@@ -760,13 +776,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               )}
             </div>
 
-            <RoomMenuOptions
-              branchId={activeBranchId}
-              onMenuItemsChange={(items, total) => {
-                setSelectedMenuItems(items);
-                setMenuTotal(total);
-              }}
-            />
+            <RoomMenuOptions items={availableMenuItems} onMenuItemsChange={handleMenuItemsChange} />
 
             {/* Selected summary details block */}
             {selectedSlots.length > 0 && (
