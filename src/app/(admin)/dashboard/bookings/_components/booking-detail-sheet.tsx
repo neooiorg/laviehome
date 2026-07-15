@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 import { BookingStatusSelect } from "./booking-status-select";
 
@@ -14,6 +13,7 @@ function money(value: number) {
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null;
+
   return (
     <div className="grid grid-cols-[120px_1fr] gap-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
@@ -28,8 +28,15 @@ interface Props {
 }
 
 export function BookingDetailSheet({ booking, onClose }: Props) {
+  const totalAmount = booking ? Number(booking.amount) + Number(booking.menuItemsTotal ?? 0) : 0;
+
   return (
-    <Sheet open={!!booking} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <Sheet
+      open={!!booking}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         {booking && (
           <>
@@ -45,8 +52,8 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                 <Field label="Họ tên thực" value={booking.customerName} />
                 <Field label="SĐT" value={booking.customerPhone} />
                 <Field label="Số khách" value={booking.guestCount ?? null} />
-                {booking.hasCar && <Field label="Có xe" value="✓" />}
-                {booking.hasDecoration && <Field label="Trang trí" value="✓" />}
+                {booking.hasCar && <Field label="Có xe" value="Có" />}
+                {booking.hasDecoration && <Field label="Trang trí" value="Có" />}
               </section>
 
               <section className="space-y-3">
@@ -56,7 +63,15 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                 <Field label="Ngày" value={booking.dateLabel} />
                 <Field label="Giờ" value={booking.timeRange} />
                 <Field label="Kênh" value={booking.channel} />
-                <Field label="Số tiền" value={`${money(booking.amount)}đ`} />
+                {Number(booking.menuItemsTotal ?? 0) > 0 ? (
+                  <>
+                    <Field label="Tiền phòng" value={`${money(booking.amount)}đ`} />
+                    <Field label="Menu items" value={`+${money(Number(booking.menuItemsTotal))}đ`} />
+                    <Field label="Tổng cộng" value={`${money(totalAmount)}đ`} />
+                  </>
+                ) : (
+                  <Field label="Số tiền" value={`${money(booking.amount)}đ`} />
+                )}
                 <Field label="Mã giảm giá" value={booking.discountCode} />
                 <div className="grid grid-cols-[120px_1fr] gap-2 text-sm">
                   <span className="text-muted-foreground">Trạng thái</span>
@@ -67,7 +82,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
               {booking.notes && (
                 <section className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ghi chú</h3>
-                  <p className="text-sm rounded-md bg-muted px-3 py-2">{booking.notes}</p>
+                  <p className="rounded-md bg-muted px-3 py-2 text-sm">{booking.notes}</p>
                 </section>
               )}
 
@@ -82,7 +97,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                           alt="CCCD mặt trước"
                           width={200}
                           height={130}
-                          className="rounded-md border object-cover w-full"
+                          className="w-full rounded-md border object-cover"
                         />
                       </a>
                     )}
@@ -93,7 +108,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                           alt="CCCD mặt sau"
                           width={200}
                           height={130}
-                          className="rounded-md border object-cover w-full"
+                          className="w-full rounded-md border object-cover"
                         />
                       </a>
                     )}

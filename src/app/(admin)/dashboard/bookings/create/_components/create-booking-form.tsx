@@ -12,14 +12,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
 import { createBookingAdmin } from "@/lib/booking-actions";
+import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
+import { getMenuItemsByBranch, type MenuItem } from "@/lib/menu-actions";
+
 import { MenuItemsSelector } from "../../_components/menu-items-selector";
-import { getMenuItemsByBranch } from "@/lib/menu-actions";
-import type { MenuItem } from "@/lib/menu-actions";
 
 const CHANNELS = ["Admin", "Walk-in", "Phone", "Facebook", "Zalo", "Booking.com", "Agoda", "Khác"];
 const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+
+function money(value: number) {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
+
+function normalizeWholeNumberInput(value: string) {
+  return value.replace(/\D/g, "");
+}
 
 export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branches: BranchRow[] }) {
   const router = useRouter();
@@ -40,11 +48,17 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
   const [menuItems, setMenuItems] = React.useState<MenuItem[]>([]);
   const [loadingMenuItems, setLoadingMenuItems] = React.useState(false);
 
-  const selectedRoom = rooms.find((r) => r.id === Number(roomId));
+  const selectedRoom = rooms.find((room) => room.id === Number(roomId));
   const branchId = selectedRoom?.branch_id;
-  const branchName = selectedRoom ? branches.find((b) => b.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name : "";
+  const branchName = selectedRoom
+    ? branches.find((branch) => branch.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name
+    : "";
+  const selectedMenuItemsTotal = selectedMenuItems.reduce((sum, id) => {
+    const item = menuItems.find((menuItem) => menuItem.id === id);
+    return sum + Number(item?.price ?? 0);
+  }, 0);
+  const totalAmount = (Number(amount) || 0) + selectedMenuItemsTotal;
 
-  // Fetch menu items when branch changes
   React.useEffect(() => {
     if (branchId) {
       setLoadingMenuItems(true);
@@ -59,8 +73,10 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
 
   async function handleCreate() {
     if (!roomId || !guestName || !stayDate || !branchId) return;
+
     setSaving(true);
     setError("");
+
     try {
       await createBookingAdmin({
         roomId: Number(roomId),
@@ -94,10 +110,14 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
         <div className="flex flex-col gap-1.5">
           <Label>Phòng *</Label>
           <Select value={roomId} onValueChange={setRoomId}>
-            <SelectTrigger><SelectValue placeholder="Chọn phòng..." /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue placeholder="Chọn phòng..." />
+            </SelectTrigger>
             <SelectContent>
-              {rooms.map((r) => (
-                <SelectItem key={r.id} value={String(r.id)}>{r.card_name} — {r.branch_name}</SelectItem>
+              {rooms.map((room) => (
+                <SelectItem key={room.id} value={String(room.id)}>
+                  {room.card_name} - {room.branch_name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -111,7 +131,7 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Khung giờ</Label>
-            <Input value={timeRange} onChange={(e) => setTimeRange(e.target.value)} placeholder="VD: 14:00–22:00" />
+            <Input value={timeRange} onChange={(e) => setTimeRange(e.target.value)} placeholder="VD: 14:00-22:00" />
           </div>
         </div>
 
@@ -137,8 +157,18 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
             <Input type="number" min={1} value={guestCount} onChange={(e) => setGuestCount(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Số tiền (đ)</Label>
-            <Input type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Label>Tiền phòng (đ)</Label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={amount}
+              onChange={(e) => setAmount(normalizeWholeNumberInput(e.target.value))}
+              placeholder="VD: 200000"
+            />
+            <p className="text-xs text-muted-foreground">
+              Chỉ nhập tiền phòng. Menu items sẽ được cộng riêng vào tổng thanh toán.
+            </p>
           </div>
         </div>
 
@@ -146,15 +176,31 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
           <div className="flex flex-col gap-1.5">
             <Label>Kênh đặt</Label>
             <Select value={channel} onValueChange={setChannel}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{CHANNELS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CHANNELS.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Trạng thái</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as BookingStatus)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            <Select value={status} onValueChange={(value) => setStatus(value as BookingStatus)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUSES.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         </div>
@@ -167,11 +213,23 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
               {loadingMenuItems ? (
                 <div className="text-sm text-muted-foreground">Đang tải menu items...</div>
               ) : (
-                <MenuItemsSelector
-                  items={menuItems}
-                  selectedIds={selectedMenuItems}
-                  onSelectionChange={setSelectedMenuItems}
-                />
+                <>
+                  <MenuItemsSelector
+                    items={menuItems}
+                    selectedIds={selectedMenuItems}
+                    onSelectionChange={setSelectedMenuItems}
+                  />
+                  <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Menu items</span>
+                      <span className="font-medium">{money(selectedMenuItemsTotal)}đ</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Tổng thanh toán tạm tính</span>
+                      <span className="font-semibold">{money(totalAmount)}đ</span>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </>
@@ -189,7 +247,9 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
         ) : null}
 
         <div className="flex gap-2 border-t pt-3">
-          <Button variant="outline" asChild><Link href="/dashboard/bookings">Hủy</Link></Button>
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/bookings">Hủy</Link>
+          </Button>
           <Button onClick={handleCreate} disabled={saving || !roomId || !guestName || !stayDate}>
             {saving ? "Đang tạo..." : "Tạo booking"}
           </Button>

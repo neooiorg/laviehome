@@ -5,10 +5,10 @@ import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye } from "lucide-react";
 
+import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 
 const statusMeta: Record<string, { badgeClass: string; dotClass: string }> = {
   "Chờ thanh toán": {
@@ -55,10 +55,11 @@ function money(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
 }
 
-export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: BookingSnapshot) => void }>[] = [
+export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking: BookingSnapshot) => void }>[] = [
   {
     id: "search",
-    accessorFn: (row) => `${row.guestName} ${row.customerName ?? ""} ${row.customerPhone ?? ""} ${row.room.card_name} ${row.branch.name}`,
+    accessorFn: (row) =>
+      `${row.guestName} ${row.customerName ?? ""} ${row.customerPhone ?? ""} ${row.room.card_name} ${row.branch.name}`,
     filterFn: "includesString",
     enableHiding: true,
   },
@@ -67,10 +68,8 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: Booki
     header: "Khách",
     cell: ({ row }) => (
       <div>
-        <div className="font-medium text-sm text-foreground">{row.original.guestName}</div>
-        {row.original.customerPhone && (
-          <div className="text-xs text-muted-foreground">{row.original.customerPhone}</div>
-        )}
+        <div className="text-sm font-medium text-foreground">{row.original.guestName}</div>
+        {row.original.customerPhone && <div className="text-xs text-muted-foreground">{row.original.customerPhone}</div>}
       </div>
     ),
   },
@@ -78,45 +77,34 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: Booki
     id: "room",
     header: "Phòng",
     accessorFn: (row) => row.room.card_name,
-    cell: ({ row }) => (
-      <div className="text-sm">{row.original.room.card_name}</div>
-    ),
+    cell: ({ row }) => <div className="text-sm">{row.original.room.card_name}</div>,
   },
   {
     id: "branch",
     header: "Chi nhánh",
     accessorFn: (row) => row.branch.name,
-    cell: ({ row }) => (
-      <div className="text-sm">{row.original.branch.name}</div>
-    ),
+    cell: ({ row }) => <div className="text-sm">{row.original.branch.name}</div>,
   },
   {
     accessorKey: "dateLabel",
     header: "Ngày",
-    cell: ({ row }) => (
-      <div className="whitespace-nowrap text-sm">{row.original.dateLabel}</div>
-    ),
+    cell: ({ row }) => <div className="whitespace-nowrap text-sm">{row.original.dateLabel}</div>,
   },
   {
     accessorKey: "timeRange",
     header: "Giờ",
-    cell: ({ row }) => (
-      <div className="whitespace-nowrap text-sm text-muted-foreground">{row.original.timeRange}</div>
-    ),
+    cell: ({ row }) => <div className="whitespace-nowrap text-sm text-muted-foreground">{row.original.timeRange}</div>,
   },
   {
     accessorKey: "channel",
     header: "Kênh",
     filterFn: "equalsString",
-    cell: ({ row }) => (
-      <div className="text-sm">{row.original.channel}</div>
-    ),
+    cell: ({ row }) => <div className="text-sm">{row.original.channel}</div>,
   },
   {
     accessorKey: "status",
     header: "Trạng thái",
-    filterFn: (row, _id, filterValues: string[]) =>
-      !filterValues.length || filterValues.includes(row.original.status),
+    filterFn: (row, _id, filterValues: string[]) => !filterValues.length || filterValues.includes(row.original.status),
     meta: {
       label: "Trạng thái",
       variant: "multiSelect" as const,
@@ -133,25 +121,17 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (b: Booki
   },
   {
     accessorKey: "amount",
-    header: "Số tiền",
+    header: "Tổng cộng",
     cell: ({ row }) => {
-      const total = Number(row.original.amount) + Number(row.original.menuItemsTotal ?? 0);
-      return (
-        <div className="whitespace-nowrap text-sm font-medium">{money(total)}đ</div>
-      );
+      const totalAmount = Number(row.original.amount) + Number(row.original.menuItemsTotal ?? 0);
+      return <div className="whitespace-nowrap text-sm font-medium">{money(totalAmount)}đ</div>;
     },
   },
   {
     id: "actions",
     header: "",
     cell: ({ row }) => (
-      <Button
-        size="icon-sm"
-        variant="ghost"
-        className="size-7 text-muted-foreground"
-        asChild
-        aria-label="Xem chi tiết"
-      >
+      <Button size="icon-sm" variant="ghost" className="size-7 text-muted-foreground" asChild aria-label="Xem chi tiết">
         <Link href={`/dashboard/bookings/${row.original.id}`}>
           <Eye className="size-3.5" />
         </Link>
