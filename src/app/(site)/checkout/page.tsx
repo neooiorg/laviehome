@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { BottomNav } from "@/components/bottom-nav";
 import { SiteHeader } from "@/components/site-header";
+import { makeBookingReference } from "@/lib/booking-reference";
 import { compactPhone } from "@/lib/format";
 import { getActiveBookingsForRoomDate } from "@/lib/booking-records";
 import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
@@ -18,6 +19,7 @@ import { CheckoutExperience } from "./checkout-experience";
 type CheckoutSearchParams = Record<string, string | string[] | undefined>;
 
 type CheckoutPayload = {
+  booking_id?: string;
   room_id?: number | string;
   timeslot_ids?: string;
   room_name?: string;
@@ -59,6 +61,7 @@ async function resolveCheckout(
     normalizeDateLabelToIso(decoded.date ?? firstValue(params.date)) ?? normalizeDateLabelToIso(firstValue(params.date));
 
   return {
+    bookingId: decoded.booking_id ?? firstValue(params.booking_id) ?? makeBookingReference(branchId),
     roomId: room?.id ?? (Number.isFinite(roomId) ? roomId : null),
     timeslotIds,
     roomName: decoded.room_name ?? firstValue(params.room_name) ?? room?.card_name ?? "N/A",
@@ -102,11 +105,12 @@ async function checkTimeslotConflict(
 
 async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<typeof resolveCheckout>>) {
   try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
     await query(
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name,
-        stay_date, date_label, time_range, timeslot_ids, channel, amount
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Online', $11)
+        stay_date, date_label, time_range, timeslot_ids, channel, quoted_amount, amount
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Online', $11, $12)
       ON CONFLICT (id) DO UPDATE SET
         room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
         room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
@@ -117,6 +121,7 @@ async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<type
         time_range = COALESCE(EXCLUDED.time_range, bookings.time_range),
         timeslot_ids = COALESCE(EXCLUDED.timeslot_ids, bookings.timeslot_ids),
         channel = COALESCE(bookings.channel, EXCLUDED.channel),
+        quoted_amount = COALESCE(NULLIF(bookings.quoted_amount, 0), EXCLUDED.quoted_amount),
         amount = CASE WHEN EXCLUDED.amount > 0 THEN EXCLUDED.amount ELSE bookings.amount END,
         updated_at = NOW()`,
       [
@@ -133,6 +138,7 @@ async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<type
           ? stringifyTimeslotIds(parseTimeslotIds(checkout.timeslotIds))
           : null,
         checkout.price ?? 0,
+        checkout.price ?? 0,
       ]
     );
   } catch {
@@ -148,9 +154,7 @@ export default async function CheckoutPage({
   const params = await searchParams;
   const [branches, rooms] = await Promise.all([getPublicBranches(), getPublicRooms()]);
   const checkout = await resolveCheckout(params, branches, rooms);
-  const transferCode = `LVH${String(checkout.branchId || "00").padStart(2, "0")}${String(checkout.timeslotIds)
-    .replace(/\D/g, "")
-    .slice(-6) || "000000"}`;
+  const transferCode = checkout.bookingId;
 
   const hasConflict =
     checkout.timeslotIds && checkout.timeslotIds !== "N/A" && checkout.roomName && checkout.stayDate

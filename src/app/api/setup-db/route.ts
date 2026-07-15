@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
         timeslot_ids TEXT,
         channel VARCHAR(100) DEFAULT 'Website',
         status VARCHAR(50) DEFAULT 'Chờ thanh toán',
+        quoted_amount BIGINT DEFAULT 0,
         amount BIGINT DEFAULT 0,
         guest_count INTEGER DEFAULT 2,
         has_car BOOLEAN DEFAULT FALSE,

@@ -38,6 +38,7 @@ async function ensureTable(db: Pool) {
       time_range VARCHAR(200),
       timeslot_ids TEXT,
       channel VARCHAR(50) DEFAULT 'Online',
+      quoted_amount BIGINT DEFAULT 0,
       amount BIGINT DEFAULT 0,
       menu_items_total BIGINT DEFAULT 0,
       discount_code VARCHAR(50),
@@ -66,6 +67,7 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS time_range VARCHAR(200),
       ADD COLUMN IF NOT EXISTS timeslot_ids TEXT,
       ADD COLUMN IF NOT EXISTS channel VARCHAR(50) DEFAULT 'Online',
+      ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0,
       ADD COLUMN IF NOT EXISTS menu_items_total BIGINT DEFAULT 0,
       ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50),
       ADD COLUMN IF NOT EXISTS notes TEXT,
@@ -82,6 +84,7 @@ async function ensureTable(db: Pool) {
     `ALTER TABLE bookings ALTER COLUMN stay_date SET DEFAULT CURRENT_DATE`,
     `ALTER TABLE bookings ALTER COLUMN channel SET DEFAULT 'Online'`,
     `ALTER TABLE bookings ALTER COLUMN status SET DEFAULT 'Chờ thanh toán'`,
+    `ALTER TABLE bookings ALTER COLUMN quoted_amount SET DEFAULT 0`,
     `ALTER TABLE bookings ALTER COLUMN room_id DROP NOT NULL`,
     `ALTER TABLE bookings ALTER COLUMN branch_id DROP NOT NULL`,
     `ALTER TABLE bookings ALTER COLUMN time_range DROP NOT NULL`,
@@ -100,8 +103,10 @@ async function resolveAmount(
   guestCount: number,
   discountCode: string | null
 ): Promise<number> {
-  const { rows } = await db.query("SELECT amount FROM bookings WHERE UPPER(id) = $1", [bookingId.toUpperCase()]);
-  const baseAmount = Number(rows[0]?.amount ?? 0);
+  const { rows } = await db.query("SELECT COALESCE(quoted_amount, amount) AS quoted_amount FROM bookings WHERE UPPER(id) = $1", [
+    bookingId.toUpperCase(),
+  ]);
+  const baseAmount = Number(rows[0]?.quoted_amount ?? 0);
   const surcharge = SURCHARGE[guestCount] ?? 0;
 
   let discountPercent = 0;
@@ -222,9 +227,9 @@ export async function POST(req: NextRequest) {
     await db.query(
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name, stay_date, date_label, time_range,
-        timeslot_ids, channel, amount, customer_name, customer_phone, discount_code,
+        timeslot_ids, channel, quoted_amount, amount, customer_name, customer_phone, discount_code,
         notes, guest_count, has_car, has_decoration, cccd_front, cccd_back
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
       ON CONFLICT (id) DO UPDATE SET
         room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
         room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
@@ -243,6 +248,7 @@ export async function POST(req: NextRequest) {
         has_car = COALESCE(EXCLUDED.has_car, bookings.has_car),
         has_decoration = COALESCE(EXCLUDED.has_decoration, bookings.has_decoration),
         discount_code = COALESCE(EXCLUDED.discount_code, bookings.discount_code),
+        quoted_amount = COALESCE(NULLIF(bookings.quoted_amount, 0), EXCLUDED.quoted_amount),
         amount = EXCLUDED.amount,
         cccd_front = COALESCE(EXCLUDED.cccd_front, bookings.cccd_front),
         cccd_back = COALESCE(EXCLUDED.cccd_back, bookings.cccd_back),
@@ -259,6 +265,7 @@ export async function POST(req: NextRequest) {
         resolvedTimeRange,
         resolvedTimeslotIds.length > 0 ? stringifyTimeslotIds(resolvedTimeslotIds) : null,
         existing?.channel ?? "Online",
+        existing ? null : finalAmount,
         finalAmount,
         customer_name ?? null,
         customer_phone ?? null,

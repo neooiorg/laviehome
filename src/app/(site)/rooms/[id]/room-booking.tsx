@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 
+import { makeBookingReference } from "@/lib/booking-reference";
 import { money } from "@/lib/format";
 import { formatCheckoutDate, getRoomSlots, isSlotPast, makeBookingDates } from "@/lib/booking-slots";
 import type { MenuItem } from "@/lib/menu-actions";
@@ -95,6 +96,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
     const first = selectedSlots[0];
     const totalWithMenu = comboTotal + menuTotal;
     const payload = {
+      booking_id: makeBookingReference(room.branch_id),
       room_id: room.id,
       timeslot_ids: selectedSlots.map((slot) => slot.id).join(","),
       room_name: room.card_name,
@@ -108,6 +110,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const params = new URLSearchParams({
       data: encoded,
+      booking_id: payload.booking_id,
       room_id: String(payload.room_id),
       timeslot_ids: payload.timeslot_ids,
       room_name: payload.room_name,
