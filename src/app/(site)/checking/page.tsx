@@ -1,11 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Calendar, CheckCircle2, Clock, Hash, Home, Phone, Search, XCircle } from "lucide-react";
-import { SiteHeader } from "@/components/site-header";
-import { BottomNav } from "@/components/bottom-nav";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+
+import { BottomNav } from "@/components/bottom-nav";
+import { SiteHeader } from "@/components/site-header";
 import { money } from "@/lib/format";
 
 gsap.registerPlugin(useGSAP);
@@ -36,6 +39,8 @@ function StatusIcon({ status }: { status: string }) {
 
 export default function CheckingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const autoLookupKeyRef = useRef("");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [date, setDate] = useState("");
@@ -45,20 +50,20 @@ export default function CheckingPage() {
 
   useGSAP(() => {
     const tl = gsap.timeline();
-    tl.fromTo(".page-panel",
-      { opacity: 0, y: 40 },
-      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
-    ).fromTo(".animate-item",
+    tl.fromTo(".page-panel", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }).fromTo(
+      ".animate-item",
       { opacity: 0, y: 20 },
       { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power3.out" },
       "-=0.4"
     );
   }, { scope: containerRef });
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+  const runSearch = useCallback(async (input: { phone?: string; code?: string; date?: string }) => {
+    const nextPhone = input.phone?.trim() ?? "";
+    const nextCode = input.code?.trim() ?? "";
+    const nextDate = input.date?.trim() ?? "";
 
-    if (!phone.trim() && !code.trim()) {
+    if (!nextPhone && !nextCode) {
       setError("Vui lòng nhập số điện thoại hoặc mã đặt phòng.");
       return;
     }
@@ -69,23 +74,45 @@ export default function CheckingPage() {
 
     try {
       const params = new URLSearchParams();
-      if (phone.trim()) params.set("phone", phone.trim());
-      if (code.trim()) params.set("code", code.trim());
-      if (date) params.set("date", date);
+      if (nextPhone) params.set("phone", nextPhone);
+      if (nextCode) params.set("code", nextCode);
+      if (nextDate) params.set("date", nextDate);
 
-      const res = await fetch(`/api/bookings?${params}`);
+      const res = await fetch(`/api/bookings?${params.toString()}`);
       const data = await res.json();
 
       if (data.error) {
         setError(data.error);
-      } else {
-        setBookings(data.bookings ?? []);
+        return;
       }
+
+      setBookings(data.bookings ?? []);
     } catch {
       setError("Không thể kết nối. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const nextPhone = searchParams.get("phone")?.trim() ?? "";
+    const nextCode = searchParams.get("code")?.trim().toUpperCase() ?? "";
+    const nextDate = searchParams.get("date")?.trim() ?? "";
+    const lookupKey = `${nextPhone}|${nextCode}|${nextDate}`;
+
+    if (!nextPhone && !nextCode) return;
+    if (autoLookupKeyRef.current === lookupKey) return;
+
+    autoLookupKeyRef.current = lookupKey;
+    setPhone(nextPhone);
+    setCode(nextCode);
+    setDate(nextDate);
+    void runSearch({ phone: nextPhone, code: nextCode, date: nextDate });
+  }, [runSearch, searchParams]);
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    await runSearch({ phone, code, date });
   }
 
   return (
@@ -93,7 +120,7 @@ export default function CheckingPage() {
       <SiteHeader />
       <div className="mx-auto w-[min(100%-2rem,640px)] pb-16 pt-32">
         <section className="page-panel p-6 md:p-8">
-          <h1 className="text-2xl font-extrabold leading-tight tracking-[-0.025em] md:text-3xl text-center text-pink-100 mb-6 animate-item">
+          <h1 className="mb-6 text-center text-2xl font-extrabold leading-tight tracking-[-0.025em] text-pink-100 md:text-3xl animate-item">
             Tra cứu đặt phòng
           </h1>
 
@@ -144,11 +171,7 @@ export default function CheckingPage() {
               </span>
             </label>
 
-            <button
-              className="primary-button mt-4 w-full animate-item"
-              type="submit"
-              disabled={loading}
-            >
+            <button className="primary-button mt-4 w-full animate-item" type="submit" disabled={loading}>
               <Search size={17} /> {loading ? "Đang tra cứu..." : "Tra cứu"}
             </button>
           </form>
@@ -164,50 +187,50 @@ export default function CheckingPage() {
           <div className="mt-6 grid gap-4">
             {bookings.length === 0 ? (
               <div className="section-card p-6 text-center text-sm font-semibold text-white/50">
-                Không tìm thấy đơn đặt phòng nào với số điện thoại này.
+                Không tìm thấy đơn đặt phòng nào khớp với thông tin bạn vừa nhập.
               </div>
             ) : (
-              bookings.map((b) => (
-                <div key={b.id} className="section-card p-5">
+              bookings.map((booking) => (
+                <div key={booking.id} className="section-card p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-extrabold uppercase tracking-wider text-white/40">Mã đặt phòng</p>
-                      <p className="mt-0.5 font-extrabold text-pink-300 select-all">{b.id}</p>
+                      <p className="mt-0.5 select-all font-extrabold text-pink-300">{booking.id}</p>
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-extrabold ${statusColor(b.status)}`}>
-                      <StatusIcon status={b.status} /> {b.status}
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-extrabold ${statusColor(booking.status)}`}>
+                      <StatusIcon status={booking.status} /> {booking.status}
                     </span>
                   </div>
 
                   <div className="mt-4 grid gap-2 text-sm">
                     <div className="flex items-center gap-2 text-white/70">
-                      <Home size={14} className="text-pink-200 shrink-0" />
-                      <span className="font-semibold">{b.room_name} — {b.branch_name}</span>
+                      <Home size={14} className="shrink-0 text-pink-200" />
+                      <span className="font-semibold">{booking.room_name} — {booking.branch_name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-white/70">
-                      <Calendar size={14} className="text-pink-200 shrink-0" />
-                      <span className="font-semibold">{b.date_label}</span>
+                      <Calendar size={14} className="shrink-0 text-pink-200" />
+                      <span className="font-semibold">{booking.date_label}</span>
                     </div>
                     <div className="flex items-center gap-2 text-white/70">
-                      <Clock size={14} className="text-pink-200 shrink-0" />
-                      <span className="font-semibold">{b.time_range}</span>
+                      <Clock size={14} className="shrink-0 text-pink-200" />
+                      <span className="font-semibold">{booking.time_range}</span>
                     </div>
                   </div>
 
                   <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
                     <span className="text-xs font-semibold text-white/40">
-                      {b.guest_count} người · {new Date(b.created_at).toLocaleDateString("vi-VN")}
+                      {booking.guest_count} người · {new Date(booking.created_at).toLocaleDateString("vi-VN")}
                     </span>
-                    <span className="font-extrabold text-yellow-200">{money(b.amount)}đ</span>
+                    <span className="font-extrabold text-yellow-200">{money(booking.amount)}đ</span>
                   </div>
 
-                  {b.status === "Chờ thanh toán" && (
-                    <a
-                      href={`/#booking`}
-                      className="mt-4 block w-full rounded-xl border-2 border-yellow-400/40 bg-yellow-400/10 py-2.5 text-center text-xs font-extrabold text-yellow-300 hover:bg-yellow-400/20 transition"
+                  {booking.status === "Chờ thanh toán" && (
+                    <Link
+                      href="/#booking"
+                      className="mt-4 block w-full rounded-xl border-2 border-yellow-400/40 bg-yellow-400/10 py-2.5 text-center text-xs font-extrabold text-yellow-300 transition hover:bg-yellow-400/20"
                     >
                       Chuyển khoản ngay để xác nhận
-                    </a>
+                    </Link>
                   )}
                 </div>
               ))

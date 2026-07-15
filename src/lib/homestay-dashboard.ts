@@ -148,6 +148,13 @@ function formatMonth(monthKey: string) {
   });
 }
 
+function getBookingDisplayTotal(input: {
+  amount: number | string | null | undefined;
+  menuItemsTotal?: number | string | null | undefined;
+}) {
+  return Number(input.amount ?? 0) + Number(input.menuItemsTotal ?? 0);
+}
+
 export async function getBranches(): Promise<BranchRow[]> {
   return query<BranchRow>('select * from branches order by id');
 }
@@ -469,10 +476,13 @@ export async function getOperationalAlerts(limit = 6): Promise<AlertItem[]> {
 
 export async function getRevenueSummary(limit = 12) {
   const bookings = await getBookingSnapshots(limit);
-  const total = bookings.reduce((sum, booking) => sum + booking.amount, 0);
-  const average = bookings.length ? Math.round(total / bookings.length) : 0;
-  const highest = bookings.reduce((max, booking) => Math.max(max, booking.amount), 0);
-  const lowest = bookings.reduce((min, booking) => Math.min(min, booking.amount), bookings[0]?.amount ?? 0);
+  const totals = bookings.map((booking) =>
+    getBookingDisplayTotal({ amount: booking.amount, menuItemsTotal: booking.menuItemsTotal })
+  );
+  const total = totals.reduce((sum, amount) => sum + amount, 0);
+  const average = totals.length ? Math.round(total / totals.length) : 0;
+  const highest = totals.reduce((max, amount) => Math.max(max, amount), 0);
+  const lowest = totals.reduce((min, amount) => Math.min(min, amount), totals[0] ?? 0);
 
   return {
     total,
@@ -490,7 +500,12 @@ export async function getGuestSummaries(limit = 8): Promise<GuestSummary[]> {
   for (const booking of bookings) {
     const guestName = booking.guestName || 'Khách lẻ';
     const current = guests.get(guestName);
-    const nextTotal = (current?.totalSpent ?? 0) + booking.raw.amount;
+    const nextTotal =
+      (current?.totalSpent ?? 0) +
+      getBookingDisplayTotal({
+        amount: booking.raw.amount,
+        menuItemsTotal: booking.raw.menu_items_total,
+      });
     const nextBookings = (current?.bookings ?? 0) + 1;
     const nextBranches = new Set([...(current?.branches ?? []), booking.branchName]);
 
