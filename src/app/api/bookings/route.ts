@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 
+import { getActiveBookingsForRoomDate } from "@/lib/booking-records";
+import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
+import {
+  formatDateLabelFromIso,
+  getRoomIdFromTimeslotIds,
+  inferTimeslotIds,
+  normalizeDateLabelToIso,
+  stringifyTimeslotIds,
+} from "@/lib/booking-slots";
+
 let pool: Pool | null = null;
 function getPool() {
   if (!pool) {
@@ -56,10 +66,7 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS cccd_back TEXT,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
-  // Patch the legacy admin schema so customer checkout INSERTs don't fail.
-  // Admin bookings always supply every field; customer checkout only supplies
-  // a subset. Set safe defaults or drop NOT NULL for columns the customer
-  // route may omit. Each statement is isolated so missing columns don't block.
+
   for (const stmt of [
     `ALTER TABLE bookings ALTER COLUMN guest_name SET DEFAULT ''`,
     `ALTER TABLE bookings ALTER COLUMN stay_date SET DEFAULT CURRENT_DATE`,
@@ -83,11 +90,7 @@ async function resolveAmount(
   guestCount: number,
   discountCode: string | null
 ): Promise<number> {
-  // Base price is the server-recorded amount set when the booking was pre-created
-  const { rows } = await db.query(
-    'SELECT amount FROM bookings WHERE UPPER(id) = $1',
-    [bookingId.toUpperCase()]
-  );
+  const { rows } = await db.query("SELECT amount FROM bookings WHERE UPPER(id) = $1", [bookingId.toUpperCase()]);
   const baseAmount = Number(rows[0]?.amount ?? 0);
   const surcharge = SURCHARGE[guestCount] ?? 0;
 
@@ -103,7 +106,7 @@ async function resolveAmount(
     if (dcRows.length > 0) discountPercent = Number(dcRows[0].percent);
   }
 
-  const discountAmount = Math.round(baseAmount * discountPercent / 100);
+  const discountAmount = Math.round((baseAmount * discountPercent) / 100);
   return baseAmount + surcharge - discountAmount;
 }
 
@@ -113,8 +116,10 @@ export async function POST(req: NextRequest) {
     const {
       id,
       room_name,
+      room_id,
       branch_id,
       branch_name,
+      stay_date,
       date_label,
       time_range,
       timeslot_ids,
@@ -128,7 +133,7 @@ export async function POST(req: NextRequest) {
       cccd_front,
       cccd_back,
     } = body;
-    const guest_name: string = customer_name ?? '';
+    const guest_name: string = customer_name ?? "";
 
     if (!id) {
       return NextResponse.json({ error: "Missing booking id" }, { status: 400 });
@@ -137,20 +142,64 @@ export async function POST(req: NextRequest) {
     const db = getPool();
     await ensureTable(db);
 
-    // Conflict check: reject if another non-cancelled booking holds any of the same timeslots
-    if (timeslot_ids && room_name && date_label) {
-      const { rows: conflictRows } = await db.query(
-        `SELECT id FROM bookings
-         WHERE room_name = $1
-           AND date_label = $2
-           AND id != $3
-           AND status NOT IN ('Đã hủy', 'Hủy', 'Cancelled')
-           AND timeslot_ids IS NOT NULL
-           AND string_to_array(timeslot_ids, ',') && string_to_array($4, ',')
-         LIMIT 1`,
-        [room_name, date_label, id, timeslot_ids]
+    const existingResult = await db.query(
+      `SELECT room_id, room_name, branch_id, branch_name, stay_date::text, date_label, time_range, timeslot_ids, channel
+       FROM bookings
+       WHERE UPPER(id) = $1
+       LIMIT 1`,
+      [String(id).toUpperCase()]
+    );
+    const existing = existingResult.rows[0] as
+      | {
+          room_id: number | null;
+          room_name: string | null;
+          branch_id: number | null;
+          branch_name: string | null;
+          stay_date: string | null;
+          date_label: string | null;
+          time_range: string | null;
+          timeslot_ids: string | null;
+          channel: string | null;
+        }
+      | undefined;
+
+    const [rooms, branches] = await Promise.all([getPublicRooms(), getPublicBranches()]);
+    const resolvedRoomId =
+      room_id ? Number(room_id) : existing?.room_id ?? getRoomIdFromTimeslotIds(existing?.timeslot_ids);
+    const room = rooms.find((item) => item.id === resolvedRoomId);
+    const resolvedRoomName = room_name ?? existing?.room_name ?? room?.card_name ?? null;
+    const resolvedBranchId = branch_id ? Number(branch_id) : existing?.branch_id ?? room?.branch_id ?? null;
+    const resolvedBranchName = branch_name ?? existing?.branch_name ?? room?.branch_name ?? null;
+    const resolvedStayDate =
+      normalizeDateLabelToIso(stay_date ?? existing?.stay_date) ??
+      normalizeDateLabelToIso(date_label ?? existing?.date_label) ??
+      null;
+    const resolvedDateLabel = date_label ?? existing?.date_label ?? formatDateLabelFromIso(resolvedStayDate);
+    const resolvedTimeRange = time_range ?? existing?.time_range ?? null;
+    const resolvedTimeslotIds = inferTimeslotIds({
+      roomId: resolvedRoomId,
+      roomName: resolvedRoomName,
+      stayDate: resolvedStayDate,
+      dateLabel: resolvedDateLabel,
+      timeRange: resolvedTimeRange,
+      timeslotIds: timeslot_ids ?? existing?.timeslot_ids,
+    });
+
+    if (resolvedRoomId && resolvedRoomName && resolvedStayDate && resolvedTimeslotIds.length > 0) {
+      const activeBookings = await getActiveBookingsForRoomDate({
+        roomId: resolvedRoomId,
+        roomName: resolvedRoomName,
+        dateIso: resolvedStayDate,
+        rooms,
+        branches,
+      });
+
+      const hasConflict = activeBookings.some(
+        (booking) =>
+          booking.raw.id !== id && booking.timeslotIds.some((slotId) => resolvedTimeslotIds.includes(slotId))
       );
-      if (conflictRows.length > 0) {
+
+      if (hasConflict) {
         return NextResponse.json(
           { error: "Khung giờ đã được đặt bởi khách khác. Vui lòng chọn khung giờ khác." },
           { status: 409 }
@@ -158,16 +207,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Compute final amount server-side — never trust client-provided amount
     const finalAmount = await resolveAmount(db, id, Number(guest_count ?? 2), discount_code ?? null);
 
     await db.query(
       `INSERT INTO bookings (
-        id, guest_name, room_name, branch_id, branch_name, date_label, time_range,
-        timeslot_ids, amount, customer_name, customer_phone, discount_code,
+        id, guest_name, room_id, room_name, branch_id, branch_name, stay_date, date_label, time_range,
+        timeslot_ids, channel, amount, customer_name, customer_phone, discount_code,
         notes, guest_count, has_car, has_decoration, cccd_front, cccd_back
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
       ON CONFLICT (id) DO UPDATE SET
+        room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
+        room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
+        branch_id = COALESCE(EXCLUDED.branch_id, bookings.branch_id),
+        branch_name = COALESCE(EXCLUDED.branch_name, bookings.branch_name),
+        stay_date = COALESCE(EXCLUDED.stay_date, bookings.stay_date),
+        date_label = COALESCE(EXCLUDED.date_label, bookings.date_label),
+        time_range = COALESCE(EXCLUDED.time_range, bookings.time_range),
+        timeslot_ids = COALESCE(EXCLUDED.timeslot_ids, bookings.timeslot_ids),
+        channel = COALESCE(bookings.channel, EXCLUDED.channel),
         guest_name = COALESCE(NULLIF(EXCLUDED.guest_name, ''), bookings.guest_name),
         customer_name = COALESCE(EXCLUDED.customer_name, bookings.customer_name),
         customer_phone = COALESCE(EXCLUDED.customer_phone, bookings.customer_phone),
@@ -183,12 +240,15 @@ export async function POST(req: NextRequest) {
       [
         id,
         guest_name,
-        room_name ?? null,
-        branch_id ? Number(branch_id) : null,
-        branch_name ?? null,
-        date_label ?? null,
-        time_range ?? null,
-        timeslot_ids ?? null,
+        resolvedRoomId,
+        resolvedRoomName,
+        resolvedBranchId,
+        resolvedBranchName,
+        resolvedStayDate,
+        resolvedDateLabel,
+        resolvedTimeRange,
+        resolvedTimeslotIds.length > 0 ? stringifyTimeslotIds(resolvedTimeslotIds) : null,
+        existing?.channel ?? "Online",
         finalAmount,
         customer_name ?? null,
         customer_phone ?? null,
@@ -216,8 +276,6 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get("code");
   const date = searchParams.get("date");
 
-  // Allow looking up either by phone number or by booking code so that
-  // customers without a phone on file can still find their booking.
   if (!phone && !code) {
     return NextResponse.json({ error: "Vui lòng nhập số điện thoại hoặc mã đặt phòng" }, { status: 400 });
   }
@@ -239,7 +297,6 @@ export async function GET(req: NextRequest) {
       conditions.push(`UPPER(id) = $${params.length}`);
     }
 
-    // phone OR code identifies the booking; date further narrows the result.
     let whereClauses = `(${conditions.join(" OR ")})`;
 
     if (date) {

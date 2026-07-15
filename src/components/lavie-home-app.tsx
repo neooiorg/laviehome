@@ -43,8 +43,6 @@ function safeImg(src: string) {
   return src && (src.startsWith("http") || src.startsWith("/")) ? src : PLACEHOLDER_IMG;
 }
 
-const slotLabels = ["08:00 - 11:00", "11:15 - 14:15", "14:30 - 17:30", "17:45 - 20:45", "21:00 - 00:00"];
-
 const amenityIconMap: Record<string, React.ElementType> = {
   netflix: Film,
   phim: Film,
@@ -130,25 +128,7 @@ function isSlotPast(dayIndex: number, slotLabel: string): boolean {
   return nowMinutes > slotStart;
 }
 
-function isSlotBooked(roomName: string, dayIndex: number, slotIndex: number) {
-  // Today (day 0) Honey's slots 0 and 1 are booked
-  if (roomName.includes("Honey") && dayIndex === 0 && (slotIndex === 0 || slotIndex === 1)) {
-    return true;
-  }
-  // Today (day 0) Squid's slots 0, 1, and 2 are booked
-  if (roomName.includes("Squid") && dayIndex === 0 && (slotIndex === 0 || slotIndex === 1 || slotIndex === 2)) {
-    return true;
-  }
-  // Monday (day 1) Squid's slots 1 and 2 are booked
-  if (roomName.includes("Squid") && dayIndex === 1 && (slotIndex === 1 || slotIndex === 2)) {
-    return true;
-  }
-  // General pseudo-random booked slots
-  const hash = roomName.charCodeAt(roomName.length - 1) + dayIndex * 5 + slotIndex * 13;
-  return hash % 9 === 0;
-}
-
-function isSlotPromo(roomName: string, dayIndex: number, slotIndex: number) {
+function isSlotPromo(dayIndex: number) {
   // Monday (day 1) to Friday (day 5) are promo slots
   return dayIndex >= 1 && dayIndex <= 5;
 }
@@ -197,6 +177,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
   const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
   const [menuTotal, setMenuTotal] = useState(0);
   const [modalRoom, setModalRoom] = useState<Room | null>(null);
+  const [bookedSlotIds, setBookedSlotIds] = useState<string[]>([]);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const roomRowRef = useRef<HTMLDivElement | null>(null);
@@ -246,6 +227,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
   const calendarRooms = (branchRooms.length > 0 ? branchRooms : allBranchRooms).slice(0, 8);
   const currentBranch = branches.find((branch) => branch.id === activeBranchId) ?? branches[0];
   const dates = useMemo(() => makeDates(), []);
+  const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
 
   const subtotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
   const discountRate = selectedSlots.length === 2 ? 0.05 : selectedSlots.length >= 3 ? 0.1 : 0;
@@ -275,6 +257,30 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
       });
     }
   }, [branches]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadAvailability() {
+      try {
+        const res = await fetch(`/api/booking-availability?branch_id=${activeBranchId}`);
+        const data = (await res.json()) as { bookedSlotIds?: string[] };
+        if (!ignore) {
+          setBookedSlotIds(Array.isArray(data.bookedSlotIds) ? data.bookedSlotIds : []);
+        }
+      } catch {
+        if (!ignore) {
+          setBookedSlotIds([]);
+        }
+      }
+    }
+
+    void loadAvailability();
+
+    return () => {
+      ignore = true;
+    };
+  }, [activeBranchId]);
 
   function scrollBooking(direction: -1 | 1) {
     bookingScrollRef.current?.scrollBy({ left: direction * 420, behavior: "smooth" });
@@ -352,6 +358,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
     const timeslotIds = selectedSlots.map((slot) => slot.id).join(",");
     const checkoutDate = formatCheckoutDate(firstSlot.dateIso);
     const payload = {
+      room_id: firstSlot.room.id,
       timeslot_ids: timeslotIds,
       room_name: firstSlot.room.card_name,
       branch_name: firstSlot.room.branch_name,
@@ -364,6 +371,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const params = new URLSearchParams({
       data: encoded,
+      room_id: String(payload.room_id),
       timeslot_ids: payload.timeslot_ids,
       room_name: payload.room_name,
       branch_name: payload.branch_name,
@@ -683,10 +691,10 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                           const slots = getRoomSlots(room.card_name);
                           return slots.map((slot, slotIndex) => {
                             const id = `${room.id}-${date.iso}-${slotIndex}`;
-                            const booked = isSlotBooked(room.card_name, dayIndex, slotIndex);
+                            const booked = bookedSlotIdSet.has(id);
                             const past = !booked && isSlotPast(dayIndex, slot.label);
                             const selected = selectedSlots.some((item) => item.id === id);
-                            const promo = isSlotPromo(room.card_name, dayIndex, slotIndex);
+                            const promo = isSlotPromo(dayIndex);
                             const hasBlindBag = isSlotBlindBag(room.card_name, dayIndex, slotIndex);
                             const price = slot.isOvernight ? room.full_day_price : room.price_from;
 

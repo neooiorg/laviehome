@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
+
 import { money } from "@/lib/format";
-import { RoomMenuOptions } from "./_components/room-menu-options";
+import { formatCheckoutDate, getRoomSlots, isSlotPast, makeBookingDates } from "@/lib/booking-slots";
 import type { MenuItem } from "@/lib/menu-actions";
+import { RoomMenuOptions } from "./_components/room-menu-options";
 
 type BookingRoom = {
   id: number;
@@ -24,82 +26,42 @@ type SelectedSlot = {
   position: number;
 };
 
-const roomSlots: Record<string, { label: string; duration: string; isOvernight?: boolean }[]> = {
-  Honey: [
-    { label: "9:00 - 12:00", duration: "3T" },
-    { label: "12:30 - 15:30", duration: "3T" },
-    { label: "16:00 - 19:00", duration: "3T" },
-    { label: "19:30 - 8:20", duration: "12T 50", isOvernight: true },
-  ],
-  Squid: [
-    { label: "9:30 - 12:30", duration: "3T" },
-    { label: "13:00 - 16:00", duration: "3T" },
-    { label: "16:30 - 19:30", duration: "3T" },
-    { label: "20:00 - 8:50", duration: "12T 50", isOvernight: true },
-  ],
-  default: [
-    { label: "9:00 - 12:00", duration: "3T" },
-    { label: "12:30 - 15:30", duration: "3T" },
-    { label: "16:00 - 19:00", duration: "3T" },
-    { label: "19:30 - 8:20", duration: "12T 50", isOvernight: true },
-  ],
-};
-
-function getRoomSlots(roomName: string) {
-  if (roomName.includes("Honey")) return roomSlots.Honey;
-  if (roomName.includes("Squid")) return roomSlots.Squid;
-  return roomSlots.default;
-}
-
-function makeDates() {
-  const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-  return Array.from({ length: 9 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() + index);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    return {
-      iso: date.toISOString().slice(0, 10),
-      label: index === 0 ? "Hôm nay" : weekdays[date.getDay()],
-      dateLabel: `${day}-${month}`,
-    };
-  });
-}
-
-function isSlotPast(dayIndex: number, slotLabel: string): boolean {
-  if (dayIndex !== 0) return false;
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const startTime = slotLabel.split(" - ")[0];
-  if (!startTime) return false;
-  const [h, m] = startTime.split(":").map(Number);
-  const slotStart = h * 60 + (m || 0);
-  return nowMinutes > slotStart;
-}
-
-function isSlotBooked(roomName: string, dayIndex: number, slotIndex: number) {
-  if (roomName.includes("Honey") && dayIndex === 0 && (slotIndex === 0 || slotIndex === 1)) return true;
-  if (roomName.includes("Squid") && dayIndex === 0 && slotIndex <= 2) return true;
-  if (roomName.includes("Squid") && dayIndex === 1 && (slotIndex === 1 || slotIndex === 2)) return true;
-  const hash = roomName.charCodeAt(roomName.length - 1) + dayIndex * 5 + slotIndex * 13;
-  return hash % 9 === 0;
-}
-
 function isSlotPromo(dayIndex: number) {
   return dayIndex >= 1 && dayIndex <= 5;
-}
-
-function formatCheckoutDate(iso: string) {
-  const [year, month, day] = iso.split("-");
-  return `${day}/${month}/${year}`;
 }
 
 export function RoomBooking({ room }: { room: BookingRoom }) {
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
   const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
   const [menuTotal, setMenuTotal] = useState(0);
-  const dates = useMemo(() => makeDates(), []);
+  const [bookedSlotIds, setBookedSlotIds] = useState<string[]>([]);
+  const dates = useMemo(() => makeBookingDates(), []);
   const slots = useMemo(() => getRoomSlots(room.card_name), [room.card_name]);
+  const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadAvailability() {
+      try {
+        const res = await fetch(`/api/booking-availability?room_id=${room.id}`);
+        const data = (await res.json()) as { bookedSlotIds?: string[] };
+        if (!ignore) {
+          setBookedSlotIds(Array.isArray(data.bookedSlotIds) ? data.bookedSlotIds : []);
+        }
+      } catch {
+        if (!ignore) {
+          setBookedSlotIds([]);
+        }
+      }
+    }
+
+    void loadAvailability();
+
+    return () => {
+      ignore = true;
+    };
+  }, [room.id]);
 
   const subtotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
   const discountRate = selectedSlots.length === 2 ? 0.05 : selectedSlots.length >= 3 ? 0.1 : 0;
@@ -113,7 +75,6 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
       }
       if (current.length >= 4) return current;
       if (current.length > 0) {
-        // Only allow selecting sequential slots on the same day.
         const sameDay = current.every((item) => item.dateIso === slot.dateIso);
         const nextPositions = [...current.map((item) => item.position), slot.position].sort((a, b) => a - b);
         const sequential = nextPositions.every(
@@ -130,6 +91,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
     const first = selectedSlots[0];
     const totalWithMenu = comboTotal + menuTotal;
     const payload = {
+      room_id: room.id,
       timeslot_ids: selectedSlots.map((slot) => slot.id).join(","),
       room_name: room.card_name,
       branch_name: room.branch_name,
@@ -142,6 +104,7 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const params = new URLSearchParams({
       data: encoded,
+      room_id: String(payload.room_id),
       timeslot_ids: payload.timeslot_ids,
       room_name: payload.room_name,
       branch_name: payload.branch_name,
@@ -165,12 +128,19 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
         </p>
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-5 mb-6 text-xs font-bold text-white/85">
-        <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-md bg-rose-500" /> Đã đặt</div>
-        <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-md border-2 border-rose-500 bg-white/5" /> Còn trống</div>
-        <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-md bg-yellow-400" /> Đang chọn</div>
-        <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-md bg-white/5 ring-1 ring-pink-500/50" /> Khuyến mãi</div>
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-4 rounded-md bg-rose-500" /> Đã đặt
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-4 rounded-md border-2 border-rose-500 bg-white/5" /> Còn trống
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-4 rounded-md bg-yellow-400" /> Đang chọn
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-4 rounded-md bg-white/5 ring-1 ring-pink-500/50" /> Khuyến mãi
+        </div>
       </div>
 
       <div className="glass-panel booking-panel rounded-3xl overflow-hidden border border-white/10 bg-white/2">
@@ -204,11 +174,12 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
                   </td>
                   {slots.map((slot, slotIndex) => {
                     const id = `${room.id}-${date.iso}-${slotIndex}`;
-                    const booked = isSlotBooked(room.card_name, dayIndex, slotIndex);
+                    const booked = bookedSlotIdSet.has(id);
                     const past = !booked && isSlotPast(dayIndex, slot.label);
                     const selected = selectedSlots.some((item) => item.id === id);
                     const promo = isSlotPromo(dayIndex);
                     const price = slot.isOvernight ? room.full_day_price : room.price_from;
+
                     return (
                       <td key={id} className="px-1 py-1 border-r border-white/5 align-middle min-w-[104px]">
                         <button
@@ -260,7 +231,6 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
         }}
       />
 
-      {/* Selected summary */}
       {selectedSlots.length > 0 && (
         <div className="mt-5 rounded-3xl p-6 border-2 border-white/20 bg-[#1b111f] shadow-[6px_6px_0px_rgba(255,255,255,0.05)]">
           <h3 className="text-base font-extrabold text-pink-200 border-b border-white/10 pb-3 mb-4 flex items-center gap-2">
@@ -276,15 +246,20 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
           </div>
           {selectedSlots.length > 1 && (
             <div className="mt-4 flex flex-wrap gap-5 border-t border-white/5 pt-4 text-sm">
-              <span className="text-white/70">Giá gốc: <span className="font-bold text-white">{money(subtotal)}đ</span></span>
-              <span className="text-emerald-300">Ưu đãi: <span className="font-bold">-{money(subtotal * discountRate)}đ ({Math.round(discountRate * 100)}%)</span></span>
-              <span className="text-cyan-300">Tặng thêm: <span className="font-bold">+{extraMinutes} phút</span></span>
+              <span className="text-white/70">
+                Giá gốc: <span className="font-bold text-white">{money(subtotal)}đ</span>
+              </span>
+              <span className="text-emerald-300">
+                Ưu đãi: <span className="font-bold">-{money(subtotal * discountRate)}đ ({Math.round(discountRate * 100)}%)</span>
+              </span>
+              <span className="text-cyan-300">
+                Tặng thêm: <span className="font-bold">+{extraMinutes} phút</span>
+              </span>
             </div>
           )}
         </div>
       )}
 
-      {/* Action row */}
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-white/10 pt-6">
         <div className="text-lg font-extrabold text-white flex items-baseline gap-2">
           <span>Tổng tạm tính:</span>
@@ -302,11 +277,10 @@ export function RoomBooking({ room }: { room: BookingRoom }) {
 
       <div className="mt-4 border-2 border-cyan-400 bg-cyan-950/20 rounded-2xl p-4 text-center shadow-[4px_4px_0px_#22d3ee]">
         <p className="text-xs md:text-sm font-black text-cyan-300 leading-relaxed">
-          ** Giảm 5% + tặng 30 phút khi đặt 2 khung giờ liền kề, 10% + 60 phút khi đặt 3–4 khung giờ
+          ** Giảm 5% + tặng 30 phút khi đặt 2 khung giờ liền kề, 10% + 60 phút khi đặt 3-4 khung giờ
         </p>
       </div>
 
-      {/* Mobile sticky summary bar */}
       {selectedSlots.length > 0 && (
         <button
           type="button"

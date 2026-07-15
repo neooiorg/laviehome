@@ -24,6 +24,7 @@ const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã xác nhận", "Ch�
 export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branches: BranchRow[] }) {
   const router = useRouter();
   const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
   const [roomId, setRoomId] = React.useState("");
   const [guestName, setGuestName] = React.useState("");
   const [customerName, setCustomerName] = React.useState("");
@@ -59,22 +60,29 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
   async function handleCreate() {
     if (!roomId || !guestName || !stayDate || !branchId) return;
     setSaving(true);
-    await createBookingAdmin({
-      roomId: Number(roomId),
-      branchId,
-      guestName,
-      customerName,
-      customerPhone,
-      stayDate,
-      timeRange,
-      channel,
-      status,
-      amount: Number(amount) || 0,
-      guestCount: Number(guestCount) || 1,
-      notes,
-      menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
-    });
-    router.push("/dashboard/bookings");
+    setError("");
+    try {
+      await createBookingAdmin({
+        roomId: Number(roomId),
+        branchId,
+        guestName,
+        customerName,
+        customerPhone,
+        stayDate,
+        timeRange,
+        channel,
+        status,
+        amount: Number(amount) || 0,
+        guestCount: Number(guestCount) || 1,
+        notes,
+        menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
+      });
+      router.push("/dashboard/bookings");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể tạo booking.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -173,6 +181,12 @@ export function CreateBookingForm({ rooms, branches }: { rooms: RoomRow[]; branc
           <Label>Ghi chú</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
         </div>
+
+        {error ? (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
 
         <div className="flex gap-2 border-t pt-3">
           <Button variant="outline" asChild><Link href="/dashboard/bookings">Hủy</Link></Button>

@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { type NormalizedBookingRecord, fetchRawBookings, normalizeBookingRecord } from '@/lib/booking-records';
+import { normalizeDateLabelToIso } from '@/lib/booking-slots';
 import { money } from '@/lib/format';
 import { query } from '@/lib/postgres';
 
@@ -123,42 +125,6 @@ export type DiscountCode = {
   created_at: string;
 };
 
-type BookingRow = {
-  id: string;
-  room_id: number;
-  branch_id: number;
-  guest_name: string;
-  customer_name: string | null;
-  customer_phone: string | null;
-  stay_date: string;
-  time_range: string;
-  channel: string;
-  status: BookingStatus;
-  amount: number;
-  menu_items_total: number;
-  guest_count: number | null;
-  has_car: boolean;
-  has_decoration: boolean;
-  discount_code: string | null;
-  notes: string | null;
-  cccd_front: string | null;
-  cccd_back: string | null;
-  created_at: string;
-  card_name: string;
-  branch_name: string;
-  room_amenities: string[];
-  price_from: number;
-  price_to: number;
-  full_day_price: number;
-  main_image: string;
-  is_classic: number;
-  images: string[];
-  branch_hotline: string;
-  branch_maps: string;
-  branch_active: number;
-  branch_classic: number;
-};
-
 function splitBranchName(name: string) {
   const [city, ...rest] = name.split(' - ');
 
@@ -198,51 +164,65 @@ export async function getPublicRooms() {
   return getActiveCatalogRooms();
 }
 
+function makeFallbackRoom(booking: NormalizedBookingRecord): RoomRow {
+  return {
+    id: booking.roomId ?? 0,
+    branch_id: booking.branchId ?? 0,
+    card_name: booking.roomName || 'Chưa rõ phòng',
+    branch_name: booking.branchName || 'Chưa rõ chi nhánh',
+    room_amenities: booking.room?.room_amenities ?? [],
+    price_from: booking.room?.price_from ?? booking.raw.amount,
+    price_to: booking.room?.price_to ?? booking.raw.amount,
+    full_day_price: booking.room?.full_day_price ?? booking.raw.amount,
+    main_image: booking.room?.main_image ?? '',
+    is_classic: booking.room?.is_classic ?? 0,
+    images: booking.room?.images ?? []
+  };
+}
+
+function makeFallbackBranch(booking: NormalizedBookingRecord): BranchRow {
+  return {
+    id: booking.branchId ?? 0,
+    name: booking.branchName || 'Chưa rõ chi nhánh',
+    active: booking.branch?.active ?? 0,
+    hotline: booking.branch?.hotline ?? '',
+    google_maps_link: booking.branch?.google_maps_link ?? '',
+    classic_booking_enabled: booking.branch?.classic_booking_enabled ?? 0
+  };
+}
+
+function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
+  const stayDate = booking.stayDate ?? '';
+
+  return {
+    id: booking.raw.id,
+    guestName: booking.guestName,
+    room: booking.room ? ({ ...booking.room } as RoomRow) : makeFallbackRoom(booking),
+    branch: booking.branch ? ({ ...booking.branch, name: booking.branch.name } as BranchRow) : makeFallbackBranch(booking),
+    stayDate,
+    dateLabel: booking.dateLabel ?? stayDate,
+    timeRange: booking.raw.time_range ?? '',
+    channel: booking.channel,
+    status: booking.raw.status as BookingStatus,
+    amount: Number(booking.raw.amount) || 0,
+    menuItemsTotal: Number(booking.raw.menu_items_total) || 0,
+    customerName: booking.raw.customer_name,
+    customerPhone: booking.raw.customer_phone,
+    guestCount: booking.raw.guest_count,
+    hasCar: booking.raw.has_car ?? false,
+    hasDecoration: booking.raw.has_decoration ?? false,
+    discountCode: booking.raw.discount_code,
+    notes: booking.raw.notes,
+    cccdFront: booking.raw.cccd_front,
+    cccdBack: booking.raw.cccd_back,
+    createdAt: booking.raw.created_at
+  };
+}
+
 async function getBookings(limit = 12) {
-  return query<BookingRow>(
-    `
-    select
-      b.id,
-      b.room_id,
-      b.branch_id,
-      b.guest_name,
-      b.customer_name,
-      b.customer_phone,
-      b.stay_date::text,
-      b.time_range,
-      b.channel,
-      b.status,
-      b.amount,
-      coalesce(b.menu_items_total, 0) as menu_items_total,
-      b.guest_count,
-      b.has_car,
-      b.has_decoration,
-      b.discount_code,
-      b.notes,
-      b.cccd_front,
-      b.cccd_back,
-      b.created_at::text,
-      r.card_name,
-      r.branch_name,
-      r.room_amenities,
-      r.price_from,
-      r.price_to,
-      r.full_day_price,
-      r.main_image,
-      r.is_classic,
-      r.images,
-      br.hotline as branch_hotline,
-      br.google_maps_link as branch_maps,
-      br.active as branch_active,
-      br.classic_booking_enabled as branch_classic
-    from bookings b
-    join rooms r on r.id = b.room_id
-    join branches br on br.id = b.branch_id
-    order by b.created_at desc
-    limit $1
-    `,
-    [limit]
-  );
+  const [branches, rooms, rawBookings] = await Promise.all([getBranches(), getAllRooms(), fetchRawBookings({ limit })]);
+
+  return rawBookings.map((booking) => normalizeBookingRecord(booking, rooms, branches));
 }
 
 export async function getDashboardMetrics(): Promise<DashboardMetric[]> {
@@ -327,129 +307,20 @@ export async function getRoomSummaries(limit = 8): Promise<RoomSummary[]> {
 }
 
 export async function getBookingById(id: string): Promise<BookingSnapshot | null> {
-  const rows = await query<BookingRow>(
-    `
-    select
-      b.id, b.room_id, b.branch_id, b.guest_name, b.customer_name, b.customer_phone,
-      b.stay_date::text, b.time_range, b.channel, b.status, b.amount,
-      coalesce(b.menu_items_total, 0) as menu_items_total,
-      b.guest_count,
-      b.has_car, b.has_decoration, b.discount_code, b.notes, b.cccd_front, b.cccd_back,
-      b.created_at::text,
-      coalesce(r.card_name, b.room_name, '') as card_name,
-      coalesce(r.branch_name, b.branch_name, '') as branch_name,
-      coalesce(r.room_amenities, '{}') as room_amenities,
-      coalesce(r.price_from, b.amount, 0) as price_from,
-      coalesce(r.price_to, b.amount, 0) as price_to,
-      coalesce(r.full_day_price, 0) as full_day_price,
-      r.main_image, r.is_classic, r.images,
-      br.hotline as branch_hotline, br.google_maps_link as branch_maps,
-      br.active as branch_active, br.classic_booking_enabled as branch_classic
-    from bookings b
-    left join rooms r on r.id = b.room_id
-    left join branches br on br.id = b.branch_id
-    where upper(b.id) = upper($1)
-    limit 1
-    `,
-    [id]
-  );
-  if (!rows[0]) return null;
-  const booking = rows[0];
-  return {
-    id: booking.id,
-    guestName: booking.guest_name,
-    room: {
-      id: booking.room_id,
-      branch_id: booking.branch_id,
-      card_name: booking.card_name,
-      branch_name: booking.branch_name,
-      room_amenities: booking.room_amenities,
-      price_from: booking.price_from,
-      price_to: booking.price_to,
-      full_day_price: booking.full_day_price,
-      main_image: booking.main_image,
-      is_classic: booking.is_classic,
-      images: booking.images,
-    },
-    branch: {
-      id: booking.branch_id,
-      name: booking.branch_name,
-      active: booking.branch_active,
-      hotline: booking.branch_hotline,
-      google_maps_link: booking.branch_maps,
-      classic_booking_enabled: booking.branch_classic,
-    },
-    stayDate: booking.stay_date?.slice(0, 10) ?? '',
-    dateLabel: booking.stay_date
-      ? new Date(booking.stay_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-      : '',
-    timeRange: booking.time_range,
-    channel: booking.channel,
-    status: booking.status,
-    amount: booking.amount,
-    menuItemsTotal: Number(booking.menu_items_total) || 0,
-    customerName: booking.customer_name,
-    customerPhone: booking.customer_phone,
-    guestCount: booking.guest_count,
-    hasCar: booking.has_car ?? false,
-    hasDecoration: booking.has_decoration ?? false,
-    discountCode: booking.discount_code,
-    notes: booking.notes,
-    cccdFront: booking.cccd_front,
-    cccdBack: booking.cccd_back,
-    createdAt: booking.created_at,
-  };
+  const [branches, rooms, rawBookings] = await Promise.all([
+    getBranches(),
+    getAllRooms(),
+    fetchRawBookings({ id, limit: 1 })
+  ]);
+  const booking = rawBookings[0];
+  if (!booking) return null;
+
+  return toBookingSnapshot(normalizeBookingRecord(booking, rooms, branches));
 }
 
 export async function getBookingSnapshots(limit = 12): Promise<BookingSnapshot[]> {
   const bookings = await getBookings(limit);
-
-  return bookings.map((booking) => ({
-    id: booking.id,
-    guestName: booking.guest_name,
-    room: {
-      id: booking.room_id,
-      branch_id: booking.branch_id,
-      card_name: booking.card_name,
-      branch_name: booking.branch_name,
-      room_amenities: booking.room_amenities,
-      price_from: booking.price_from,
-      price_to: booking.price_to,
-      full_day_price: booking.full_day_price,
-      main_image: booking.main_image,
-      is_classic: booking.is_classic,
-      images: booking.images
-    },
-    branch: {
-      id: booking.branch_id,
-      name: booking.branch_name,
-      active: booking.branch_active,
-      hotline: booking.branch_hotline,
-      google_maps_link: booking.branch_maps,
-      classic_booking_enabled: booking.branch_classic
-    },
-    stayDate: booking.stay_date.slice(0, 10),
-    dateLabel: new Date(booking.stay_date).toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }),
-    timeRange: booking.time_range,
-    channel: booking.channel,
-    status: booking.status,
-    amount: booking.amount,
-    menuItemsTotal: Number(booking.menu_items_total) || 0,
-    customerName: booking.customer_name,
-    customerPhone: booking.customer_phone,
-    guestCount: booking.guest_count,
-    hasCar: booking.has_car ?? false,
-    hasDecoration: booking.has_decoration ?? false,
-    discountCode: booking.discount_code,
-    notes: booking.notes,
-    cccdFront: booking.cccd_front,
-    cccdBack: booking.cccd_back,
-    createdAt: booking.created_at
-  }));
+  return bookings.map(toBookingSnapshot);
 }
 
 export async function getBookingStatusSummary(limit = 12): Promise<BookingStatusPoint[]> {
@@ -521,9 +392,10 @@ export async function getTrendPoints(): Promise<TrendPoint[]> {
   const premiumByMonth = new Map<string, number>();
 
   for (const booking of bookings) {
-    const monthKey = booking.stay_date.slice(0, 7);
+    if (!booking.stayDate) continue;
+    const monthKey = booking.stayDate.slice(0, 7);
     byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + 1);
-    if (booking.price_from >= 250000) {
+    if ((booking.room?.price_from ?? booking.raw.amount) >= 250000) {
       premiumByMonth.set(monthKey, (premiumByMonth.get(monthKey) ?? 0) + 1);
     }
   }
@@ -616,20 +488,17 @@ export async function getGuestSummaries(limit = 8): Promise<GuestSummary[]> {
   const guests = new Map<string, GuestSummary>();
 
   for (const booking of bookings) {
-    const current = guests.get(booking.guest_name);
-    const nextTotal = (current?.totalSpent ?? 0) + booking.amount;
+    const guestName = booking.guestName || 'Khách lẻ';
+    const current = guests.get(guestName);
+    const nextTotal = (current?.totalSpent ?? 0) + booking.raw.amount;
     const nextBookings = (current?.bookings ?? 0) + 1;
-    const nextBranches = new Set([...(current?.branches ?? []), booking.branch_name]);
+    const nextBranches = new Set([...(current?.branches ?? []), booking.branchName]);
 
-    guests.set(booking.guest_name, {
-      guestName: booking.guest_name,
+    guests.set(guestName, {
+      guestName,
       bookings: nextBookings,
       branches: [...nextBranches],
-      latestStay: new Date(booking.stay_date).toLocaleDateString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }),
+      latestStay: booking.dateLabel ?? booking.stayDate ?? '',
       totalSpent: nextTotal
     });
   }
@@ -691,94 +560,15 @@ export async function getBookingSnapshotsFiltered(options?: {
   status?: BookingStatus;
 }): Promise<BookingSnapshot[]> {
   const { limit = 100, branchId, dateFrom, dateTo, status } = options ?? {};
-  const conditions: string[] = [];
-  const params: unknown[] = [];
+  const normalizedDateFrom = normalizeDateLabelToIso(dateFrom);
+  const normalizedDateTo = normalizeDateLabelToIso(dateTo);
+  const bookings = await getBookings(Math.max(limit * 3, 300));
 
-  if (branchId) {
-    params.push(branchId);
-    conditions.push(`b.branch_id = $${params.length}`);
-  }
-  if (dateFrom) {
-    params.push(dateFrom);
-    conditions.push(`b.stay_date >= $${params.length}`);
-  }
-  if (dateTo) {
-    params.push(dateTo);
-    conditions.push(`b.stay_date <= $${params.length}`);
-  }
-  if (status) {
-    params.push(status);
-    conditions.push(`b.status = $${params.length}`);
-  }
-
-  params.push(limit);
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-
-  const bookings = await query<BookingRow>(
-    `
-    select
-      b.id, b.room_id, b.branch_id, b.guest_name, b.customer_name, b.customer_phone,
-      b.stay_date::text, b.time_range, b.channel, b.status, b.amount,
-      coalesce(b.menu_items_total, 0) as menu_items_total,
-      b.guest_count,
-      b.has_car, b.has_decoration, b.discount_code, b.notes, b.cccd_front, b.cccd_back,
-      b.created_at::text,
-      r.card_name, r.branch_name, r.room_amenities, r.price_from, r.price_to,
-      r.full_day_price, r.main_image, r.is_classic, r.images,
-      br.hotline as branch_hotline, br.google_maps_link as branch_maps,
-      br.active as branch_active, br.classic_booking_enabled as branch_classic
-    from bookings b
-    join rooms r on r.id = b.room_id
-    join branches br on br.id = b.branch_id
-    ${where}
-    order by b.created_at desc
-    limit $${params.length}
-    `,
-    params
-  );
-
-  return bookings.map((booking) => ({
-    id: booking.id,
-    guestName: booking.guest_name,
-    room: {
-      id: booking.room_id,
-      branch_id: booking.branch_id,
-      card_name: booking.card_name,
-      branch_name: booking.branch_name,
-      room_amenities: booking.room_amenities,
-      price_from: booking.price_from,
-      price_to: booking.price_to,
-      full_day_price: booking.full_day_price,
-      main_image: booking.main_image,
-      is_classic: booking.is_classic,
-      images: booking.images
-    },
-    branch: {
-      id: booking.branch_id,
-      name: booking.branch_name,
-      active: booking.branch_active,
-      hotline: booking.branch_hotline,
-      google_maps_link: booking.branch_maps,
-      classic_booking_enabled: booking.branch_classic
-    },
-    stayDate: booking.stay_date.slice(0, 10),
-    dateLabel: new Date(booking.stay_date).toLocaleDateString('vi-VN', {
-      day: '2-digit', month: '2-digit', year: 'numeric'
-    }),
-    timeRange: booking.time_range,
-    channel: booking.channel,
-    status: booking.status,
-    amount: booking.amount,
-    menuItemsTotal: Number(booking.menu_items_total) || 0,
-    customerName: booking.customer_name,
-    customerPhone: booking.customer_phone,
-    guestCount: booking.guest_count,
-    hasCar: booking.has_car ?? false,
-    hasDecoration: booking.has_decoration ?? false,
-    discountCode: booking.discount_code,
-    notes: booking.notes,
-    cccdFront: booking.cccd_front,
-    cccdBack: booking.cccd_back,
-    createdAt: booking.created_at
-  }));
+  return bookings
+    .filter((booking) => !branchId || booking.branchId === branchId)
+    .filter((booking) => !status || booking.raw.status === status)
+    .filter((booking) => !normalizedDateFrom || (!!booking.stayDate && booking.stayDate >= normalizedDateFrom))
+    .filter((booking) => !normalizedDateTo || (!!booking.stayDate && booking.stayDate <= normalizedDateTo))
+    .slice(0, limit)
+    .map(toBookingSnapshot);
 }
