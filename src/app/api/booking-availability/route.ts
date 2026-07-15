@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchRawBookings, isCancelledStatus, normalizeBookingRecord } from "@/lib/booking-records";
-import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
+import { getAllRooms, getPublicBranches } from "@/lib/homestay-dashboard";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   try {
     const [branches, rooms, rawBookings] = await Promise.all([
       getPublicBranches(),
-      getPublicRooms(),
+      getAllRooms(),
       fetchRawBookings({ limit: 1500, branchId: Number.isFinite(branchId) ? branchId : undefined }),
     ]);
 

@@ -30,6 +30,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { compactPhone, money } from "@/lib/format";
+import { makeBookingReference } from "@/lib/booking-reference";
 import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
 import type { MenuItem } from "@/lib/menu-actions";
 import { gsap } from "gsap";
@@ -374,6 +375,7 @@ export function LavieHomeApp({
     const timeslotIds = selectedSlots.map((slot) => slot.id).join(",");
     const checkoutDate = formatCheckoutDate(firstSlot.dateIso);
     const payload = {
+      booking_id: makeBookingReference(firstSlot.room.branch_id),
       room_id: firstSlot.room.id,
       timeslot_ids: timeslotIds,
       room_name: firstSlot.room.card_name,
@@ -387,6 +389,7 @@ export function LavieHomeApp({
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const params = new URLSearchParams({
       data: encoded,
+      booking_id: payload.booking_id,
       room_id: String(payload.room_id),
       timeslot_ids: payload.timeslot_ids,
       room_name: payload.room_name,
