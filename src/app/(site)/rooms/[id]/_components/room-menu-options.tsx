@@ -20,12 +20,14 @@ export function RoomMenuOptions({ branchId, onMenuItemsChange }: RoomMenuOptions
 
   useEffect(() => {
     setLoading(true);
+    setSelectedItems([]);
+    onMenuItemsChange?.([], 0);
     getMenuItemsByBranch(branchId)
       .then((items) => {
         setMenuItems(items.filter((item) => item.is_active));
       })
       .finally(() => setLoading(false));
-  }, [branchId]);
+  }, [branchId, onMenuItemsChange]);
 
   function handleToggle(itemId: number) {
     const newSelected = selectedItems.includes(itemId)

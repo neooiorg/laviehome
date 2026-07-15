@@ -30,6 +30,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { compactPhone, money } from "@/lib/format";
+import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
+import type { MenuItem } from "@/lib/menu-actions";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -192,6 +194,8 @@ type Room = {
 export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: Room[] }) {
   const [activeBranchId, setActiveBranchId] = useState(branches[0]?.id ?? 30);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
+  const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
+  const [menuTotal, setMenuTotal] = useState(0);
   const [modalRoom, setModalRoom] = useState<Room | null>(null);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -247,10 +251,13 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
   const discountRate = selectedSlots.length === 2 ? 0.05 : selectedSlots.length >= 3 ? 0.1 : 0;
   const extraMinutes = selectedSlots.length === 2 ? 30 : selectedSlots.length >= 3 ? 60 : 0;
   const comboTotal = subtotal - subtotal * discountRate;
+  const grandTotal = Math.max(comboTotal, 0) + menuTotal;
 
   function switchBranch(branchId: number) {
     setActiveBranchId(branchId);
     setSelectedSlots([]);
+    setSelectedMenuItems([]);
+    setMenuTotal(0);
   }
 
   // Pre-select branch from the URL (?branch=<id>) so links from a room detail
@@ -351,7 +358,8 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
       branch_id: String(firstSlot.room.branch_id),
       date: checkoutDate,
       time_range: selectedSlots.map((slot) => slot.time).join(", "),
-      price: Math.max(comboTotal, 0),
+      price: grandTotal,
+      menu_item_ids: selectedMenuItems.map((item) => item.id).join(","),
     };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const params = new URLSearchParams({
@@ -363,6 +371,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
       date: payload.date,
       time_range: payload.time_range,
       price: String(payload.price),
+      menu_item_ids: payload.menu_item_ids,
     });
 
     return `/checkout/?${params.toString()}`;
@@ -743,6 +752,14 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               )}
             </div>
 
+            <RoomMenuOptions
+              branchId={activeBranchId}
+              onMenuItemsChange={(items, total) => {
+                setSelectedMenuItems(items);
+                setMenuTotal(total);
+              }}
+            />
+
             {/* Selected summary details block */}
             {selectedSlots.length > 0 && (
               <div id="booking-summary" className="scroll-mt-28 rounded-3xl p-6 border-2 border-white/20 bg-[#1b111f] shadow-[6px_6px_0px_rgba(255,255,255,0.05)]">
@@ -758,6 +775,9 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
                 <div className="mt-4 flex flex-wrap gap-4 justify-between border-t border-white/5 pt-4 text-sm text-white/70">
                   <div className="flex gap-6">
                     <div>Giá gốc: <span className="text-white font-bold">{money(subtotal)}đ</span></div>
+                    {menuTotal > 0 && (
+                      <div className="text-yellow-200">Menu items: <span className="font-bold">+{money(menuTotal)}đ</span></div>
+                    )}
                     {selectedSlots.length > 1 && (
                       <>
                         <div className="text-emerald-300">Ưu đãi: <span className="font-bold">-{money(subtotal * discountRate)}đ ({Math.round(discountRate * 100)}%)</span></div>
@@ -773,7 +793,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-white/10 pt-6">
               <div className="text-xl font-extrabold text-white flex items-baseline gap-2">
                 <span>Tổng tiền tạm tính:</span>
-                <span className="text-2xl text-yellow-200">{money(Math.max(comboTotal, 0))} đ</span>
+                <span className="text-2xl text-yellow-200">{money(grandTotal)} đ</span>
               </div>
               <button
                 disabled={!selectedSlots.length}
@@ -907,7 +927,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
             <span className="text-left text-xs font-bold text-white/85">
               Đã chọn {selectedSlots.length} khung giờ
               <br />
-              <span className="text-base font-black text-yellow-200">{money(Math.max(comboTotal, 0))}đ</span>
+              <span className="text-base font-black text-yellow-200">{money(grandTotal)}đ</span>
             </span>
             <span className="primary-button !min-h-9 px-4 text-xs">Đặt phòng ngay</span>
           </button>
@@ -917,7 +937,7 @@ export function LavieHomeApp({ branches, rooms }: { branches: Branch[]; rooms: R
               <span className="text-sm font-bold text-white/60">
                 {selectedSummary?.room} · {selectedSummary?.date} · {selectedSummary?.time}
               </span>
-              <span className="text-xl font-black text-yellow-200">{money(Math.max(comboTotal, 0))}đ</span>
+              <span className="text-xl font-black text-yellow-200">{money(grandTotal)}đ</span>
               {selectedSlots.length > 1 && (
                 <span className="text-sm font-bold text-emerald-300">-{Math.round(discountRate * 100)}% + {extraMinutes} phút</span>
               )}
