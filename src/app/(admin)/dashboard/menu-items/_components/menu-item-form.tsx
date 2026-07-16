@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ImageUp } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,10 +30,33 @@ export function MenuItemForm({ branches, initialData, isEditing = false }: MenuI
   const [branchId, setBranchId] = React.useState(initialData?.branch_id ? String(initialData.branch_id) : '');
   const [imageUrl, setImageUrl] = React.useState(initialData?.image_url ?? '');
   const [isActive, setIsActive] = React.useState(initialData?.is_active ?? true);
+  const [uploading, setUploading] = React.useState(false);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.url) {
+        setImageUrl(data.url);
+      } else {
+        alert(data.error ?? 'Tải ảnh lên thất bại. Vui lòng thử lại.');
+      }
+    } catch {
+      alert('Tải ảnh lên thất bại. Vui lòng thử lại.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
 
   async function handleSubmit() {
     if (!name || !description || !price || !branchId || !imageUrl) {
-      alert('Vui lòng điền tất cả trường bắt buộc (bao gồm URL ảnh)');
+      alert('Vui lòng điền tất cả trường bắt buộc (bao gồm ảnh)');
       return;
     }
 
@@ -106,27 +130,43 @@ export function MenuItemForm({ branches, initialData, isEditing = false }: MenuI
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>Giá (đ) *</Label>
-            <Input
-              type="number"
-              min={0}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>URL Ảnh *</Label>
-            <Input
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://..."
-              type="url"
-              required
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Giá (đ) *</Label>
+          <Input
+            type="number"
+            min={0}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="0"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>Ảnh *</Label>
+          {imageUrl ? (
+            <div className="flex flex-col gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="preview" className="h-32 w-auto rounded-lg border object-cover" />
+              <div className="flex gap-2">
+                <label className="cursor-pointer">
+                  <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+                    <span>{uploading ? 'Đang tải...' : 'Đổi ảnh'}</span>
+                  </Button>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                </label>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setImageUrl('')} disabled={uploading}>
+                  Xóa ảnh
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-input py-8 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
+              <ImageUp className="size-6" />
+              <span>{uploading ? 'Đang tải ảnh lên...' : 'Nhấn để chọn ảnh từ máy'}</span>
+              <span className="text-xs text-muted-foreground">PNG, JPG, WEBP · tối đa 5MB</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+            </label>
+          )}
         </div>
 
         <div className="flex items-center justify-between border-t pt-3">

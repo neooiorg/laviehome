@@ -5,8 +5,13 @@ import { getAllRooms, getPublicBranches } from "@/lib/homestay-dashboard";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const branchId = Number(searchParams.get("branch_id"));
-  const roomId = Number(searchParams.get("room_id"));
+  // NOTE: Number(null) === 0 (finite!), so an absent param must map to NaN, not 0.
+  // Otherwise a branch_id-only request (homepage calendar) is treated as room_id=0
+  // and filters to zero rooms, returning no blocked slots.
+  const branchIdRaw = searchParams.get("branch_id");
+  const roomIdRaw = searchParams.get("room_id");
+  const branchId = branchIdRaw !== null ? Number(branchIdRaw) : NaN;
+  const roomId = roomIdRaw !== null ? Number(roomIdRaw) : NaN;
 
   if (!Number.isFinite(branchId) && !Number.isFinite(roomId)) {
     return NextResponse.json({ error: "Missing branch_id or room_id" }, { status: 400 });
