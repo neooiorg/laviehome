@@ -14,17 +14,10 @@ import {
   stringifyTimeslotIds,
 } from "@/lib/booking-slots";
 import { query } from "@/lib/postgres";
+import { getMenuItemsByIds } from "@/lib/menu-actions";
 import { CheckoutExperience } from "./checkout-experience";
 
 type CheckoutSearchParams = Record<string, string | string[] | undefined>;
-
-type CheckoutMenuItem = {
-  id: number;
-  name: string;
-  price: number;
-  image_url?: string;
-  description?: string;
-};
 
 type CheckoutPayload = {
   booking_id?: string;
@@ -36,9 +29,15 @@ type CheckoutPayload = {
   date?: string;
   time_range?: string;
   price?: number | string;
-  room_price?: number | string;
-  menu_items?: CheckoutMenuItem[];
+  menu_item_ids?: string;
 };
+
+function parseMenuItemIds(raw: string): number[] {
+  return raw
+    .split(",")
+    .map((part) => Number(part.trim()))
+    .filter((id) => Number.isInteger(id) && id > 0);
+}
 
 function firstValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value ?? "";
@@ -67,12 +66,19 @@ async function resolveCheckout(
   const branchId = decoded.branch_id ?? firstValue(params.branch_id) ?? (room ? String(room.branch_id) : "");
   const branch = branches.find((item) => String(item.id) === String(branchId));
   const price = Number(decoded.price ?? firstValue(params.price) ?? 0);
-  const menuItems = Array.isArray(decoded.menu_items) ? decoded.menu_items : [];
-  const menuTotal = menuItems.reduce((sum, item) => sum + Number(item.price ?? 0), 0);
-  const rawRoomPrice = Number(decoded.room_price ?? NaN);
-  const roomPrice = Number.isFinite(rawRoomPrice)
-    ? rawRoomPrice
-    : Math.max((Number.isFinite(price) ? price : 0) - menuTotal, 0);
+  // Only the item IDs come from the client; the authoritative name/price/image
+  // are fetched from the database so a tampered payload cannot forge them.
+  const menuIds = parseMenuItemIds(decoded.menu_item_ids ?? firstValue(params.menu_item_ids) ?? "");
+  const dbMenuItems = menuIds.length ? await getMenuItemsByIds(menuIds) : [];
+  const menuItems = dbMenuItems.map((item) => ({
+    id: item.id,
+    name: item.name,
+    price: Number(item.price),
+    image_url: item.image_url ?? "",
+    description: item.description ?? "",
+  }));
+  const menuTotal = menuItems.reduce((sum, item) => sum + item.price, 0);
+  const roomPrice = Math.max((Number.isFinite(price) ? price : 0) - menuTotal, 0);
   const stayDate =
     normalizeDateLabelToIso(decoded.date ?? firstValue(params.date)) ?? normalizeDateLabelToIso(firstValue(params.date));
 

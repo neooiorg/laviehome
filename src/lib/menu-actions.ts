@@ -48,6 +48,23 @@ export async function getMenuItemById(id: number): Promise<MenuItem | null> {
   return items[0] || null;
 }
 
+export async function getMenuItemsByIds(ids: number[]): Promise<MenuItem[]> {
+  const cleanIds = Array.from(
+    new Set(ids.filter((id) => Number.isInteger(id) && id > 0))
+  );
+  if (cleanIds.length === 0) return [];
+  const items = await query<MenuItem>(
+    `SELECT id, branch_id, name, description, price, image_url, is_active, created_at, updated_at
+     FROM menu_items WHERE id = ANY($1)`,
+    [cleanIds]
+  );
+  // preserve the order the ids were requested in
+  const byId = new Map(items.map((item) => [item.id, item]));
+  return cleanIds
+    .map((id) => byId.get(id))
+    .filter((item): item is MenuItem => Boolean(item));
+}
+
 export async function createMenuItem(data: MenuItemInput): Promise<number> {
   const result = await query<{ id: number }>(
     `INSERT INTO menu_items (branch_id, name, description, price, image_url, is_active)
