@@ -1,8 +1,8 @@
 'use client';
 
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
+import { Check, ShoppingBag } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 import { money } from '@/lib/format';
 import type { MenuItem } from '@/lib/menu-actions';
 
@@ -25,66 +25,60 @@ export function MenuItemsSelector({ items, selectedIds, onSelectionChange }: Men
 
   if (!activeItems.length) {
     return (
-      <div className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-lg">
-        Không có menu items hoạt động cho chi nhánh này
-      </div>
+      <p className="text-sm text-muted-foreground py-3">
+        Không có menu items hoạt động cho chi nhánh này.
+      </p>
     );
   }
 
-  const totalPrice = selectedIds.reduce((sum, id) => {
-    const item = items.find((i) => i.id === id);
-    return sum + Number(item?.price ?? 0);
-  }, 0);
-
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {activeItems.map((item) => (
-          <Card
+    <div className="rounded-lg border divide-y overflow-hidden">
+      {activeItems.map((item) => {
+        const selected = selectedIds.includes(item.id);
+        return (
+          <button
             key={item.id}
-            className={`p-4 cursor-pointer transition-colors ${
-              selectedIds.includes(item.id)
-                ? 'bg-primary/10 border-primary'
-                : 'hover:bg-muted/50'
-            }`}
+            type="button"
             onClick={() => handleToggle(item.id)}
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors',
+              selected ? 'bg-primary/5' : 'hover:bg-muted/40'
+            )}
           >
-            <div className="flex items-start gap-3">
-              <div
-                className="mt-1"
-                onClick={(event) => {
-                  event.stopPropagation();
-                }}
-              >
-                <Checkbox
-                  checked={selectedIds.includes(item.id)}
-                  onCheckedChange={() => handleToggle(item.id)}
-                />
+            {item.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.image_url}
+                alt=""
+                className="h-10 w-10 shrink-0 rounded-md border object-cover"
+              />
+            ) : (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+                <ShoppingBag className="size-4 text-muted-foreground" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <Label className="font-semibold cursor-pointer">{item.name}</Label>
-                  <span className="text-sm font-bold text-primary whitespace-nowrap">
-                    {money(item.price)}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {item.description}
-                </p>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            )}
 
-      {selectedIds.length > 0 && (
-        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Tổng menu items ({selectedIds.length}):</span>
-            <span className="font-bold text-primary">{money(totalPrice)}</span>
-          </div>
-        </div>
-      )}
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium leading-tight">{item.name}</div>
+              {item.description && (
+                <div className="mt-0.5 truncate text-xs text-muted-foreground">{item.description}</div>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <span className={cn('text-sm font-semibold', selected ? 'text-primary' : '')}>
+                {money(item.price)}đ
+              </span>
+              <Check
+                className={cn(
+                  'size-4 transition-opacity',
+                  selected ? 'text-primary opacity-100' : 'opacity-0'
+                )}
+              />
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
