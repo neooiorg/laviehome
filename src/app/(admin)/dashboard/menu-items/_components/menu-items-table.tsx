@@ -16,8 +16,11 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 
+import { Plus } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/data-table';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
@@ -183,12 +186,30 @@ export function MenuItemsTable({ items, branches }: MenuItemsTableProps) {
   });
 
   return (
-    <DataTable table={table} emptyMessage="Chưa có menu items nào.">
-      <DataTableToolbar table={table} searchColumn="search" searchPlaceholder="Tìm tên, mô tả...">
-        <span className="ml-auto text-sm text-muted-foreground tabular-nums">
-          {table.getFilteredRowModel().rows.length} món
-        </span>
-      </DataTableToolbar>
-    </DataTable>
+    <Card>
+      <CardHeader className="border-b has-data-[slot=card-action]:grid-cols-1 md:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+        <div>
+          <CardTitle className="text-xl leading-none">Menu Items</CardTitle>
+          <CardDescription>Quản lý các tùy chọn menu khi đặt phòng ({items.length} món).</CardDescription>
+        </div>
+        <div data-slot="card-action" className="flex items-start justify-end">
+          <Button size="sm" asChild>
+            <Link href="/dashboard/menu-items/create">
+              <Plus className="mr-1.5 size-3.5" />
+              Thêm Menu Item
+            </Link>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="px-0">
+        <DataTable table={table} emptyMessage="Chưa có menu items nào.">
+          <DataTableToolbar table={table} searchColumn="search" searchPlaceholder="Tìm tên, mô tả...">
+            <span className="ml-auto text-sm text-muted-foreground tabular-nums">
+              {table.getFilteredRowModel().rows.length} món
+            </span>
+          </DataTableToolbar>
+        </DataTable>
+      </CardContent>
+    </Card>
   );
 }
