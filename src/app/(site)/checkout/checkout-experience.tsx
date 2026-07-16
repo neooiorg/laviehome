@@ -10,10 +10,17 @@ import {
   Home,
   Lock,
   MapPin,
+  ShoppingBag,
 } from "lucide-react";
 import { CheckoutPaymentBox } from "@/components/checkout-payment-box";
 import { CheckoutForm, type CheckoutPricing } from "./checkout-form";
 import { money } from "@/lib/format";
+
+type CheckoutMenuItem = {
+  id: number;
+  name: string;
+  price: number;
+};
 
 type CheckoutExperienceProps = {
   transferCode: string;
@@ -22,6 +29,8 @@ type CheckoutExperienceProps = {
   date: string;
   timeRange: string;
   price: number;
+  roomPrice: number;
+  menuItems: CheckoutMenuItem[];
 };
 
 export function CheckoutExperience({
@@ -31,6 +40,8 @@ export function CheckoutExperience({
   date,
   timeRange,
   price,
+  roomPrice,
+  menuItems,
 }: CheckoutExperienceProps) {
   const [pricing, setPricing] = useState<CheckoutPricing>({
     guestCount: 2,
@@ -64,8 +75,21 @@ export function CheckoutExperience({
           <div className="mt-5 border-t border-white/10 pt-5 space-y-3">
             <div className="flex items-center justify-between text-sm font-bold text-white/62">
               <span>Giá phòng</span>
-              <span className="font-bold text-white/80">{money(price)}đ</span>
+              <span className="font-bold text-white/80">{money(roomPrice)}đ</span>
             </div>
+            {menuItems.length > 0 && (
+              <div className="space-y-2 rounded-2xl bg-white/5 px-4 py-3">
+                <p className="flex items-center gap-2 text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-white/38">
+                  <ShoppingBag size={14} className="text-pink-200" /> Menu đã chọn ({menuItems.length})
+                </p>
+                {menuItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-3 text-sm font-bold">
+                    <span className="text-white/75">{item.name}</span>
+                    <span className="whitespace-nowrap text-white/80">{money(item.price)}đ</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {pricing.surcharge > 0 && (
               <div className="flex items-center justify-between text-sm font-bold">
                 <span className="text-orange-300">Phụ thu {pricing.guestCount} người</span>

@@ -552,7 +552,7 @@ export function LavieHomeApp({
             ref={roomRowRef}
             onPointerDown={handleRoomRowPointerDown}
             onClickCapture={handleRoomCardClickCapture}
-            className="hide-scrollbar flex snap-x gap-5 overflow-x-auto pb-6 cursor-grab select-none active:cursor-grabbing md:snap-none"
+            className="hide-scrollbar flex snap-x items-start gap-5 overflow-x-auto pb-6 cursor-grab select-none active:cursor-grabbing md:snap-none"
           >
             {featuredRooms.map((room) => (
               <article key={room.id} className="room-card-clone snap-center">

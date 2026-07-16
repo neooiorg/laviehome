@@ -18,6 +18,12 @@ import { CheckoutExperience } from "./checkout-experience";
 
 type CheckoutSearchParams = Record<string, string | string[] | undefined>;
 
+type CheckoutMenuItem = {
+  id: number;
+  name: string;
+  price: number;
+};
+
 type CheckoutPayload = {
   booking_id?: string;
   room_id?: number | string;
@@ -28,6 +34,8 @@ type CheckoutPayload = {
   date?: string;
   time_range?: string;
   price?: number | string;
+  room_price?: number | string;
+  menu_items?: CheckoutMenuItem[];
 };
 
 function firstValue(value: string | string[] | undefined) {
@@ -57,6 +65,12 @@ async function resolveCheckout(
   const branchId = decoded.branch_id ?? firstValue(params.branch_id) ?? (room ? String(room.branch_id) : "");
   const branch = branches.find((item) => String(item.id) === String(branchId));
   const price = Number(decoded.price ?? firstValue(params.price) ?? 0);
+  const menuItems = Array.isArray(decoded.menu_items) ? decoded.menu_items : [];
+  const menuTotal = menuItems.reduce((sum, item) => sum + Number(item.price ?? 0), 0);
+  const rawRoomPrice = Number(decoded.room_price ?? NaN);
+  const roomPrice = Number.isFinite(rawRoomPrice)
+    ? rawRoomPrice
+    : Math.max((Number.isFinite(price) ? price : 0) - menuTotal, 0);
   const stayDate =
     normalizeDateLabelToIso(decoded.date ?? firstValue(params.date)) ?? normalizeDateLabelToIso(firstValue(params.date));
 
@@ -71,6 +85,8 @@ async function resolveCheckout(
     stayDate,
     timeRange: decoded.time_range ?? firstValue(params.time_range) ?? "N/A",
     price: Number.isFinite(price) ? price : 0,
+    roomPrice,
+    menuItems,
     hotline: branch?.hotline ?? "0909.123.456",
     map: branch?.google_maps_link ?? "/contacts",
   };
@@ -197,6 +213,8 @@ export default async function CheckoutPage({
           date={checkout.date}
           timeRange={checkout.timeRange}
           price={checkout.price}
+          roomPrice={checkout.roomPrice}
+          menuItems={checkout.menuItems}
         />
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold text-white/50">
