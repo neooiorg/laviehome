@@ -16,6 +16,7 @@ type BookingRoom = {
   branch_name: string;
   price_from: number;
   full_day_price: number;
+  slot_prices?: (number | null)[] | null;
 };
 
 type SelectedSlot = {
@@ -185,7 +186,13 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
                     const past = !booked && isSlotPast(dayIndex, slot.label);
                     const selected = selectedSlots.some((item) => item.id === id);
                     const promo = isSlotPromo(dayIndex);
-                    const price = slot.isOvernight ? room.full_day_price : room.price_from;
+                    const slotPrice = room.slot_prices?.[slotIndex];
+                    const price =
+                      typeof slotPrice === "number" && slotPrice > 0
+                        ? slotPrice
+                        : slot.isOvernight
+                          ? room.full_day_price
+                          : room.price_from;
 
                     return (
                       <td key={id} className="px-1 py-1 border-r border-white/5 align-middle min-w-[104px]">

@@ -111,6 +111,8 @@ export type RoomRow = {
   main_image: string;
   is_classic: number;
   images: string[];
+  // Per-time-slot prices indexed by slot position; null/absent → use defaults.
+  slot_prices?: (number | null)[] | null;
   created_at?: string;
 };
 

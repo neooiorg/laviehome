@@ -15,6 +15,7 @@ import { ImageUpload } from "@/components/image-upload";
 import { AlertModal } from "@/components/modal/alert-modal";
 import type { BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 import { deleteRoom, updateRoom } from "@/lib/room-actions";
+import { getRoomSlots, slotDisplayLabel } from "@/lib/booking-slots";
 
 export function RoomEditForm({ room, branches }: { room: RoomRow; branches: BranchRow[] }) {
   const router = useRouter();
@@ -32,6 +33,23 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   const [amenities, setAmenities] = React.useState<string[]>(room.room_amenities ?? []);
   const [isClassic, setIsClassic] = React.useState(room.is_classic === 1);
   const [newAmenity, setNewAmenity] = React.useState("");
+  const [slotPrices, setSlotPrices] = React.useState<Record<number, string>>(() => {
+    const init: Record<number, string> = {};
+    (room.slot_prices ?? []).forEach((v, i) => {
+      if (typeof v === "number" && v > 0) init[i] = String(v);
+    });
+    return init;
+  });
+
+  const slots = React.useMemo(() => getRoomSlots(cardName), [cardName]);
+
+  function buildSlotPrices(): (number | null)[] | undefined {
+    const arr = slots.map((_, i) => {
+      const v = Number(slotPrices[i]);
+      return Number.isFinite(v) && v > 0 ? v : null;
+    });
+    return arr.some((v) => v !== null) ? arr : undefined;
+  }
 
   async function handleSave() {
     const pf = Number(priceFrom);
@@ -53,6 +71,7 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
       images,
       room_amenities: amenities,
       is_classic: isClassic,
+      slot_prices: buildSlotPrices() ?? null,
     });
     setSaving(false);
     router.push("/dashboard/rooms");
@@ -101,6 +120,34 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
           <div className="flex flex-col gap-1.5">
             <Label>Cả ngày (đ)</Label>
             <Input type="number" value={fullDayPrice} onChange={(e) => setFullDayPrice(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
+          <div>
+            <Label>Giá theo khung giờ (tuỳ chọn)</Label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Để trống sẽ dùng giá mặc định (khung ngày = &quot;Giá từ&quot;, khung qua đêm = &quot;Cả ngày&quot;).
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {slots.map((slot, i) => {
+              const fallback = slot.isOvernight ? fullDayPrice : priceFrom;
+              return (
+                <div key={i} className="flex flex-col gap-1">
+                  <Label className="text-xs font-medium">
+                    {slotDisplayLabel(slot)} {slot.isOvernight ? "🌙" : ""}
+                  </Label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={slotPrices[i] ?? ""}
+                    placeholder={fallback ? `Mặc định ${fallback}` : "Mặc định"}
+                    onChange={(e) => setSlotPrices((prev) => ({ ...prev, [i]: e.target.value }))}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
