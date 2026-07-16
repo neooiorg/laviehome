@@ -22,6 +22,8 @@ type CheckoutMenuItem = {
   id: number;
   name: string;
   price: number;
+  image_url?: string;
+  description?: string;
 };
 
 type CheckoutPayload = {

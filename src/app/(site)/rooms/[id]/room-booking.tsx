@@ -111,6 +111,8 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
         id: item.id,
         name: item.name,
         price: Number(item.price),
+        image_url: item.image_url ?? "",
+        description: item.description ?? "",
       })),
     };
     const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));

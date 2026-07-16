@@ -20,6 +20,8 @@ type CheckoutMenuItem = {
   id: number;
   name: string;
   price: number;
+  image_url?: string;
+  description?: string;
 };
 
 type CheckoutExperienceProps = {
@@ -50,10 +52,16 @@ export function CheckoutExperience({
     discountAmount: 0,
     finalAmount: price,
   });
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
 
   const handlePricingChange = useCallback((next: CheckoutPricing) => {
     setPricing(next);
   }, []);
+
+  const hasValidImage = (item: CheckoutMenuItem) =>
+    !!item.image_url &&
+    !failedImages.has(item.id) &&
+    (item.image_url.startsWith("http") || item.image_url.startsWith("/"));
 
   return (
     <section className="grid items-start gap-6 lg:grid-cols-[1fr_380px]">
@@ -78,14 +86,36 @@ export function CheckoutExperience({
               <span className="font-bold text-white/80">{money(roomPrice)}đ</span>
             </div>
             {menuItems.length > 0 && (
-              <div className="space-y-2 rounded-2xl bg-white/5 px-4 py-3">
+              <div className="space-y-2.5 rounded-2xl bg-white/5 px-4 py-3.5">
                 <p className="flex items-center gap-2 text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-white/38">
                   <ShoppingBag size={14} className="text-pink-200" /> Menu đã chọn ({menuItems.length})
                 </p>
                 {menuItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-3 text-sm font-bold">
-                    <span className="text-white/75">{item.name}</span>
-                    <span className="whitespace-nowrap text-white/80">{money(item.price)}đ</span>
+                  <div key={item.id} className="flex items-center gap-3">
+                    {hasValidImage(item) ? (
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.image_url!}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                          onError={() => setFailedImages((prev) => new Set([...prev, item.id]))}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xl">
+                        🛒
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-white/85">{item.name}</p>
+                      {item.description && (
+                        <p className="mt-0.5 truncate text-xs font-semibold text-white/40">{item.description}</p>
+                      )}
+                    </div>
+                    <span className="shrink-0 whitespace-nowrap text-sm font-bold text-white/80">
+                      {money(item.price)}đ
+                    </span>
                   </div>
                 ))}
               </div>
