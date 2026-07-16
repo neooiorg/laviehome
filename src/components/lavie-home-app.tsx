@@ -515,23 +515,6 @@ export function LavieHomeApp({
             })}
           </div>
 
-          {allBranchRooms[0] && (
-            <div className="mt-5 relative aspect-[21/9] rounded-2xl overflow-hidden border border-white/10">
-              <Image
-                src={safeImg(allBranchRooms[0].main_image)}
-                alt={currentBranch?.name ?? "Chi nhánh"}
-                fill
-                sizes="(min-width: 1024px) 1360px, 100vw"
-                className="object-cover object-center transition-all duration-500"
-                draggable={false}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-              <div className="absolute bottom-4 left-5">
-                <p className="text-xs font-bold text-white/60 uppercase tracking-wider mb-1">Chi nhánh đang xem</p>
-                <p className="text-lg font-black text-white">{currentBranch?.name}</p>
-              </div>
-            </div>
-          )}
         </section>
 
         <section id="rooms" className="mx-auto w-[min(100%-2rem,1360px)] py-8">
@@ -581,7 +564,7 @@ export function LavieHomeApp({
                   className="h-52 w-full rounded-2xl object-cover"
                   draggable={false}
                 />
-                <h3 className="mt-4 min-h-12 text-base font-extrabold leading-tight text-pink-100">{room.card_name}</h3>
+                <h3 className="mt-4 text-base font-extrabold leading-tight text-pink-100">{room.card_name}</h3>
                 <div className="mt-3 flex max-h-28 flex-wrap gap-2 overflow-hidden">
                   {room.room_amenities.slice(0, 8).map((amenity) => {
                     const Icon = amenityIcon(amenity);
@@ -597,7 +580,8 @@ export function LavieHomeApp({
                   <span className="text-pink-200">{money(room.price_to)}đ</span>
                 </p>
                 <p className="mt-1 text-sm font-bold text-white/65">Qua đêm: {money(room.full_day_price)}đ</p>
-                <Link className="primary-button mt-5 w-full text-center" href={`/rooms/${room.id}`}>
+                <div className="flex-1" />
+                <Link className="primary-button mt-4 w-full text-center" href={`/rooms/${room.id}`}>
                   Xem ảnh & Đặt phòng
                 </Link>
               </article>

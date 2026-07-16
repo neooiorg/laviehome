@@ -47,14 +47,6 @@ export function CheckoutExperience({
   return (
     <section className="grid items-start gap-6 lg:grid-cols-[1fr_380px]">
       <div className="grid gap-6">
-        <section className="page-panel p-6 md:p-8">
-          <p className="eyebrow">Thanh toán đặt phòng</p>
-          <h1 className="mt-3 text-3xl font-extrabold leading-tight tracking-[-0.03em] md:text-5xl">Xác nhận thông tin</h1>
-          <p className="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/64 md:text-[0.95rem]">
-            Điền thông tin người đặt và xác thực giấy tờ để Lavie Home giữ phòng đúng khung giờ bạn đã chọn.
-          </p>
-        </section>
-
         <CheckoutForm bookingId={transferCode} price={price} onPricingChange={handlePricingChange} />
       </div>
 
