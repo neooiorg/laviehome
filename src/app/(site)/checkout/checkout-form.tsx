@@ -17,13 +17,14 @@ type CheckoutFormProps = {
   bookingId: string;
   price: number;
   onPricingChange?: (pricing: CheckoutPricing) => void;
+  onConfirmed?: () => void;
 };
 
 type DiscountResult =
   | { valid: true; percent: number; description: string }
   | { valid: false; error: string };
 
-export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutFormProps) {
+export function CheckoutForm({ bookingId, price, onPricingChange, onConfirmed }: CheckoutFormProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
@@ -232,9 +233,11 @@ export function CheckoutForm({ bookingId, price, onPricingChange }: CheckoutForm
       }
 
       setSaved(true);
-      document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
+      onConfirmed?.();
     } catch {
-      document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
+      // Even if the final save hit a transient error, the draft was persisted;
+      // let the customer proceed to payment.
+      onConfirmed?.();
     } finally {
       setSaving(false);
     }

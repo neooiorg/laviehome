@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ElementType } from "react";
 import {
   CalendarDays,
@@ -10,6 +10,7 @@ import {
   Home,
   Lock,
   MapPin,
+  QrCode,
   ShoppingBag,
 } from "lucide-react";
 import { CheckoutPaymentBox } from "@/components/checkout-payment-box";
@@ -53,10 +54,23 @@ export function CheckoutExperience({
     finalAmount: price,
   });
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+  const [confirmed, setConfirmed] = useState(false);
 
   const handlePricingChange = useCallback((next: CheckoutPricing) => {
     setPricing(next);
   }, []);
+
+  const handleConfirmed = useCallback(() => setConfirmed(true), []);
+
+  // Reveal + scroll to the payment QR only after the customer confirms their
+  // details, so the page doesn't show a payment box before there's anything to pay.
+  useEffect(() => {
+    if (!confirmed) return;
+    const id = window.setTimeout(() => {
+      document.getElementById("payment")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+    return () => window.clearTimeout(id);
+  }, [confirmed]);
 
   const hasValidImage = (item: CheckoutMenuItem) =>
     !!item.image_url &&
@@ -66,7 +80,12 @@ export function CheckoutExperience({
   return (
     <section className="grid items-start gap-6 lg:grid-cols-[1fr_380px]">
       <div className="grid gap-6">
-        <CheckoutForm bookingId={transferCode} price={price} onPricingChange={handlePricingChange} />
+        <CheckoutForm
+          bookingId={transferCode}
+          price={price}
+          onPricingChange={handlePricingChange}
+          onConfirmed={handleConfirmed}
+        />
       </div>
 
       <aside className="grid h-fit gap-6 lg:sticky lg:top-28">
@@ -140,15 +159,32 @@ export function CheckoutExperience({
               <Lock size={14} className="text-cyan-300" /> Giao dịch bảo mật bằng mã hoá SSL.
             </p>
           </div>
-          <a className="primary-button mt-5 w-full text-center block py-3.5" href="#payment">
-            <CreditCard size={17} /> Xem Thông Tin Thanh Toán
-          </a>
+          {confirmed ? (
+            <a className="primary-button mt-5 w-full text-center block py-3.5" href="#payment">
+              <CreditCard size={17} /> Xem Thông Tin Thanh Toán
+            </a>
+          ) : (
+            <p className="mt-5 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-center text-xs font-semibold text-white/50">
+              <Lock size={14} className="text-white/40" /> Điền thông tin & bấm “Xác nhận” để hiện mã thanh toán
+            </p>
+          )}
         </section>
 
-        <CheckoutPaymentBox
-          price={pricing.finalAmount}
-          transferCode={transferCode}
-        />
+        {confirmed ? (
+          <CheckoutPaymentBox price={pricing.finalAmount} transferCode={transferCode} />
+        ) : (
+          <section className="section-card p-6 md:p-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-white/40">
+              <QrCode size={26} />
+            </div>
+            <h2 className="mt-4 text-lg font-extrabold tracking-[-0.02em] text-white">Thanh toán đặt phòng</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
+              Vui lòng điền thông tin người đặt rồi bấm{" "}
+              <span className="font-bold text-white/80">“Xác Nhận &amp; Chuyển Đến Thanh Toán”</span> để hiển thị mã QR
+              thanh toán.
+            </p>
+          </section>
+        )}
       </aside>
     </section>
   );
