@@ -3,34 +3,36 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import {
   type ColumnDef,
+  type ColumnFiltersState,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   type PaginationState,
   type SortingState,
+  type VisibilityState,
   useReactTable,
 } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import type { DiscountCode } from "@/lib/homestay-dashboard";
 import { toggleDiscountActive } from "@/lib/discount-actions";
 
 export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
   const [codes, setCodes] = React.useState(initial);
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
-  const [search, setSearch] = React.useState("");
 
   async function handleToggle(code: string, active: boolean) {
     setCodes((prev) => prev.map((c) => c.code === code ? { ...c, active } : c));
@@ -38,6 +40,12 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
   }
 
   const columns: ColumnDef<DiscountCode>[] = [
+    {
+      id: "search",
+      accessorFn: (row) => `${row.code} ${row.description ?? ""}`,
+      filterFn: "includesString",
+      enableHiding: false,
+    },
     {
       accessorKey: "code",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Mã" />,
@@ -71,8 +79,19 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
       ),
     },
     {
-      accessorKey: "active",
+      id: "active",
+      accessorFn: (row) => (row.active ? "active" : "inactive"),
       header: "Hoạt động",
+      filterFn: (row, _id, values: string[]) =>
+        !values.length || values.includes(row.original.active ? "active" : "inactive"),
+      meta: {
+        label: "Trạng thái",
+        variant: "select",
+        options: [
+          { label: "Đang bật", value: "active" },
+          { label: "Đã tắt", value: "inactive" },
+        ],
+      },
       cell: ({ row }) => (
         <Switch checked={row.original.active} onCheckedChange={(v) => handleToggle(row.original.code, v)} />
       ),
@@ -92,17 +111,13 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
     },
   ];
 
-  const filteredData = React.useMemo(() => {
-    if (!search) return codes;
-    const q = search.toLowerCase();
-    return codes.filter((c) => c.code.toLowerCase().includes(q) || (c.description ?? "").toLowerCase().includes(q));
-  }, [codes, search]);
-
   const table = useReactTable({
-    data: filteredData,
+    data: codes,
     columns,
-    state: { sorting, pagination },
+    state: { sorting, columnFilters, columnVisibility, pagination },
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -111,17 +126,11 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
   });
 
   const toolbar = (
-    <div className="flex items-center justify-between gap-3">
-      <InputGroup className="h-8 w-56">
-        <InputGroupAddon align="inline-start"><Search className="size-3.5" /></InputGroupAddon>
-        <InputGroupInput className="h-8" placeholder="Tìm mã, mô tả..."
-          value={search} onChange={(e) => { setSearch(e.target.value); table.setPageIndex(0); }} />
-      </InputGroup>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground tabular-nums">{codes.length} mã</span>
-        <DataTableViewOptions table={table} />
-      </div>
-    </div>
+    <DataTableToolbar table={table} searchColumn="search" searchPlaceholder="Tìm mã, mô tả...">
+      <span className="ml-auto text-sm text-muted-foreground tabular-nums">
+        {table.getFilteredRowModel().rows.length} mã
+      </span>
+    </DataTableToolbar>
   );
 
   return (

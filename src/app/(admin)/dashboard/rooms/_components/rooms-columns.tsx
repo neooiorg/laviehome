@@ -8,18 +8,20 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import type { Option } from "@/types/data-table";
 import type { RoomRow } from "@/lib/homestay-dashboard";
 
 function money(v: number) {
   return new Intl.NumberFormat("vi-VN").format(v);
 }
 
-export const roomsColumns: ColumnDef<RoomRow>[] = [
+export function getRoomsColumns(branchOptions: Option[]): ColumnDef<RoomRow>[] {
+  return [
   {
     id: "search",
     accessorFn: (row) => `${row.card_name} ${row.branch_name}`,
     filterFn: "includesString",
-    enableHiding: true,
+    enableHiding: false,
     header: () => null,
     cell: () => null,
   },
@@ -33,7 +35,13 @@ export const roomsColumns: ColumnDef<RoomRow>[] = [
   {
     accessorKey: "branch_name",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Chi nhánh" />,
-    filterFn: "equalsString",
+    filterFn: (row, _id, values: string[]) =>
+      !values.length || values.includes(row.original.branch_name),
+    meta: {
+      label: "Chi nhánh",
+      variant: "multiSelect",
+      options: branchOptions,
+    },
     cell: ({ row }) => (
       <div className="text-sm text-muted-foreground">{row.original.branch_name}</div>
     ),
@@ -66,12 +74,25 @@ export const roomsColumns: ColumnDef<RoomRow>[] = [
     ),
   },
   {
-    accessorKey: "is_classic",
+    id: "is_classic",
+    accessorFn: (row) => (row.is_classic === 1 ? "classic" : "standard"),
     header: "Loại",
+    filterFn: (row, _id, values: string[]) =>
+      !values.length || values.includes(row.original.is_classic === 1 ? "classic" : "standard"),
+    meta: {
+      label: "Loại phòng",
+      variant: "select",
+      options: [
+        { label: "Classic", value: "classic" },
+        { label: "Thường", value: "standard" },
+      ],
+    },
     cell: ({ row }) =>
       row.original.is_classic === 1 ? (
         <Badge variant="outline">Classic</Badge>
-      ) : null,
+      ) : (
+        <span className="text-sm text-muted-foreground">Thường</span>
+      ),
   },
   {
     id: "actions",
@@ -87,4 +108,5 @@ export const roomsColumns: ColumnDef<RoomRow>[] = [
       </Button>
     ),
   },
-];
+  ];
+}

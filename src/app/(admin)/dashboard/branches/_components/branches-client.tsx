@@ -3,34 +3,36 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Pencil, Plus, Search } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import {
   type ColumnDef,
+  type ColumnFiltersState,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   type PaginationState,
   type SortingState,
+  type VisibilityState,
   useReactTable,
 } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
-import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import type { BranchRow } from "@/lib/homestay-dashboard";
 import { toggleBranchActive, toggleBranchClassic } from "@/lib/branch-actions";
 
 export function BranchesClient({ branches: initial }: { branches: BranchRow[] }) {
   const [branches, setBranches] = React.useState(initial);
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
-  const [search, setSearch] = React.useState("");
 
   function handleToggleActive(id: number, value: boolean) {
     setBranches((prev) => prev.map((b) => b.id === id ? { ...b, active: value ? 1 : 0 } : b));
@@ -43,6 +45,12 @@ export function BranchesClient({ branches: initial }: { branches: BranchRow[] })
   }
 
   const columns: ColumnDef<BranchRow>[] = [
+    {
+      id: "search",
+      accessorFn: (row) => `${row.name} ${row.hotline ?? ""}`,
+      filterFn: "includesString",
+      enableHiding: false,
+    },
     {
       accessorKey: "name",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Tên chi nhánh" />,
@@ -80,7 +88,18 @@ export function BranchesClient({ branches: initial }: { branches: BranchRow[] })
     },
     {
       id: "status",
+      accessorFn: (row) => (row.active === 1 ? "open" : "closed"),
       header: "Trạng thái",
+      filterFn: (row, _id, values: string[]) =>
+        !values.length || values.includes(row.original.active === 1 ? "open" : "closed"),
+      meta: {
+        label: "Trạng thái",
+        variant: "select",
+        options: [
+          { label: "Đang mở", value: "open" },
+          { label: "Tạm ngưng", value: "closed" },
+        ],
+      },
       cell: ({ row }) => (
         <Badge variant={row.original.active === 1 ? "default" : "outline"}>
           {row.original.active === 1 ? "Đang mở" : "Tạm ngưng"}
@@ -103,17 +122,13 @@ export function BranchesClient({ branches: initial }: { branches: BranchRow[] })
     },
   ];
 
-  const filteredData = React.useMemo(() => {
-    if (!search) return branches;
-    const q = search.toLowerCase();
-    return branches.filter((b) => b.name.toLowerCase().includes(q) || b.hotline.toLowerCase().includes(q));
-  }, [branches, search]);
-
   const table = useReactTable({
-    data: filteredData,
+    data: branches,
     columns,
-    state: { sorting, pagination },
+    state: { sorting, columnFilters, columnVisibility, pagination },
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -122,17 +137,11 @@ export function BranchesClient({ branches: initial }: { branches: BranchRow[] })
   });
 
   const toolbar = (
-    <div className="flex items-center justify-between gap-3">
-      <InputGroup className="h-8 w-56">
-        <InputGroupAddon align="inline-start"><Search className="size-3.5" /></InputGroupAddon>
-        <InputGroupInput className="h-8" placeholder="Tìm tên, hotline..."
-          value={search} onChange={(e) => { setSearch(e.target.value); table.setPageIndex(0); }} />
-      </InputGroup>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground tabular-nums">{branches.length} chi nhánh</span>
-        <DataTableViewOptions table={table} />
-      </div>
-    </div>
+    <DataTableToolbar table={table} searchColumn="search" searchPlaceholder="Tìm tên, hotline...">
+      <span className="ml-auto text-sm text-muted-foreground tabular-nums">
+        {table.getFilteredRowModel().rows.length} chi nhánh
+      </span>
+    </DataTableToolbar>
   );
 
   return (

@@ -1,22 +1,48 @@
 'use client';
+'use no memo';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import {
+  type ColumnDef,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type PaginationState,
+  type SortingState,
+  type VisibilityState,
+  useReactTable,
+} from '@tanstack/react-table';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/data-table';
+import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
+import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
 import { money } from '@/lib/format';
 import { deleteMenuItem, toggleMenuItemStatus } from '@/lib/menu-actions';
-import { useState } from 'react';
 import type { MenuItem } from '@/lib/menu-actions';
+import type { BranchRow } from '@/lib/homestay-dashboard';
 
 interface MenuItemsTableProps {
   items: MenuItem[];
+  branches: BranchRow[];
 }
 
-export function MenuItemsTable({ items }: MenuItemsTableProps) {
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [isTogglingStatus, setIsTogglingStatus] = useState<number | null>(null);
+export function MenuItemsTable({ items, branches }: MenuItemsTableProps) {
+  const [isDeleting, setIsDeleting] = React.useState<number | null>(null);
+  const [isTogglingStatus, setIsTogglingStatus] = React.useState<number | null>(null);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<import('@tanstack/react-table').ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
+  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
+
+  const branchNameById = React.useMemo(
+    () => new Map(branches.map((b) => [b.id, b.name])),
+    [branches],
+  );
 
   async function handleDelete(id: number) {
     if (!confirm('Bạn chắc chắn muốn xóa menu item này?')) return;
@@ -37,79 +63,132 @@ export function MenuItemsTable({ items }: MenuItemsTableProps) {
     }
   }
 
-  if (!items.length) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Chưa có menu items nào</p>
-      </div>
-    );
-  }
+  const columns = React.useMemo<ColumnDef<MenuItem>[]>(
+    () => [
+      {
+        id: 'search',
+        accessorFn: (row) => `${row.name} ${row.description ?? ''}`,
+        filterFn: 'includesString',
+        enableHiding: false,
+      },
+      {
+        accessorKey: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Tên" />,
+        cell: ({ row }) => <span className="font-medium text-sm">{row.original.name}</span>,
+      },
+      {
+        accessorKey: 'description',
+        header: 'Mô tả',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="line-clamp-1 max-w-xs text-sm text-muted-foreground">
+            {row.original.description || '—'}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'price',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Giá" />,
+        cell: ({ row }) => (
+          <span className="font-semibold text-sm text-primary tabular-nums">{money(row.original.price)}đ</span>
+        ),
+      },
+      {
+        id: 'branch',
+        accessorFn: (row) => String(row.branch_id),
+        header: 'Chi nhánh',
+        filterFn: (row, _id, values: string[]) =>
+          !values.length || values.includes(String(row.original.branch_id)),
+        meta: {
+          label: 'Chi nhánh',
+          variant: 'multiSelect',
+          options: branches.map((b) => ({ label: b.name, value: String(b.id) })),
+        },
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {branchNameById.get(row.original.branch_id) ?? `Chi nhánh ${row.original.branch_id}`}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        accessorFn: (row) => (row.is_active ? 'active' : 'inactive'),
+        header: 'Trạng thái',
+        filterFn: (row, _id, values: string[]) =>
+          !values.length || values.includes(row.original.is_active ? 'active' : 'inactive'),
+        meta: {
+          label: 'Trạng thái',
+          variant: 'select',
+          options: [
+            { label: 'Hoạt động', value: 'active' },
+            { label: 'Tắt', value: 'inactive' },
+          ],
+        },
+        cell: ({ row }) => (
+          <Badge variant={row.original.is_active ? 'default' : 'outline'}>
+            {row.original.is_active ? 'Hoạt động' : 'Tắt'}
+          </Badge>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => handleToggleStatus(row.original.id)}
+              disabled={isTogglingStatus === row.original.id}
+              title={row.original.is_active ? 'Tắt' : 'Bật'}
+            >
+              {row.original.is_active ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+            </Button>
+            <Button variant="ghost" size="icon-sm" asChild title="Sửa">
+              <Link href={`/dashboard/menu-items/${row.original.id}/edit`}>
+                <Pencil className="size-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => handleDelete(row.original.id)}
+              disabled={isDeleting === row.original.id}
+              title="Xóa"
+            >
+              <Trash2 className="size-4 text-destructive" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [branches, branchNameById, isDeleting, isTogglingStatus],
+  );
+
+  const table = useReactTable({
+    data: items,
+    columns,
+    state: { sorting, columnFilters, columnVisibility, pagination },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
   return (
-    <div className="relative w-full overflow-auto">
-      <table className="w-full caption-bottom text-sm">
-        <thead className="border-b bg-muted/50">
-          <tr>
-            <th className="h-12 px-4 text-left align-middle font-medium">Tên</th>
-            <th className="h-12 px-4 text-left align-middle font-medium">Mô tả</th>
-            <th className="h-12 px-4 text-left align-middle font-medium">Giá</th>
-            <th className="h-12 px-4 text-left align-middle font-medium">Chi nhánh</th>
-            <th className="h-12 px-4 text-left align-middle font-medium">Trạng thái</th>
-            <th className="h-12 px-4 text-right align-middle font-medium">Hành động</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {items.map((item) => (
-            <tr key={item.id} className="hover:bg-muted/50">
-              <td className="px-4 py-3 align-middle font-medium">{item.name}</td>
-              <td className="px-4 py-3 align-middle text-muted-foreground line-clamp-1">
-                {item.description}
-              </td>
-              <td className="px-4 py-3 align-middle font-semibold text-primary">
-                {money(item.price)}
-              </td>
-              <td className="px-4 py-3 align-middle text-sm text-muted-foreground">
-                Branch {item.branch_id}
-              </td>
-              <td className="px-4 py-3 align-middle">
-                <Badge variant={item.is_active ? 'default' : 'outline'}>
-                  {item.is_active ? 'Hoạt động' : 'Tắt'}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 align-middle text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleToggleStatus(item.id)}
-                    disabled={isTogglingStatus === item.id}
-                    title={item.is_active ? 'Tắt' : 'Bật'}
-                  >
-                    {item.is_active ? (
-                      <Eye className="size-4" />
-                    ) : (
-                      <EyeOff className="size-4" />
-                    )}
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/dashboard/menu-items/${item.id}/edit`}>
-                      <Pencil className="size-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={isDeleting === item.id}
-                  >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable table={table} emptyMessage="Chưa có menu items nào.">
+      <DataTableToolbar table={table} searchColumn="search" searchPlaceholder="Tìm tên, mô tả...">
+        <span className="ml-auto text-sm text-muted-foreground tabular-nums">
+          {table.getFilteredRowModel().rows.length} món
+        </span>
+      </DataTableToolbar>
+    </DataTable>
   );
 }

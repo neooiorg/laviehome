@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAllMenuItems } from '@/lib/menu-actions';
+import { getBranches } from '@/lib/homestay-dashboard';
 import { MenuItemsTable } from './_components/menu-items-table';
 import type { Metadata } from 'next';
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MenuItemsPage() {
-  const menuItems = await getAllMenuItems();
+  const [menuItems, branches] = await Promise.all([getAllMenuItems(), getBranches()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,8 +35,8 @@ export default async function MenuItemsPage() {
         <CardHeader>
           <CardTitle>Danh sách Menu Items ({menuItems.length})</CardTitle>
         </CardHeader>
-        <CardContent>
-          <MenuItemsTable items={menuItems} />
+        <CardContent className="px-0">
+          <MenuItemsTable items={menuItems} branches={branches} />
         </CardContent>
       </Card>
     </div>

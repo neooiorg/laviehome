@@ -2,28 +2,27 @@
 "use no memo";
 
 import * as React from "react";
-import { Search } from "lucide-react";
 import {
+  type ColumnFiltersState,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   type PaginationState,
   type SortingState,
+  type VisibilityState,
   useReactTable,
 } from "@tanstack/react-table";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataTable } from "@/components/data-table";
-import { DataTableViewOptions } from "@/components/data-table/data-table-view-options";
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import type { BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { roomsColumns } from "./rooms-columns";
+import { getRoomsColumns } from "./rooms-columns";
 
 interface Props {
   rooms: RoomRow[];
@@ -32,26 +31,22 @@ interface Props {
 
 export function RoomsClient({ rooms, branches }: Props) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
-  const [branchFilter, setBranchFilter] = React.useState("All");
-  const [search, setSearch] = React.useState("");
 
-  const filteredData = React.useMemo(() => {
-    return rooms.filter((r) => {
-      if (branchFilter !== "All" && String(r.branch_id) !== branchFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (!r.card_name.toLowerCase().includes(q) && !r.branch_name.toLowerCase().includes(q)) return false;
-      }
-      return true;
-    });
-  }, [rooms, branchFilter, search]);
+  const columns = React.useMemo(
+    () => getRoomsColumns(branches.map((b) => ({ label: b.name, value: b.name }))),
+    [branches],
+  );
 
   const table = useReactTable({
-    data: filteredData,
-    columns: roomsColumns,
-    state: { sorting, pagination },
+    data: rooms,
+    columns,
+    state: { sorting, columnFilters, columnVisibility, pagination },
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -60,42 +55,11 @@ export function RoomsClient({ rooms, branches }: Props) {
   });
 
   const toolbar = (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <InputGroup className="h-8 w-56">
-          <InputGroupAddon align="inline-start">
-            <Search className="size-3.5" />
-          </InputGroupAddon>
-          <InputGroupInput
-            className="h-8"
-            placeholder="Tìm tên phòng, chi nhánh..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); table.setPageIndex(0); }}
-          />
-        </InputGroup>
-
-        <Select value={branchFilter} onValueChange={(v) => { setBranchFilter(v); table.setPageIndex(0); }}>
-          <SelectTrigger size="sm">
-            <span className="text-muted-foreground">Chi nhánh:</span>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent position="popper" align="start">
-            <SelectGroup>
-              <SelectItem value="All">Tất cả</SelectItem>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground tabular-nums">
-          {filteredData.length} phòng
-        </span>
-        <DataTableViewOptions table={table} />
-      </div>
-    </div>
+    <DataTableToolbar table={table} searchColumn="search" searchPlaceholder="Tìm tên phòng, chi nhánh...">
+      <span className="ml-auto text-sm text-muted-foreground tabular-nums">
+        {table.getFilteredRowModel().rows.length} phòng
+      </span>
+    </DataTableToolbar>
   );
 
   return (
