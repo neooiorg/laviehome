@@ -6,6 +6,9 @@ import { CheckCircle2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { money } from "@/lib/format";
 
+// Booking statuses that mean the payment has been received (mirrors /api/check-payment).
+const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+
 type CheckoutPaymentBoxProps = {
   price: number;
   transferCode: string;
@@ -39,33 +42,52 @@ export function CheckoutPaymentBox({
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  // Poll payment status. Depends on `isExpired` (a boolean that flips once) rather
-  // than `timeLeft` (which changes every second) so the 3s interval stays alive
-  // long enough to actually fire instead of being torn down and recreated each tick.
+  // Payment confirmation is PUSH-based, driven by the SePay webhook:
+  //   SePay → /api/hooks/sepay → broadcastBookingUpdate() → SSE → here.
+  // We open a Server-Sent Events stream scoped to this booking and flip to the
+  // success state the moment the backend pushes the "paid" event. A single
+  // one-shot check on mount covers the edge case where payment already landed
+  // before the stream connected (e.g. the customer reloaded the page). No polling.
   useEffect(() => {
     if (isPaid || isExpired) return;
 
     let cancelled = false;
 
-    async function checkPayment() {
+    // One-shot catch-up: did payment already complete before we connected?
+    (async () => {
       try {
         const res = await fetch(`/api/check-payment?booking_id=${transferCode}`);
         const data = await res.json();
-        if (!cancelled && data.paid) {
+        if (!cancelled && data.paid) setIsPaid(true);
+      } catch {
+        // ignore — the SSE stream below is the primary signal
+      }
+    })();
+
+    // Primary signal: webhook-driven push over SSE.
+    const source = new EventSource(
+      `/api/payment-events?booking_id=${encodeURIComponent(transferCode)}`,
+    );
+
+    source.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data) as { bookingId?: string; status?: string };
+        if (
+          !cancelled &&
+          payload.bookingId?.toUpperCase() === transferCode.toUpperCase() &&
+          payload.status &&
+          PAID_STATUSES.includes(payload.status)
+        ) {
           setIsPaid(true);
         }
-      } catch (error) {
-        console.error("Failed to poll payment status:", error);
+      } catch {
+        // heartbeat / non-JSON payloads are ignored
       }
-    }
-
-    // check immediately, then every 3s
-    void checkPayment();
-    const pollInterval = setInterval(checkPayment, 3000);
+    };
 
     return () => {
       cancelled = true;
-      clearInterval(pollInterval);
+      source.close();
     };
   }, [transferCode, isPaid, isExpired]);
 
