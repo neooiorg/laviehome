@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { TruncatedCell } from "@/components/data-table/data-table-truncate";
 import { money } from "@/lib/format";
 import type { GuestSummary } from "@/lib/homestay-dashboard";
 
@@ -53,7 +54,7 @@ export function CustomersSearch({ guests }: { guests: GuestSummary[] }) {
       {
         accessorKey: "guestName",
         header: ({ column }) => <DataTableColumnHeader column={column} title="Tên khách" />,
-        cell: ({ row }) => <span className="text-sm font-medium">{row.original.guestName}</span>,
+        cell: ({ row }) => <TruncatedCell text={row.original.guestName} className="max-w-[220px] text-sm font-medium" />,
       },
       {
         accessorKey: "bookings",
@@ -74,7 +75,7 @@ export function CustomersSearch({ guests }: { guests: GuestSummary[] }) {
           options: branchOptions,
         },
         cell: ({ row }) => (
-          <span className="text-xs text-muted-foreground">{row.original.branches.join(", ")}</span>
+          <TruncatedCell text={row.original.branches.join(", ")} className="max-w-[220px] text-xs text-muted-foreground" />
         ),
       },
       {

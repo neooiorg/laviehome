@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { TruncatedCell } from "@/components/data-table/data-table-truncate";
 import type { BranchRow } from "@/lib/homestay-dashboard";
 import { toggleBranchActive, toggleBranchClassic } from "@/lib/branch-actions";
 
@@ -54,7 +55,7 @@ export function BranchesClient({ branches: initial }: { branches: BranchRow[] })
     {
       accessorKey: "name",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Tên chi nhánh" />,
-      cell: ({ row }) => <div className="font-medium text-sm">{row.original.name}</div>,
+      cell: ({ row }) => <TruncatedCell text={row.original.name} className="max-w-[220px] font-medium text-sm" />,
     },
     {
       accessorKey: "hotline",

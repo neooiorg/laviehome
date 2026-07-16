@@ -8,6 +8,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
+import { TruncatedCell } from "@/components/data-table/data-table-truncate";
 import type { Option } from "@/types/data-table";
 import type { RoomRow } from "@/lib/homestay-dashboard";
 
@@ -29,7 +30,7 @@ export function getRoomsColumns(branchOptions: Option[]): ColumnDef<RoomRow>[] {
     accessorKey: "card_name",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Tên phòng" />,
     cell: ({ row }) => (
-      <div className="font-medium text-sm">{row.original.card_name}</div>
+      <TruncatedCell text={row.original.card_name} className="max-w-[200px] font-medium text-sm" />
     ),
   },
   {
@@ -43,7 +44,7 @@ export function getRoomsColumns(branchOptions: Option[]): ColumnDef<RoomRow>[] {
       options: branchOptions,
     },
     cell: ({ row }) => (
-      <div className="text-sm text-muted-foreground">{row.original.branch_name}</div>
+      <TruncatedCell text={row.original.branch_name} className="max-w-[160px] text-sm text-muted-foreground" />
     ),
   },
   {

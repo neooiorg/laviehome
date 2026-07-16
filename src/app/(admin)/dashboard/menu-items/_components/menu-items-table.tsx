@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/data-table';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
+import { TruncatedCell } from '@/components/data-table/data-table-truncate';
 import { money } from '@/lib/format';
 import { deleteMenuItem, toggleMenuItemStatus } from '@/lib/menu-actions';
 import type { MenuItem } from '@/lib/menu-actions';
@@ -77,16 +78,14 @@ export function MenuItemsTable({ items, branches }: MenuItemsTableProps) {
       {
         accessorKey: 'name',
         header: ({ column }) => <DataTableColumnHeader column={column} title="Tên" />,
-        cell: ({ row }) => <span className="font-medium text-sm">{row.original.name}</span>,
+        cell: ({ row }) => <TruncatedCell text={row.original.name} className="max-w-[200px] font-medium text-sm" />,
       },
       {
         accessorKey: 'description',
         header: 'Mô tả',
         enableSorting: false,
         cell: ({ row }) => (
-          <span className="line-clamp-1 max-w-xs text-sm text-muted-foreground">
-            {row.original.description || '—'}
-          </span>
+          <TruncatedCell text={row.original.description || '—'} className="max-w-[260px] text-sm text-muted-foreground" />
         ),
       },
       {
@@ -167,7 +166,6 @@ export function MenuItemsTable({ items, branches }: MenuItemsTableProps) {
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [branches, branchNameById, isDeleting, isTogglingStatus],
   );
 

@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
+import { TruncatedCell } from "@/components/data-table/data-table-truncate";
 import type { DiscountCode } from "@/lib/homestay-dashboard";
 import { toggleDiscountActive } from "@/lib/discount-actions";
 
@@ -59,7 +60,9 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
     {
       accessorKey: "description",
       header: "Mô tả",
-      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.description || "—"}</span>,
+      cell: ({ row }) => (
+        <TruncatedCell text={row.original.description || "—"} className="max-w-[240px] text-sm text-muted-foreground" />
+      ),
     },
     {
       id: "usage",

@@ -8,6 +8,7 @@ import { Eye } from "lucide-react";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TruncatedCell } from "@/components/data-table/data-table-truncate";
 import { cn } from "@/lib/utils";
 
 const statusMeta: Record<string, { badgeClass: string; dotClass: string }> = {
@@ -68,7 +69,10 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
     header: "Khách",
     cell: ({ row }) => (
       <div>
-        <div className="text-sm font-medium text-foreground">{row.original.guestName}</div>
+        <TruncatedCell
+          text={row.original.guestName}
+          className="max-w-[260px] text-sm font-medium text-foreground"
+        />
         {row.original.customerPhone && <div className="text-xs text-muted-foreground">{row.original.customerPhone}</div>}
       </div>
     ),
@@ -77,13 +81,13 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
     id: "room",
     header: "Phòng",
     accessorFn: (row) => row.room.card_name,
-    cell: ({ row }) => <div className="text-sm">{row.original.room.card_name}</div>,
+    cell: ({ row }) => <TruncatedCell text={row.original.room.card_name} className="max-w-[160px] text-sm" />,
   },
   {
     id: "branch",
     header: "Chi nhánh",
     accessorFn: (row) => row.branch.name,
-    cell: ({ row }) => <div className="text-sm">{row.original.branch.name}</div>,
+    cell: ({ row }) => <TruncatedCell text={row.original.branch.name} className="max-w-[160px] text-sm" />,
   },
   {
     accessorKey: "dateLabel",
