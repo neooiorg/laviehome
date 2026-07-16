@@ -18,7 +18,7 @@ export function BarGraph({ data }: { data: PriceBandPoint[] }) {
   const max = Math.max(...data.map((d) => d.count), 1);
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
@@ -34,9 +34,9 @@ export function BarGraph({ data }: { data: PriceBandPoint[] }) {
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {total > 0 ? (
-          <ChartContainer config={chartConfig} className="h-[200px] w-full">
+          <ChartContainer config={chartConfig} className="h-full min-h-[200px] w-full">
             <BarChart data={data} barCategoryGap="30%" margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id="bar-gradient-primary" x1="0" y1="0" x2="0" y2="1">
@@ -74,7 +74,7 @@ export function BarGraph({ data }: { data: PriceBandPoint[] }) {
             </BarChart>
           </ChartContainer>
         ) : (
-          <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-full min-h-[200px] items-center justify-center text-sm text-muted-foreground">
             Chưa có dữ liệu phòng.
           </div>
         )}

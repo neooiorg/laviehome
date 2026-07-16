@@ -48,7 +48,7 @@
   --font-mullish: "Mulish", "Segoe UI", sans-serif;
   --font-architects-daughter: "Segoe Print", cursive;
   --font-space-mono: "Space Mono", "Consolas", monospace;
-  --font-sans: Geist, sans-serif;
+  --font-sans: var(--font-manrope), "Segoe UI", sans-serif;
   --font-serif: ui-serif, serif;
   --font-mono: Geist Mono, monospace;
   --radius: 0.5rem;
@@ -117,7 +117,7 @@
   --font-mullish: "Mulish", "Segoe UI", sans-serif;
   --font-architects-daughter: "Segoe Print", cursive;
   --font-space-mono: "Space Mono", "Consolas", monospace;
-  --font-sans: Geist, sans-serif;
+  --font-sans: var(--font-manrope), "Segoe UI", sans-serif;
   --font-serif: ui-serif, serif;
   --font-mono: Geist Mono, monospace;
   --radius: 0.5rem;
