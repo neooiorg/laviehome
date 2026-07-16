@@ -18,17 +18,19 @@ export function CheckoutPaymentBox({
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [isPaid, setIsPaid] = useState(false);
+  const isExpired = timeLeft <= 0;
 
-  // Countdown timer
+  // Countdown timer — one stable interval, decrement via functional update so it
+  // is NOT recreated every second (which would break other effects that depend on it).
   useEffect(() => {
-    if (timeLeft <= 0 || isPaid) return;
+    if (isPaid) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
+      setTimeLeft((prev) => (prev <= 0 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isPaid]);
+  }, [isPaid]);
 
   // Format time (MM:SS)
   const formatTime = (seconds: number) => {
@@ -37,24 +39,35 @@ export function CheckoutPaymentBox({
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  // Poll payment status
+  // Poll payment status. Depends on `isExpired` (a boolean that flips once) rather
+  // than `timeLeft` (which changes every second) so the 3s interval stays alive
+  // long enough to actually fire instead of being torn down and recreated each tick.
   useEffect(() => {
-    if (isPaid || timeLeft <= 0) return;
+    if (isPaid || isExpired) return;
 
-    const pollInterval = setInterval(async () => {
+    let cancelled = false;
+
+    async function checkPayment() {
       try {
         const res = await fetch(`/api/check-payment?booking_id=${transferCode}`);
         const data = await res.json();
-        if (data.paid) {
+        if (!cancelled && data.paid) {
           setIsPaid(true);
         }
       } catch (error) {
         console.error("Failed to poll payment status:", error);
       }
-    }, 3000);
+    }
 
-    return () => clearInterval(pollInterval);
-  }, [transferCode, isPaid, timeLeft]);
+    // check immediately, then every 3s
+    void checkPayment();
+    const pollInterval = setInterval(checkPayment, 3000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+    };
+  }, [transferCode, isPaid, isExpired]);
 
   useEffect(() => {
     if (!isPaid) return;
