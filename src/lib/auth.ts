@@ -8,7 +8,7 @@ import { createElement } from "react";
 export const auth = betterAuth({
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.PGSSL === 'false' ? false : { rejectUnauthorized: false },
   }),
   plugins: [
     emailOTP({

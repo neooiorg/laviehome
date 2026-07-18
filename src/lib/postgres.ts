@@ -15,7 +15,7 @@ function getPool(): Pool {
     throw new Error('DATABASE_URL environment variable is not set.');
   }
 
-  const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  const pool = new Pool({ connectionString, ssl: process.env.PGSSL === 'false' ? false : { rejectUnauthorized: false } });
 
   if (process.env.NODE_ENV !== 'production') {
     globalThis.__laviePgPool = pool;

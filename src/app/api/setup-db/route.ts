@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    ssl: process.env.PGSSL === 'false' ? false : { rejectUnauthorized: false },
   });
 
   try {
