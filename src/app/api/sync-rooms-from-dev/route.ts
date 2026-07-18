@@ -42,10 +42,10 @@ export async function GET(req: NextRequest) {
       await prodPool.query(
         `INSERT INTO rooms (id, branch_id, branch_name, card_name, price_from, price_to, full_day_price,
                             main_image, images, room_amenities, is_classic, slot_prices)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12::jsonb)`,
         [
           r.id, r.branch_id, r.branch_name, r.card_name, r.price_from, r.price_to, r.full_day_price,
-          r.main_image, r.images, r.room_amenities, r.is_classic, r.slot_prices,
+          r.main_image, JSON.stringify(r.images), JSON.stringify(r.room_amenities), r.is_classic, r.slot_prices ? JSON.stringify(r.slot_prices) : null,
         ]
       );
     }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { v4 as uuid } from 'uuid';
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('x-admin-secret') ?? req.nextUrl.searchParams.get('secret');
@@ -150,12 +151,12 @@ export async function GET(req: NextRequest) {
 
     // ─── Test user + Admin user cho email OTP ────────────────────────────────
     await pool.query(`
-      INSERT INTO auth_user (email, name, "emailVerified", image, role)
+      INSERT INTO auth_user (id, email, name, "emailVerified", image, role, "createdAt")
       VALUES
-        ('nttantts@gmail.com', 'Test User', true, NULL, 'member'),
-        ('admin.laviehome@neooi.com', 'Admin', true, NULL, 'admin')
+        ($1, 'nttantts@gmail.com', 'Test User', true, NULL, 'member', NOW()),
+        ($2, 'admin.laviehome@neooi.com', 'Admin', true, NULL, 'admin', NOW())
       ON CONFLICT (email) DO NOTHING
-    `);
+    `, [uuid(), uuid()]);
 
     return NextResponse.json({
       ok: true,
