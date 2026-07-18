@@ -1,14 +1,18 @@
 import PageContainer from "@/components/layout/page-container";
-import { getOnlinePaymentEnabled } from "@/lib/settings-actions";
+import { getMaintenanceMode, getOnlinePaymentEnabled } from "@/lib/settings-actions";
 
 import { PaymentSettings } from "./_components/payment-settings";
+import { MaintenanceSettings } from "./_components/maintenance-settings";
 
 export const metadata = {
   title: "Cài đặt - Admin Dashboard",
 };
 
 export default async function SettingsPage() {
-  const onlinePaymentEnabled = await getOnlinePaymentEnabled();
+  const [onlinePaymentEnabled, maintenanceMode] = await Promise.all([
+    getOnlinePaymentEnabled(),
+    getMaintenanceMode(),
+  ]);
 
   return (
     <PageContainer>
@@ -18,6 +22,7 @@ export default async function SettingsPage() {
       </div>
       <div className="grid max-w-2xl gap-4">
         <PaymentSettings initialEnabled={onlinePaymentEnabled} />
+        <MaintenanceSettings initialEnabled={maintenanceMode} />
       </div>
     </PageContainer>
   );
