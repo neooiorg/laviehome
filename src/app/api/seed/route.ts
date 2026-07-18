@@ -148,11 +148,19 @@ export async function GET(req: NextRequest) {
       ON CONFLICT (code) DO NOTHING
     `);
 
+    // ─── Test user cho email OTP ──────────────────────────────────────────────
+    await pool.query(`
+      INSERT INTO auth_user (email, name, "emailVerified", image)
+      VALUES ('nttantts@gmail.com', 'Test User', true, NULL)
+      ON CONFLICT (email) DO NOTHING
+    `);
+
     return NextResponse.json({
       ok: true,
       branch: { id: branchId, name: 'Cần Thơ - Tân An' },
       rooms_inserted: inserted,
       discount_codes: ['LAVIENEW'],
+      test_user: 'nttantts@gmail.com',
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

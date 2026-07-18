@@ -122,9 +122,43 @@ export async function GET(req: NextRequest) {
     // Lazily-added booking column — ensure it exists on databases created before it.
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS menu_items_total BIGINT DEFAULT 0`);
 
+    // Better Auth tables (for email OTP + user management)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS auth_user (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        "emailVerified" BOOLEAN DEFAULT false,
+        name TEXT,
+        image TEXT,
+        "createdAt" TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS auth_session (
+        id TEXT PRIMARY KEY,
+        "userId" TEXT REFERENCES auth_user(id) ON DELETE CASCADE,
+        token TEXT UNIQUE NOT NULL,
+        "expiresAt" TIMESTAMPTZ NOT NULL,
+        "createdAt" TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ba_verification (
+        id TEXT PRIMARY KEY,
+        "userId" TEXT REFERENCES auth_user(id) ON DELETE CASCADE,
+        identifier TEXT NOT NULL,
+        value TEXT NOT NULL,
+        "expiresAt" TIMESTAMPTZ NOT NULL,
+        "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE (identifier, value)
+      )
+    `);
+
     return NextResponse.json({
       ok: true,
-      message: 'All tables created: branches, rooms, bookings, discount_codes, menu_items, booking_menu_items, app_settings'
+      message: 'All tables created: branches, rooms, bookings, discount_codes, menu_items, booking_menu_items, app_settings, auth_user, auth_session, ba_verification'
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
