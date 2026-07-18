@@ -18,13 +18,14 @@ type CheckoutFormProps = {
   price: number;
   onPricingChange?: (pricing: CheckoutPricing) => void;
   onConfirmed?: () => void;
+  onlinePaymentEnabled?: boolean;
 };
 
 type DiscountResult =
   | { valid: true; percent: number; description: string }
   | { valid: false; error: string };
 
-export function CheckoutForm({ bookingId, price, onPricingChange, onConfirmed }: CheckoutFormProps) {
+export function CheckoutForm({ bookingId, price, onPricingChange, onConfirmed, onlinePaymentEnabled = true }: CheckoutFormProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
@@ -500,7 +501,15 @@ export function CheckoutForm({ bookingId, price, onPricingChange, onConfirmed }:
         disabled={saving || saved || !!conflictError || !acceptedTerms}
         className="primary-button w-full py-4 text-base disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {saving ? "Đang lưu..." : saved ? "Đã xác nhận — Chuyển đến thanh toán ↓" : "Xác Nhận & Chuyển Đến Thanh Toán"}
+        {saving
+          ? "Đang lưu..."
+          : onlinePaymentEnabled
+            ? saved
+              ? "Đã xác nhận — Chuyển đến thanh toán ↓"
+              : "Xác Nhận & Chuyển Đến Thanh Toán"
+            : saved
+              ? "Đã xác nhận đặt phòng ✓"
+              : "Xác Nhận Đặt Phòng"}
       </button>
     </form>
   );

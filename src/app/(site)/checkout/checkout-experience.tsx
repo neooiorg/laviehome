@@ -107,6 +107,7 @@ export function CheckoutExperience({
           price={price}
           onPricingChange={handlePricingChange}
           onConfirmed={handleConfirmed}
+          onlinePaymentEnabled={onlinePaymentEnabled}
         />
       </div>
 
