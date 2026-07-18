@@ -85,9 +85,43 @@ export async function GET(req: NextRequest) {
       )
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id SERIAL PRIMARY KEY,
+        branch_id INTEGER REFERENCES branches(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT DEFAULT '',
+        price BIGINT DEFAULT 0,
+        image_url TEXT DEFAULT '',
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS booking_menu_items (
+        id SERIAL PRIMARY KEY,
+        booking_id VARCHAR(50) REFERENCES bookings(id) ON DELETE CASCADE,
+        menu_item_id INTEGER REFERENCES menu_items(id) ON DELETE SET NULL,
+        price BIGINT DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS slot_prices JSONB`);
+
     return NextResponse.json({
       ok: true,
-      message: 'All tables created successfully: branches, rooms, bookings, discount_codes'
+      message: 'All tables created: branches, rooms, bookings, discount_codes, menu_items, booking_menu_items, app_settings'
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
