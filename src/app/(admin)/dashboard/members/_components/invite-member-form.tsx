@@ -47,17 +47,17 @@ export function InviteMemberForm() {
 
       const data = await res.json() as { error?: string };
       if (!res.ok) {
-        toast.error(data.error ?? 'Không thể mời thành viên. Vui lòng thử lại.');
+        toast.error(data.error ?? 'Không thể cấp phát tài khoản. Vui lòng thử lại.');
         return;
       }
 
-      toast.success(`Đã gửi link đăng nhập đến ${trimmedEmail}.`);
+      toast.success(`Đã cấp phát tài khoản cho ${trimmedEmail}. Họ có thể đăng nhập bằng OTP.`);
       setEmail('');
       setName('');
       setRole('member');
       router.refresh();
     } catch {
-      toast.error('Không thể mời thành viên. Vui lòng thử lại.');
+      toast.error('Không thể cấp phát tài khoản. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +110,7 @@ export function InviteMemberForm() {
           ) : (
             <UserPlus className='mr-2 h-4 w-4' />
           )}
-          Mời
+          Cấp phát
         </Button>
       </div>
     </form>

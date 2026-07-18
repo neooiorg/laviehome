@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/postgres";
 import { auth } from "@/lib/auth";
-import { Resend } from "resend";
-import { createElement } from "react";
-import { MagicLinkEmail } from "@/emails/magic-link-email";
 import { randomUUID } from "crypto";
 
 export async function POST(req: Request) {
@@ -12,54 +9,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json() as { email?: string; name?: string; role?: string };
-  const { email, name, role = "member" } = body;
+  const body = (await req.json()) as { email?: string; name?: string; role?: string };
+  const email = body.email?.trim().toLowerCase();
+  const name = body.name?.trim();
+  const role = body.role === "admin" ? "admin" : "member";
 
   if (!email) {
     return NextResponse.json({ error: "Email là bắt buộc." }, { status: 400 });
   }
 
-  // Check for existing user
+  // Only pre-provisioned accounts can request an OTP (auth uses disableSignUp).
   const existing = await query<{ id: string }>(
     `SELECT id FROM auth_user WHERE email = $1`,
     [email]
   );
 
-  let userId: string;
-
   if (existing.length > 0) {
-    userId = existing[0].id;
-  } else {
-    // Create new user
-    userId = randomUUID();
-    await query(
-      `INSERT INTO auth_user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, false, $4, now(), now())`,
-      [userId, name ?? email, email, role]
+    return NextResponse.json(
+      { error: "Tài khoản với email này đã tồn tại." },
+      { status: 409 }
     );
   }
 
-  // Send magic link via Better Auth
-  const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
-  const token = randomUUID();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-
   await query(
-    `INSERT INTO verification (id, identifier, value, "expiresAt", "createdAt", "updatedAt")
-     VALUES ($1, $2, $3, $4, now(), now())
-     ON CONFLICT DO NOTHING`,
-    [randomUUID(), email, token, expiresAt]
+    `INSERT INTO auth_user (id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, false, $4, now(), now())`,
+    [randomUUID(), name || email, email, role]
   );
-
-  const magicUrl = `${baseUrl}/api/auth/magic-link/verify?token=${token}&callbackURL=/dashboard`;
-
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  await resend.emails.send({
-    from: "Lavie Home <noreply@neooi.com>",
-    to: email,
-    subject: "Bạn được mời vào Lavie Home Dashboard",
-    react: createElement(MagicLinkEmail, { url: magicUrl }),
-  });
 
   return NextResponse.json({ success: true });
 }

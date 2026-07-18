@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Settings2,
   Tag,
+  UserCog,
   UtensilsCrossed,
   Users,
   type LucideIcon,
@@ -100,6 +101,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Khách hàng",
         url: "/dashboard/customers",
         icon: Users,
+      },
+      {
+        id: "members",
+        title: "Thành viên",
+        url: "/dashboard/members",
+        icon: UserCog,
       },
       {
         id: "settings",

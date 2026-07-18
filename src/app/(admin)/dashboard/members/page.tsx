@@ -25,12 +25,12 @@ export default async function MembersPage() {
   return (
     <PageContainer
       pageTitle='Thành viên'
-      pageDescription='Mời và quản lý tài khoản admin.'
+      pageDescription='Cấp phát và quản lý tài khoản truy cập hệ thống.'
     >
       <div className='flex flex-col gap-6'>
         <Card>
           <CardHeader>
-            <CardTitle className='text-lg'>Mời thành viên mới</CardTitle>
+            <CardTitle className='text-lg'>Cấp phát tài khoản mới</CardTitle>
           </CardHeader>
           <CardContent>
             <InviteMemberForm />
