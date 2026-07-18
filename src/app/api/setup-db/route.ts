@@ -130,6 +130,7 @@ export async function GET(req: NextRequest) {
         "emailVerified" BOOLEAN DEFAULT false,
         name TEXT,
         image TEXT,
+        role TEXT DEFAULT 'member',
         "createdAt" TIMESTAMPTZ DEFAULT NOW()
       )
     `);

@@ -148,10 +148,12 @@ export async function GET(req: NextRequest) {
       ON CONFLICT (code) DO NOTHING
     `);
 
-    // ─── Test user cho email OTP ──────────────────────────────────────────────
+    // ─── Test user + Admin user cho email OTP ────────────────────────────────
     await pool.query(`
-      INSERT INTO auth_user (email, name, "emailVerified", image)
-      VALUES ('nttantts@gmail.com', 'Test User', true, NULL)
+      INSERT INTO auth_user (email, name, "emailVerified", image, role)
+      VALUES
+        ('nttantts@gmail.com', 'Test User', true, NULL, 'member'),
+        ('admin.laviehome@neooi.com', 'Admin', true, NULL, 'admin')
       ON CONFLICT (email) DO NOTHING
     `);
 
@@ -160,7 +162,7 @@ export async function GET(req: NextRequest) {
       branch: { id: branchId, name: 'Cần Thơ - Tân An' },
       rooms_inserted: inserted,
       discount_codes: ['LAVIENEW'],
-      test_user: 'nttantts@gmail.com',
+      users: ['nttantts@gmail.com', 'admin.laviehome@neooi.com'],
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
