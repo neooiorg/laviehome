@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { BadgeCheck, Bell, Check, CreditCard, LogOut } from "lucide-react";
+import { BadgeCheck, Bell, Check, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -34,8 +34,13 @@ export function AccountSwitcher({
     readonly role: string;
   }>;
 }) {
-  const [activeUser, setActiveUser] = useState(users[0]);
+  // Track the manually-selected account by id (if any). Deriving the active
+  // user from `users` each render — rather than freezing users[0] in state —
+  // means the session-backed account updates once useSession() resolves.
+  const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const router = useRouter();
+
+  const activeUser = users.find((u) => u.id === activeUserId) ?? users[0];
 
   if (!activeUser) {
     return null;
@@ -87,7 +92,7 @@ export function AccountSwitcher({
                       key={user.email}
                       className={cn("p-0", user.id === activeUser.id && "bg-accent/50")}
                       aria-current={user.id === activeUser.id ? "true" : undefined}
-                      onClick={() => setActiveUser(user)}
+                      onClick={() => setActiveUserId(user.id)}
                     >
                       <div className="flex w-full items-center gap-2 px-1 py-1.5">
                         <Avatar className="size-8 rounded-lg">

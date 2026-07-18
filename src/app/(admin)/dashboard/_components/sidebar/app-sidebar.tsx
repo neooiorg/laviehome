@@ -30,12 +30,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const variant = isSynced ? sidebarVariant : props.variant;
   const collapsible = isSynced ? sidebarCollapsible : props.collapsible;
 
+  const sessionUser = session?.user as
+    | { id: string; name?: string | null; email?: string; image?: string | null; role?: string }
+    | undefined;
+
   const currentUser = {
-    id: session?.user?.id ?? "1",
-    name: session?.user?.name ?? "Admin User",
-    email: session?.user?.email ?? "admin@laviehome.vn",
-    avatar: session?.user?.image ?? "",
-    role: "admin",
+    id: sessionUser?.id ?? "",
+    name: sessionUser?.name?.trim() || sessionUser?.email || "Tài khoản",
+    email: sessionUser?.email ?? "",
+    avatar: sessionUser?.image ?? "",
+    role: sessionUser?.role ?? "member",
   };
 
   return (
