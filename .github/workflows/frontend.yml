@@ -2,7 +2,7 @@ name: Frontend CI/CD
 
 on:
   pull_request:
-    branches: [main, production]
+    branches: [main]
     paths:
       - 'src/**'
       - 'public/**'
@@ -14,7 +14,7 @@ on:
       - 'eslint.config.mjs'
       - 'postcss.config.mjs'
   push:
-    branches: [main, production]
+    branches: [main]
     paths:
       - 'src/**'
       - 'public/**'
@@ -26,8 +26,6 @@ on:
       - 'eslint.config.mjs'
       - 'postcss.config.mjs'
       - '.github/workflows/frontend.yml'
-  # Manual trigger — run this on the `production` branch to build :prod and deploy
-  # the prod app even when a branch push doesn't match the paths filter.
   workflow_dispatch:
 
 permissions:
@@ -66,7 +64,7 @@ jobs:
 
   build-push:
     name: Build & push image
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: ci
     runs-on: ubuntu-latest
     steps:
@@ -77,21 +75,12 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Resolve environment tag
-        id: env
-        run: |
-          # main → dev (:latest), production → prod (:prod)
-          if [ "${{ github.ref }}" = "refs/heads/production" ]; then
-            echo "tag=prod" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
-          fi
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ${{ env.FRONTEND_IMAGE }}:${{ steps.env.outputs.tag }}
+            ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           build-args: |
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
@@ -107,28 +96,17 @@ jobs:
 
   deploy:
     name: Trigger Dokploy redeploy
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: build-push
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Resolve Dokploy target
-        id: target
-        run: |
-          # main → dev frontend app, production → prod frontend app
-          if [ "${{ github.ref }}" = "refs/heads/production" ]; then
-            echo "app=qGVru91-2Nk50y1apnHRM" >> "$GITHUB_OUTPUT"
-            echo "label=PRODUCTION" >> "$GITHUB_OUTPUT"
-          else
-            echo "app=Up82i2f3V2rALnvjhUjbM" >> "$GITHUB_OUTPUT"
-            echo "label=dev" >> "$GITHUB_OUTPUT"
-          fi
       - name: Redeploy frontend on Dokploy
         run: |
           curl -sf -X POST "https://dokploy.neooi.com/api/application.deploy" \
             -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d "{\"applicationId\":\"${{ steps.target.outputs.app }}\"}"
+            -d "{\"applicationId\":\"Up82i2f3V2rALnvjhUjbM\"}"
       - name: Notify Telegram - Deploy success
         if: success()
         env:
@@ -136,7 +114,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           chmod +x scripts/telegram_notify.sh
-          ./scripts/telegram_notify.sh success "🚀 Frontend deploy lên ${{ steps.target.outputs.label }} thành công!"
+          ./scripts/telegram_notify.sh success "🚀 Frontend deploy lên dev thành công!"
       - name: Notify Telegram - Deploy failure
         if: failure()
         env:
