@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
         status VARCHAR(50) DEFAULT 'Chờ thanh toán',
         quoted_amount BIGINT DEFAULT 0,
         amount BIGINT DEFAULT 0,
+        menu_items_total BIGINT DEFAULT 0,
         guest_count INTEGER DEFAULT 2,
         has_car BOOLEAN DEFAULT FALSE,
         has_decoration BOOLEAN DEFAULT FALSE,
@@ -118,6 +119,8 @@ export async function GET(req: NextRequest) {
     `);
 
     await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS slot_prices JSONB`);
+    // Lazily-added booking column — ensure it exists on databases created before it.
+    await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS menu_items_total BIGINT DEFAULT 0`);
 
     return NextResponse.json({
       ok: true,
