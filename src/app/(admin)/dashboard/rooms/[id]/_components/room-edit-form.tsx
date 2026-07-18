@@ -103,128 +103,162 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <CardTitle className="text-lg">Chỉnh sửa phòng #{room.id}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5 pt-5">
-        <div className="flex flex-col gap-1.5">
-          <Label>Tên phòng</Label>
-          <Input value={cardName} onChange={(e) => setCardName(e.target.value)} />
+    <>
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        {/* Main column */}
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Thông tin cơ bản</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Tên phòng</Label>
+                <Input value={cardName} onChange={(e) => setCardName(e.target.value)} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Chi nhánh</Label>
+                <Select value={branchId} onValueChange={setBranchId}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Giá từ (đ)</Label>
+                  <Input type="number" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Giá đến (đ)</Label>
+                  <Input type="number" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Cả ngày (đ)</Label>
+                  <Input type="number" value={fullDayPrice} onChange={(e) => setFullDayPrice(e.target.value)} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Khung giờ &amp; giá theo khung</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SlotEditor
+                rows={slotRows}
+                onChange={setSlotRows}
+                priceFromFallback={priceFrom}
+                fullDayFallback={fullDayPrice}
+              />
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>Chi nhánh</Label>
-          <Select value={branchId} onValueChange={setBranchId}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Side column */}
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Hình ảnh</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Ảnh chính</Label>
+                <ImageUpload
+                  single
+                  value={mainImage ? [mainImage] : []}
+                  onChange={(urls) => setMainImage(urls[0] ?? "")}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Danh sách ảnh</Label>
+                <ImageUpload value={images} onChange={setImages} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Tiện ích</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-1.5">
+                {amenities.length === 0 && (
+                  <span className="text-sm text-muted-foreground">Chưa có tiện ích nào.</span>
+                )}
+                {amenities.map((a, i) => (
+                  <Badge key={i} variant="secondary" className="gap-1 cursor-pointer" onClick={() => setAmenities(amenities.filter((_, j) => j !== i))}>
+                    {a} <X className="size-3" />
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newAmenity}
+                  onChange={(e) => setNewAmenity(e.target.value)}
+                  placeholder="Thêm tiện ích..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newAmenity.trim()) {
+                      setAmenities([...amenities, newAmenity.trim()]);
+                      setNewAmenity("");
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { if (newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }}
+                >
+                  Thêm
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Cấu hình</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <Switch checked={isClassic} onCheckedChange={setIsClassic} id="is-classic" />
+                <Label htmlFor="is-classic">Phòng classic (theo giờ cố định)</Label>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+      </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <Label>Giá từ (đ)</Label>
-            <Input type="number" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Giá đến (đ)</Label>
-            <Input type="number" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Cả ngày (đ)</Label>
-            <Input type="number" value={fullDayPrice} onChange={(e) => setFullDayPrice(e.target.value)} />
-          </div>
-        </div>
+      <AlertModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title={`Xóa phòng "${room.card_name}"?`}
+        description="Hành động này không thể hoàn tác. Phòng sẽ bị xóa vĩnh viễn."
+      />
 
-        <SlotEditor
-          rows={slotRows}
-          onChange={setSlotRows}
-          priceFromFallback={priceFrom}
-          fullDayFallback={fullDayPrice}
-        />
-
-        <div className="flex flex-col gap-1.5">
-          <Label>Ảnh chính</Label>
-          <ImageUpload
-            single
-            value={mainImage ? [mainImage] : []}
-            onChange={(urls) => setMainImage(urls[0] ?? "")}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label>Danh sách ảnh</Label>
-          <ImageUpload
-            value={images}
-            onChange={setImages}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label>Tiện ích</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {amenities.map((a, i) => (
-              <Badge key={i} variant="secondary" className="gap-1 cursor-pointer" onClick={() => setAmenities(amenities.filter((_, j) => j !== i))}>
-                {a} <X className="size-3" />
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={newAmenity}
-              onChange={(e) => setNewAmenity(e.target.value)}
-              placeholder="Thêm tiện ích..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newAmenity.trim()) {
-                  setAmenities([...amenities, newAmenity.trim()]);
-                  setNewAmenity("");
-                }
-              }}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => { if (newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }}
-            >
-              Thêm
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Switch checked={isClassic} onCheckedChange={setIsClassic} id="is-classic" />
-          <Label htmlFor="is-classic">Phòng classic (theo giờ cố định)</Label>
-        </div>
-
-        <AlertModal
-          isOpen={deleteOpen}
-          onClose={() => setDeleteOpen(false)}
-          onConfirm={handleDelete}
-          loading={deleting}
-          title={`Xóa phòng "${room.card_name}"?`}
-          description="Hành động này không thể hoàn tác. Phòng sẽ bị xóa vĩnh viễn."
-        />
-
-        <div className="flex items-center justify-between border-t pt-4">
-          <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} disabled={deleting}>
-            <Trash2 className="mr-1.5 size-3.5" />
-            Xóa phòng
+      <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-between gap-3 border-t bg-background/80 py-4 backdrop-blur">
+        <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} disabled={deleting}>
+          <Trash2 className="mr-1.5 size-3.5" />
+          Xóa phòng
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push("/dashboard/rooms")}>Hủy</Button>
+          <Button onClick={handleSave} disabled={saving || slotsBlocked}>
+            {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push("/dashboard/rooms")}>Hủy</Button>
-            <Button onClick={handleSave} disabled={saving || slotsBlocked}>
-              {saving ? "Đang lưu..." : "Lưu thay đổi"}
-            </Button>
-          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 }

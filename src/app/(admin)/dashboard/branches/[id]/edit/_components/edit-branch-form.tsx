@@ -52,54 +52,63 @@ export function EditBranchForm({ branch }: { branch: BranchRow }) {
         <p className="text-sm text-muted-foreground mt-0.5">{branch.name}</p>
       </div>
 
-      <Card className="max-w-xl">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Thông tin chi nhánh</CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label>Tên chi nhánh *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: Đà Nẵng - Nguyễn Văn Linh" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Hotline</Label>
-            <Input value={hotline} onChange={(e) => setHotline(e.target.value)} placeholder="0901 234 567" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Link Google Maps</Label>
-            <Input value={mapsLink} onChange={(e) => setMapsLink(e.target.value)} placeholder="https://maps.google.com/..." />
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Đang hoạt động</p>
-                <p className="text-xs text-muted-foreground">Hiển thị trên trang khách hàng</p>
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3"><CardTitle className="text-base">Thông tin chi nhánh</CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Tên chi nhánh *</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: Đà Nẵng - Nguyễn Văn Linh" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Hotline</Label>
+                <Input value={hotline} onChange={(e) => setHotline(e.target.value)} placeholder="0901 234 567" />
               </div>
-              <Switch checked={active} onCheckedChange={setActive} />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Booking classic</p>
-                <p className="text-xs text-muted-foreground">Cho phép đặt theo giờ cố định</p>
+              <div className="flex flex-col gap-1.5">
+                <Label>Link Google Maps</Label>
+                <Input value={mapsLink} onChange={(e) => setMapsLink(e.target.value)} placeholder="https://maps.google.com/..." />
               </div>
-              <Switch checked={classic} onCheckedChange={setClassic} />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="flex items-center justify-between border-t pt-3">
-            <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting || saving}>
-              <Trash2 className="mr-1.5 size-3.5" />
-              {deleting ? "Đang xóa..." : "Xóa chi nhánh"}
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" asChild><Link href="/dashboard/branches">Hủy</Link></Button>
-              <Button onClick={handleSave} disabled={saving || !name.trim()}>
-                {saving ? "Đang lưu..." : "Lưu"}
-              </Button>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Cấu hình</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Đang hoạt động</p>
+                  <p className="text-xs text-muted-foreground">Hiển thị trên trang khách hàng</p>
+                </div>
+                <Switch checked={active} onCheckedChange={setActive} />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Booking classic</p>
+                  <p className="text-xs text-muted-foreground">Cho phép đặt theo giờ cố định</p>
+                </div>
+                <Switch checked={classic} onCheckedChange={setClassic} />
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-between gap-3 border-t bg-background/80 py-4 backdrop-blur">
+        <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting || saving}>
+          <Trash2 className="mr-1.5 size-3.5" />
+          {deleting ? "Đang xóa..." : "Xóa chi nhánh"}
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild><Link href="/dashboard/branches">Hủy</Link></Button>
+          <Button onClick={handleSave} disabled={saving || !name.trim()}>
+            {saving ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </div>
+      </div>
     </PageContainer>
   );
 }

@@ -111,87 +111,112 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
         <h1 className="text-2xl font-bold tracking-tight">Thêm phòng mới</h1>
       </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Thông tin phòng</CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label>Tên phòng *</Label>
-            <Input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="VD: Phòng Hướng Biển 01" />
-          </div>
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        {/* Main column */}
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Thông tin cơ bản</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Tên phòng *</Label>
+                <Input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="VD: Phòng Hướng Biển 01" />
+              </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Chi nhánh *</Label>
-            <Select value={branchId} onValueChange={setBranchId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{branches.map((b) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Chi nhánh *</Label>
+                <Select value={branchId} onValueChange={setBranchId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{branches.map((b) => <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>Giá từ (đ)</Label>
-              <Input type="number" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Giá đến (đ)</Label>
-              <Input type="number" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Cả ngày (đ)</Label>
-              <Input type="number" value={fullDayPrice} onChange={(e) => setFullDayPrice(e.target.value)} />
-            </div>
-          </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Giá từ (đ)</Label>
+                  <Input type="number" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Giá đến (đ)</Label>
+                  <Input type="number" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Cả ngày (đ)</Label>
+                  <Input type="number" value={fullDayPrice} onChange={(e) => setFullDayPrice(e.target.value)} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <SlotEditor
-            rows={slotRows}
-            onChange={setSlotRows}
-            priceFromFallback={priceFrom}
-            fullDayFallback={fullDayPrice}
-          />
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Khung giờ &amp; giá theo khung</CardTitle></CardHeader>
+            <CardContent>
+              <SlotEditor
+                rows={slotRows}
+                onChange={setSlotRows}
+                priceFromFallback={priceFrom}
+                fullDayFallback={fullDayPrice}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Ảnh chính</Label>
-            <div className="flex gap-2">
-              <Input value={mainImage} onChange={(e) => setMainImage(e.target.value)} placeholder="https://..." className="flex-1" />
-              <label className="cursor-pointer">
-                <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
-                  <span>{uploading ? "Đang tải..." : "Tải lên"}</span>
-                </Button>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-              </label>
-            </div>
-            {mainImage && <img src={mainImage} alt="preview" className="mt-2 h-24 w-auto rounded-lg object-cover" />}
-          </div>
+        {/* Side column */}
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Ảnh chính</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Input value={mainImage} onChange={(e) => setMainImage(e.target.value)} placeholder="https://..." className="flex-1" />
+                <label className="cursor-pointer">
+                  <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+                    <span>{uploading ? "Đang tải..." : "Tải lên"}</span>
+                  </Button>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </label>
+              </div>
+              {mainImage && <img src={mainImage} alt="preview" className="mt-2 h-32 w-full rounded-lg object-cover" />}
+            </CardContent>
+          </Card>
 
-          <div className="flex flex-col gap-2">
-            <Label>Tiện ích</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {amenities.map((a, i) => (
-                <Badge key={i} variant="secondary" className="cursor-pointer gap-1" onClick={() => setAmenities(amenities.filter((_, j) => j !== i))}>
-                  {a} <X className="size-3" />
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input value={newAmenity} onChange={(e) => setNewAmenity(e.target.value)} placeholder="Thêm tiện ích..."
-                onKeyDown={(e) => { if (e.key === "Enter" && newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }} />
-              <Button type="button" size="sm" variant="outline" onClick={() => { if (newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }}>Thêm</Button>
-            </div>
-          </div>
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Tiện ích</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-1.5">
+                {amenities.length === 0 && (
+                  <span className="text-sm text-muted-foreground">Chưa có tiện ích nào.</span>
+                )}
+                {amenities.map((a, i) => (
+                  <Badge key={i} variant="secondary" className="cursor-pointer gap-1" onClick={() => setAmenities(amenities.filter((_, j) => j !== i))}>
+                    {a} <X className="size-3" />
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input value={newAmenity} onChange={(e) => setNewAmenity(e.target.value)} placeholder="Thêm tiện ích..."
+                  onKeyDown={(e) => { if (e.key === "Enter" && newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }} />
+                <Button type="button" size="sm" variant="outline" onClick={() => { if (newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }}>Thêm</Button>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="flex items-center gap-3">
-            <Switch checked={isClassic} onCheckedChange={setIsClassic} id="classic" />
-            <Label htmlFor="classic">Phòng classic</Label>
-          </div>
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Cấu hình</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <Switch checked={isClassic} onCheckedChange={setIsClassic} id="classic" />
+                <Label htmlFor="classic">Phòng classic</Label>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-          <div className="flex gap-2 border-t pt-3">
-            <Button variant="outline" asChild><Link href="/dashboard/rooms">Hủy</Link></Button>
-            <Button onClick={handleCreate} disabled={saving || !cardName.trim() || !branchId || slotsBlocked}>
-              {saving ? "Đang tạo..." : "Tạo phòng"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-end gap-2 border-t bg-background/80 py-4 backdrop-blur">
+        <Button variant="outline" asChild><Link href="/dashboard/rooms">Hủy</Link></Button>
+        <Button onClick={handleCreate} disabled={saving || !cardName.trim() || !branchId || slotsBlocked}>
+          {saving ? "Đang tạo..." : "Tạo phòng"}
+        </Button>
+      </div>
     </PageContainer>
   );
 }

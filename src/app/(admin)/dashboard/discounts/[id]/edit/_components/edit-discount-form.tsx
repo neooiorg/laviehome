@@ -55,49 +55,59 @@ export function EditDiscountForm({ discount }: { discount: DiscountCode }) {
         <p className="text-sm text-muted-foreground mt-0.5 font-mono">{discount.code}</p>
       </div>
 
-      <Card className="max-w-xl">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Thông tin mã</CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3"><CardTitle className="text-base">Thông tin mã</CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Giảm (%)</Label>
+                <Input type="number" min={1} max={100} value={percent} onChange={(e) => setPercent(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Số lần dùng tối đa</Label>
+                <Input type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} />
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5">
-              <Label>Giảm (%)</Label>
-              <Input type="number" min={1} max={100} value={percent} onChange={(e) => setPercent(e.target.value)} />
+              <Label>Mô tả</Label>
+              <Input value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
+
             <div className="flex flex-col gap-1.5">
-              <Label>Số lần dùng tối đa</Label>
-              <Input type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} />
+              <Label>Hết hạn</Label>
+              <DatePicker value={expiresAt} onChange={setExpiresAt} className="w-full" />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Mô tả</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label>Hết hạn</Label>
-            <DatePicker value={expiresAt} onChange={setExpiresAt} className="w-full" />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <Label>Hoạt động</Label>
-            <Switch checked={active} onCheckedChange={setActive} />
-          </div>
-
-          <div className="flex items-center justify-between border-t pt-3">
-            <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} disabled={deleting || saving}>
-              <Trash2 className="mr-1.5 size-3.5" />
-              Xóa mã
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" asChild><Link href="/dashboard/discounts">Hủy</Link></Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Đang lưu..." : "Lưu"}
-              </Button>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Trạng thái</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Hoạt động</p>
+                <p className="text-xs text-muted-foreground">Cho phép khách áp dụng mã này</p>
+              </div>
+              <Switch checked={active} onCheckedChange={setActive} />
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="sticky bottom-0 z-10 mt-6 flex items-center justify-between gap-3 border-t bg-background/80 py-4 backdrop-blur">
+        <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)} disabled={deleting || saving}>
+          <Trash2 className="mr-1.5 size-3.5" />
+          Xóa mã
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild><Link href="/dashboard/discounts">Hủy</Link></Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Đang lưu..." : "Lưu"}
+          </Button>
+        </div>
+      </div>
     </PageContainer>
   );
 }
