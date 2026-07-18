@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-import { ChevronsUpDown, Plus, Home } from "lucide-react";
+import { ChevronsUpDown, Plus } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -35,7 +35,7 @@ export function OrgSwitcher({ orgs }: { orgs?: Organization[] }) {
     {
       id: "1",
       name: APP_CONFIG.name,
-      logo: undefined,
+      logo: "/lavie-icon.png",
       plan: "Admin",
     },
   ];
@@ -51,9 +51,12 @@ export function OrgSwitcher({ orgs }: { orgs?: Organization[] }) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <Home className="size-4" />
-              </div>
+              <Avatar className="size-8 shrink-0 rounded-lg">
+                <AvatarImage src={activeOrg.logo} alt={activeOrg.name} className="object-cover" />
+                <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+                  {getInitials(activeOrg.name)}
+                </AvatarFallback>
+              </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{activeOrg.name}</span>
                 <span className="truncate text-xs text-muted-foreground">
