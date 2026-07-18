@@ -10,8 +10,10 @@ import {
   Home,
   Lock,
   MapPin,
+  Phone,
   QrCode,
   ShoppingBag,
+  TriangleAlert,
 } from "lucide-react";
 import { CheckoutPaymentBox } from "@/components/checkout-payment-box";
 import { CheckoutForm, type CheckoutPricing } from "./checkout-form";
@@ -34,6 +36,8 @@ type CheckoutExperienceProps = {
   price: number;
   roomPrice: number;
   menuItems: CheckoutMenuItem[];
+  onlinePaymentEnabled: boolean;
+  hotline: string;
 };
 
 export function CheckoutExperience({
@@ -45,6 +49,8 @@ export function CheckoutExperience({
   price,
   roomPrice,
   menuItems,
+  onlinePaymentEnabled,
+  hotline,
 }: CheckoutExperienceProps) {
   const [pricing, setPricing] = useState<CheckoutPricing>({
     guestCount: 2,
@@ -159,7 +165,11 @@ export function CheckoutExperience({
               <Lock size={14} className="text-cyan-300" /> Giao dịch bảo mật bằng mã hoá SSL.
             </p>
           </div>
-          {confirmed ? (
+          {!onlinePaymentEnabled ? (
+            <p className="mt-5 flex items-center justify-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3.5 text-center text-xs font-semibold text-amber-200">
+              <TriangleAlert size={14} /> Thanh toán online tạm ngưng — nhân viên sẽ liên hệ thu tiền
+            </p>
+          ) : confirmed ? (
             <a className="primary-button mt-5 w-full text-center block py-3.5" href="#payment">
               <CreditCard size={17} /> Xem Thông Tin Thanh Toán
             </a>
@@ -170,7 +180,25 @@ export function CheckoutExperience({
           )}
         </section>
 
-        {confirmed ? (
+        {!onlinePaymentEnabled ? (
+          <section id="payment" className="section-card p-6 md:p-8 text-center scroll-mt-28">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-400/15 text-amber-300">
+              <TriangleAlert size={26} />
+            </div>
+            <h2 className="mt-4 text-lg font-extrabold tracking-[-0.02em] text-white">Thanh toán online tạm ngưng</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-white/60">
+              {confirmed
+                ? "Đặt phòng của bạn đã được ghi nhận. Nhân viên Lavie Home sẽ liên hệ để xác nhận và hướng dẫn thanh toán."
+                : "Vui lòng điền thông tin và bấm “Xác Nhận” để giữ phòng. Nhân viên sẽ liên hệ hướng dẫn thanh toán."}
+            </p>
+            <a
+              href={`tel:${hotline.replace(/[^0-9+]/g, "")}`}
+              className="primary-button mt-5 w-full text-center block py-3.5"
+            >
+              <Phone size={17} /> Gọi hotline {hotline}
+            </a>
+          </section>
+        ) : confirmed ? (
           <CheckoutPaymentBox price={pricing.finalAmount} transferCode={transferCode} />
         ) : (
           <section className="section-card p-6 md:p-8 text-center">

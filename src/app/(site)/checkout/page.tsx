@@ -15,6 +15,7 @@ import {
 } from "@/lib/booking-slots";
 import { query } from "@/lib/postgres";
 import { getMenuItemsByIds } from "@/lib/menu-actions";
+import { getOnlinePaymentEnabled } from "@/lib/settings-actions";
 import { CheckoutExperience } from "./checkout-experience";
 
 type CheckoutSearchParams = Record<string, string | string[] | undefined>;
@@ -210,6 +211,8 @@ export default async function CheckoutPage({
 
   await upsertBookingRecord(transferCode, checkout);
 
+  const onlinePaymentEnabled = await getOnlinePaymentEnabled();
+
   return (
     <main className="site-shell min-h-dvh text-white">
       <SiteHeader />
@@ -223,6 +226,8 @@ export default async function CheckoutPage({
           price={checkout.price}
           roomPrice={checkout.roomPrice}
           menuItems={checkout.menuItems}
+          onlinePaymentEnabled={onlinePaymentEnabled}
+          hotline={checkout.hotline}
         />
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold text-white/50">
