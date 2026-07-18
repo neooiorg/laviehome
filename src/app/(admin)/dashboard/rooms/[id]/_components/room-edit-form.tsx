@@ -15,7 +15,14 @@ import { ImageUpload } from "@/components/image-upload";
 import { AlertModal } from "@/components/modal/alert-modal";
 import type { BranchRow, RoomRow } from "@/lib/homestay-dashboard";
 import { deleteRoom, updateRoom } from "@/lib/room-actions";
-import { getRoomSlots, slotDisplayLabel } from "@/lib/booking-slots";
+import { getRoomSlots, timeToMinutes } from "@/lib/booking-slots";
+import {
+  SlotEditor,
+  computeRowOverlaps,
+  slotRowsToPrices,
+  slotRowsToSlots,
+  type SlotRow,
+} from "../../_components/slot-editor";
 
 export function RoomEditForm({ room, branches }: { room: RoomRow; branches: BranchRow[] }) {
   const router = useRouter();
@@ -33,23 +40,24 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   const [amenities, setAmenities] = React.useState<string[]>(room.room_amenities ?? []);
   const [isClassic, setIsClassic] = React.useState(room.is_classic === 1);
   const [newAmenity, setNewAmenity] = React.useState("");
-  const [slotPrices, setSlotPrices] = React.useState<Record<number, string>>(() => {
-    const init: Record<number, string> = {};
-    (room.slot_prices ?? []).forEach((v, i) => {
-      if (typeof v === "number" && v > 0) init[i] = String(v);
+  const [slotRows, setSlotRows] = React.useState<SlotRow[]>(() => {
+    const initialSlots =
+      room.time_slots && room.time_slots.length > 0 ? room.time_slots : getRoomSlots(room.card_name);
+    return initialSlots.map((slot, i) => {
+      const price = room.slot_prices?.[i];
+      return {
+        start: slot.start ?? "",
+        end: slot.end ?? "",
+        price: typeof price === "number" && price > 0 ? String(price) : "",
+      };
     });
-    return init;
   });
 
-  const slots = React.useMemo(() => getRoomSlots(cardName), [cardName]);
-
-  function buildSlotPrices(): (number | null)[] | undefined {
-    const arr = slots.map((_, i) => {
-      const v = Number(slotPrices[i]);
-      return Number.isFinite(v) && v > 0 ? v : null;
-    });
-    return arr.some((v) => v !== null) ? arr : undefined;
-  }
+  const overlaps = React.useMemo(() => computeRowOverlaps(slotRows), [slotRows]);
+  const hasIncompleteSlot = slotRows.some(
+    (r) => timeToMinutes(r.start) === null || timeToMinutes(r.end) === null
+  );
+  const slotsBlocked = overlaps.length > 0 || hasIncompleteSlot;
 
   async function handleSave() {
     const pf = Number(priceFrom);
@@ -58,8 +66,18 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
       alert("Giá từ không được lớn hơn giá đến");
       return;
     }
+    if (overlaps.length > 0) {
+      alert("Các khung giờ đang bị chồng chéo. Vui lòng sửa trước khi lưu.");
+      return;
+    }
+    if (hasIncompleteSlot) {
+      alert("Có khung giờ chưa nhập đủ giờ bắt đầu/kết thúc.");
+      return;
+    }
     setSaving(true);
     const selectedBranch = branches.find((b) => b.id === Number(branchId));
+    const timeSlots = slotRowsToSlots(slotRows);
+    const slotPricesArr = slotRowsToPrices(slotRows);
     await updateRoom(room.id, {
       card_name: cardName,
       branch_id: Number(branchId),
@@ -71,7 +89,8 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
       images,
       room_amenities: amenities,
       is_classic: isClassic,
-      slot_prices: buildSlotPrices() ?? null,
+      time_slots: timeSlots.length > 0 ? timeSlots : null,
+      slot_prices: slotPricesArr.some((v) => v !== null) ? slotPricesArr : null,
     });
     setSaving(false);
     router.push("/dashboard/rooms");
@@ -123,33 +142,12 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
-          <div>
-            <Label>Giá theo khung giờ (tuỳ chọn)</Label>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Để trống sẽ dùng giá mặc định (khung ngày = &quot;Giá từ&quot;, khung qua đêm = &quot;Cả ngày&quot;).
-            </p>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {slots.map((slot, i) => {
-              const fallback = slot.isOvernight ? fullDayPrice : priceFrom;
-              return (
-                <div key={i} className="flex flex-col gap-1">
-                  <Label className="text-xs font-medium">
-                    {slotDisplayLabel(slot)} {slot.isOvernight ? "🌙" : ""}
-                  </Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={slotPrices[i] ?? ""}
-                    placeholder={fallback ? `Mặc định ${fallback}` : "Mặc định"}
-                    onChange={(e) => setSlotPrices((prev) => ({ ...prev, [i]: e.target.value }))}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <SlotEditor
+          rows={slotRows}
+          onChange={setSlotRows}
+          priceFromFallback={priceFrom}
+          fullDayFallback={fullDayPrice}
+        />
 
         <div className="flex flex-col gap-1.5">
           <Label>Ảnh chính</Label>
@@ -221,7 +219,7 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => router.push("/dashboard/rooms")}>Hủy</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || slotsBlocked}>
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
           </div>

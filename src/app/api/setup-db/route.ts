@@ -119,6 +119,7 @@ export async function GET(req: NextRequest) {
     `);
 
     await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS slot_prices JSONB`);
+    await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS time_slots JSONB`);
     // Lazily-added booking column — ensure it exists on databases created before it.
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS menu_items_total BIGINT DEFAULT 0`);
 

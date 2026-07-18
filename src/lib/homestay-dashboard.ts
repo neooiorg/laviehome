@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { type NormalizedBookingRecord, fetchRawBookings, normalizeBookingRecord } from '@/lib/booking-records';
-import { normalizeDateLabelToIso } from '@/lib/booking-slots';
+import { normalizeDateLabelToIso, type RoomSlot } from '@/lib/booking-slots';
 import { money } from '@/lib/format';
 import { query } from '@/lib/postgres';
 
@@ -113,6 +113,8 @@ export type RoomRow = {
   images: string[];
   // Per-time-slot prices indexed by slot position; null/absent → use defaults.
   slot_prices?: (number | null)[] | null;
+  // Custom booking time slots; null/absent → fall back to name-based presets.
+  time_slots?: RoomSlot[] | null;
   created_at?: string;
 };
 

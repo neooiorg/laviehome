@@ -15,7 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import type { BranchRow } from "@/lib/homestay-dashboard";
 import { createRoom } from "@/lib/room-actions";
-import { getRoomSlots, slotDisplayLabel } from "@/lib/booking-slots";
+import { getRoomSlots, timeToMinutes } from "@/lib/booking-slots";
+import {
+  SlotEditor,
+  computeRowOverlaps,
+  slotRowsToPrices,
+  slotRowsToSlots,
+  type SlotRow,
+} from "../../_components/slot-editor";
 
 export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
   const router = useRouter();
@@ -30,17 +37,15 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
   const [isClassic, setIsClassic] = React.useState(false);
   const [newAmenity, setNewAmenity] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
-  const [slotPrices, setSlotPrices] = React.useState<Record<number, string>>({});
+  const [slotRows, setSlotRows] = React.useState<SlotRow[]>(() =>
+    getRoomSlots("").map((slot) => ({ start: slot.start ?? "", end: slot.end ?? "", price: "" }))
+  );
 
-  const slots = React.useMemo(() => getRoomSlots(cardName), [cardName]);
-
-  function buildSlotPrices(): (number | null)[] | undefined {
-    const arr = slots.map((_, i) => {
-      const v = Number(slotPrices[i]);
-      return Number.isFinite(v) && v > 0 ? v : null;
-    });
-    return arr.some((v) => v !== null) ? arr : undefined;
-  }
+  const overlaps = React.useMemo(() => computeRowOverlaps(slotRows), [slotRows]);
+  const hasIncompleteSlot = slotRows.some(
+    (r) => timeToMinutes(r.start) === null || timeToMinutes(r.end) === null
+  );
+  const slotsBlocked = overlaps.length > 0 || hasIncompleteSlot;
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -65,8 +70,18 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
       alert("Giá từ không được lớn hơn giá đến");
       return;
     }
+    if (overlaps.length > 0) {
+      alert("Các khung giờ đang bị chồng chéo. Vui lòng sửa trước khi lưu.");
+      return;
+    }
+    if (hasIncompleteSlot) {
+      alert("Có khung giờ chưa nhập đủ giờ bắt đầu/kết thúc.");
+      return;
+    }
     setSaving(true);
     const selectedBranch = branches.find((b) => b.id === Number(branchId));
+    const timeSlots = slotRowsToSlots(slotRows);
+    const slotPricesArr = slotRowsToPrices(slotRows);
     await createRoom({
       card_name: cardName.trim(),
       branch_id: Number(branchId),
@@ -78,7 +93,8 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
       images: [],
       room_amenities: amenities,
       is_classic: isClassic,
-      slot_prices: buildSlotPrices(),
+      time_slots: timeSlots.length > 0 ? timeSlots : null,
+      slot_prices: slotPricesArr.some((v) => v !== null) ? slotPricesArr : undefined,
     });
     router.push("/dashboard/rooms");
   }
@@ -126,33 +142,12 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
-            <div>
-              <Label>Giá theo khung giờ (tuỳ chọn)</Label>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Để trống sẽ dùng giá mặc định (khung ngày = &quot;Giá từ&quot;, khung qua đêm = &quot;Cả ngày&quot;).
-              </p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {slots.map((slot, i) => {
-                const fallback = slot.isOvernight ? fullDayPrice : priceFrom;
-                return (
-                  <div key={i} className="flex flex-col gap-1">
-                    <Label className="text-xs font-medium">
-                      {slotDisplayLabel(slot)} {slot.isOvernight ? "🌙" : ""}
-                    </Label>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={slotPrices[i] ?? ""}
-                      placeholder={fallback ? `Mặc định ${fallback}` : "Mặc định"}
-                      onChange={(e) => setSlotPrices((prev) => ({ ...prev, [i]: e.target.value }))}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <SlotEditor
+            rows={slotRows}
+            onChange={setSlotRows}
+            priceFromFallback={priceFrom}
+            fullDayFallback={fullDayPrice}
+          />
 
           <div className="flex flex-col gap-1.5">
             <Label>Ảnh chính</Label>
@@ -191,7 +186,7 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
 
           <div className="flex gap-2 border-t pt-3">
             <Button variant="outline" asChild><Link href="/dashboard/rooms">Hủy</Link></Button>
-            <Button onClick={handleCreate} disabled={saving || !cardName.trim() || !branchId}>
+            <Button onClick={handleCreate} disabled={saving || !cardName.trim() || !branchId || slotsBlocked}>
               {saving ? "Đang tạo..." : "Tạo phòng"}
             </Button>
           </div>

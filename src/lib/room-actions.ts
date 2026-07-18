@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { query } from '@/lib/postgres';
+import type { RoomSlot } from '@/lib/booking-slots';
 
 export interface RoomInput {
   card_name: string;
@@ -19,17 +20,25 @@ export interface RoomInput {
   // A null entry (or a shorter array) means "use the default" for that slot;
   // passing null clears all per-slot pricing for the room.
   slot_prices?: (number | null)[] | null;
+  // Custom booking time slots for this room. Null/undefined means "use the
+  // name-based preset". Indexes here align with slot_prices above.
+  time_slots?: RoomSlot[] | null;
 }
 
 async function ensureSlotPricesColumn(): Promise<void> {
   await query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS slot_prices JSONB`).catch(() => null);
 }
 
+async function ensureTimeSlotsColumn(): Promise<void> {
+  await query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS time_slots JSONB`).catch(() => null);
+}
+
 export async function createRoom(data: RoomInput): Promise<void> {
   await ensureSlotPricesColumn();
+  await ensureTimeSlotsColumn();
   await query(
-    `INSERT INTO rooms (card_name, branch_id, branch_name, price_from, price_to, full_day_price, main_image, images, room_amenities, is_classic, slot_prices)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    `INSERT INTO rooms (card_name, branch_id, branch_name, price_from, price_to, full_day_price, main_image, images, room_amenities, is_classic, slot_prices, time_slots)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       data.card_name,
       data.branch_id,
@@ -42,6 +51,7 @@ export async function createRoom(data: RoomInput): Promise<void> {
       JSON.stringify(data.room_amenities),
       data.is_classic ? 1 : 0,
       data.slot_prices ? JSON.stringify(data.slot_prices) : null,
+      data.time_slots ? JSON.stringify(data.time_slots) : null,
     ]
   );
   revalidatePath('/dashboard/rooms');
@@ -52,6 +62,7 @@ export async function updateRoom(id: number, data: Partial<RoomInput>): Promise<
   const params: unknown[] = [];
 
   if (data.slot_prices !== undefined) await ensureSlotPricesColumn();
+  if (data.time_slots !== undefined) await ensureTimeSlotsColumn();
 
   if (data.card_name !== undefined) { params.push(data.card_name); fields.push(`card_name = $${params.length}`); }
   if (data.branch_id !== undefined) { params.push(data.branch_id); fields.push(`branch_id = $${params.length}`); }
@@ -64,6 +75,7 @@ export async function updateRoom(id: number, data: Partial<RoomInput>): Promise<
   if (data.room_amenities !== undefined) { params.push(JSON.stringify(data.room_amenities)); fields.push(`room_amenities = $${params.length}`); }
   if (data.is_classic !== undefined) { params.push(data.is_classic ? 1 : 0); fields.push(`is_classic = $${params.length}`); }
   if (data.slot_prices !== undefined) { params.push(data.slot_prices ? JSON.stringify(data.slot_prices) : null); fields.push(`slot_prices = $${params.length}`); }
+  if (data.time_slots !== undefined) { params.push(data.time_slots ? JSON.stringify(data.time_slots) : null); fields.push(`time_slots = $${params.length}`); }
 
   if (fields.length === 0) return;
 

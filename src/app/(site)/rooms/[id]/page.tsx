@@ -201,6 +201,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
               price_from: room.price_from,
               full_day_price: room.full_day_price,
               slot_prices: room.slot_prices ?? null,
+              time_slots: room.time_slots ?? null,
             }}
             menuItems={menuItems}
           />

@@ -5,7 +5,7 @@ import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 
 import { makeBookingReference } from "@/lib/booking-reference";
 import { money } from "@/lib/format";
-import { formatCheckoutDate, getRoomSlots, isSlotPast, makeBookingDates } from "@/lib/booking-slots";
+import { formatCheckoutDate, getRoomSlots, isSlotPast, makeBookingDates, type RoomSlot } from "@/lib/booking-slots";
 import type { MenuItem } from "@/lib/menu-actions";
 import { RoomMenuOptions } from "./_components/room-menu-options";
 
@@ -17,6 +17,7 @@ type BookingRoom = {
   price_from: number;
   full_day_price: number;
   slot_prices?: (number | null)[] | null;
+  time_slots?: RoomSlot[] | null;
 };
 
 type SelectedSlot = {
@@ -38,7 +39,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
   const [menuTotal, setMenuTotal] = useState(0);
   const [bookedSlotIds, setBookedSlotIds] = useState<string[]>([]);
   const dates = useMemo(() => makeBookingDates(), []);
-  const slots = useMemo(() => getRoomSlots(room.card_name), [room.card_name]);
+  const slots = useMemo(() => getRoomSlots(room.card_name, room.time_slots), [room.card_name, room.time_slots]);
   const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
 
   useEffect(() => {

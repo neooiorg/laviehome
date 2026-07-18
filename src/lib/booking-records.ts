@@ -6,6 +6,7 @@ import {
   getRoomIdFromTimeslotIds,
   inferTimeslotIds,
   normalizeDateLabelToIso,
+  type RoomSlot,
 } from "@/lib/booking-slots";
 import { query } from "@/lib/postgres";
 
@@ -48,6 +49,7 @@ type CatalogRoom = {
   main_image: string;
   is_classic: number;
   images: string[];
+  time_slots?: RoomSlot[] | null;
 };
 
 type CatalogBranch = {
@@ -183,6 +185,7 @@ export function normalizeBookingRecord(
       dateLabel,
       timeRange: raw.time_range,
       timeslotIds: raw.timeslot_ids,
+      timeSlots: room?.time_slots,
     }),
     room,
     branch,

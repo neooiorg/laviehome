@@ -95,7 +95,10 @@ const roomSlots: Record<string, { label: string; duration: string; isOvernight?:
   ]
 };
 
-function getRoomSlots(roomName: string) {
+type DisplaySlot = { label: string; duration: string; isOvernight?: boolean };
+
+function getRoomSlots(roomName: string, storedSlots?: DisplaySlot[] | null): DisplaySlot[] {
+  if (storedSlots && storedSlots.length > 0) return storedSlots;
   if (roomName.includes("Honey")) return roomSlots["Honey"];
   if (roomName.includes("Squid")) return roomSlots["Squid"];
   return roomSlots["default"];
@@ -170,6 +173,7 @@ type Room = {
   main_image: string;
   is_classic: number;
   images: string[];
+  time_slots?: DisplaySlot[] | null;
 };
 
 export function LavieHomeApp({
@@ -648,7 +652,7 @@ export function LavieHomeApp({
                       {calendarRooms.map((room) => (
                         <th
                           key={room.id}
-                          colSpan={getRoomSlots(room.card_name).length}
+                          colSpan={getRoomSlots(room.card_name, room.time_slots).length}
                           className="p-3 text-center border-r border-white/10 text-sm font-extrabold text-pink-100"
                         >
                           {room.card_name.replace("Phòng ", "")}
@@ -660,7 +664,7 @@ export function LavieHomeApp({
                       <th className="sticky left-0 z-30 w-[3.1rem] min-w-[3.1rem] bg-[#1f1428] py-1.5 px-1 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Thứ</th>
                       <th className="sticky left-[3.1rem] z-30 w-[3.4rem] min-w-[3.4rem] bg-[#1f1428] py-1.5 px-1 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Ngày</th>
                       {calendarRooms.map((room) =>
-                        getRoomSlots(room.card_name).map((slot, sIdx) => (
+                        getRoomSlots(room.card_name, room.time_slots).map((slot, sIdx) => (
                           <th
                             key={`${room.id}-slot-head-${sIdx}`}
                             className="py-1.5 px-1 border-r border-white/10 text-[10px] font-medium text-white/70 text-center min-w-[82px]"
@@ -691,7 +695,7 @@ export function LavieHomeApp({
                           </span>
                         </td>
                         {calendarRooms.map((room) => {
-                          const slots = getRoomSlots(room.card_name);
+                          const slots = getRoomSlots(room.card_name, room.time_slots);
                           return slots.map((slot, slotIndex) => {
                             const id = `${room.id}-${date.iso}-${slotIndex}`;
                             const booked = bookedSlotIdSet.has(id);
