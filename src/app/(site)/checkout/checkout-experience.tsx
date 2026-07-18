@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ElementType } from "react";
+import Link from "next/link";
 import {
   CalendarDays,
+  CheckCircle2,
   Clock3,
   CreditCard,
   FileText,
@@ -12,10 +14,17 @@ import {
   MapPin,
   Phone,
   QrCode,
+  Search,
   ShoppingBag,
   TriangleAlert,
 } from "lucide-react";
 import { CheckoutPaymentBox } from "@/components/checkout-payment-box";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CheckoutForm, type CheckoutPricing } from "./checkout-form";
 import { money } from "@/lib/format";
 
@@ -61,22 +70,29 @@ export function CheckoutExperience({
   });
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   const [confirmed, setConfirmed] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
 
   const handlePricingChange = useCallback((next: CheckoutPricing) => {
     setPricing(next);
   }, []);
 
-  const handleConfirmed = useCallback(() => setConfirmed(true), []);
+  const handleConfirmed = useCallback(() => {
+    setConfirmed(true);
+    // When online payment is off, confirming the details is the end of the flow:
+    // pop a success dialog telling the customer staff will reach out. When it's
+    // on, we instead reveal the QR (handled by the scroll effect below).
+    if (!onlinePaymentEnabled) setSuccessOpen(true);
+  }, [onlinePaymentEnabled]);
 
   // Reveal + scroll to the payment QR only after the customer confirms their
-  // details, so the page doesn't show a payment box before there's anything to pay.
+  // details (online-payment flow only).
   useEffect(() => {
-    if (!confirmed) return;
+    if (!confirmed || !onlinePaymentEnabled) return;
     const id = window.setTimeout(() => {
       document.getElementById("payment")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
     return () => window.clearTimeout(id);
-  }, [confirmed]);
+  }, [confirmed, onlinePaymentEnabled]);
 
   const hasValidImage = (item: CheckoutMenuItem) =>
     !!item.image_url &&
@@ -214,6 +230,35 @@ export function CheckoutExperience({
           </section>
         )}
       </aside>
+
+      <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
+        <DialogContent className="border-white/10 bg-[#1b111f] text-white sm:max-w-md">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+              <CheckCircle2 size={36} />
+            </div>
+            <DialogTitle className="mt-4 text-xl font-extrabold tracking-[-0.02em] text-white">
+              Đặt phòng thành công!
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-sm font-semibold leading-6 text-white/60">
+              Thông tin của bạn đã được ghi nhận với mã{" "}
+              <span className="font-extrabold text-pink-300">{transferCode}</span>. Nhân viên Lavie Home sẽ{" "}
+              <span className="font-bold text-white/80">chủ động liên hệ</span> để xác nhận và hướng dẫn thanh toán.
+            </DialogDescription>
+            <div className="mt-6 flex w-full flex-col gap-2.5 sm:flex-row">
+              <Link href="/" className="primary-button flex-1 justify-center py-3">
+                <Home size={16} /> Về trang chủ
+              </Link>
+              <Link
+                href={`/checking?code=${encodeURIComponent(transferCode)}`}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-white/20 bg-white/5 py-3 text-sm font-extrabold text-white transition-all duration-150 hover:border-white hover:bg-white/10"
+              >
+                <Search size={16} /> Tra cứu đơn
+              </Link>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
