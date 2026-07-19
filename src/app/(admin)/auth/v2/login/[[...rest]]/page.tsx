@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -66,8 +66,15 @@ export default function LoginPage() {
       <div className="flex h-full w-full flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Mail className="size-6" />
+            <div className="mb-4 inline-flex size-14 items-center justify-center overflow-hidden rounded-2xl border bg-card shadow-sm">
+              <Image
+                src="/lavie-icon.png"
+                alt="Lavie Home"
+                width={56}
+                height={56}
+                className="size-full object-contain p-1.5"
+                priority
+              />
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Nhập mã OTP</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
@@ -135,13 +142,13 @@ export default function LoginPage() {
     <div className="flex h-full w-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mb-5 inline-flex items-center justify-center rounded-2xl border bg-card px-4 py-2.5 shadow-sm">
+          <div className="mb-5 inline-flex size-14 items-center justify-center overflow-hidden rounded-2xl border bg-card shadow-sm">
             <Image
-              src="/lavie-home-logo.png"
+              src="/lavie-icon.png"
               alt="Lavie Home"
-              width={150}
-              height={48}
-              className="h-10 w-auto"
+              width={56}
+              height={56}
+              className="size-full object-contain p-1.5"
               priority
             />
           </div>
