@@ -1,7 +1,7 @@
-import { BarGraph } from '@/features/overview/components/bar-graph';
-import { getPriceBands } from '@/lib/homestay-dashboard';
+import { RevenueBar } from '@/features/overview/components/revenue-bar';
+import { getMonthlyRevenue } from '@/lib/homestay-dashboard';
 
 export default async function BarStats() {
-  const bands = await getPriceBands();
-  return <BarGraph data={bands} />;
+  const revenue = await getMonthlyRevenue();
+  return <RevenueBar data={revenue} />;
 }

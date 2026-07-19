@@ -1,5 +1,5 @@
-import { RecentBookings } from '@/features/overview/components/recent-bookings';
+import { PaymentActivity } from '@/features/overview/components/payment-activity';
 
 export default async function Sales() {
-  return <RecentBookings />;
+  return <PaymentActivity />;
 }

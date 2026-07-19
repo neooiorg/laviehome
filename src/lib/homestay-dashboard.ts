@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { type NormalizedBookingRecord, fetchRawBookings, normalizeBookingRecord } from '@/lib/booking-records';
+import { type NormalizedBookingRecord, fetchRawBookings, isCancelledStatus, normalizeBookingRecord } from '@/lib/booking-records';
 import { normalizeDateLabelToIso, type RoomSlot } from '@/lib/booking-slots';
 import { money } from '@/lib/format';
 import { query } from '@/lib/postgres';
@@ -495,6 +495,95 @@ export async function getRevenueSummary(limit = 12) {
     lowest,
     bookings
   };
+}
+
+export type PaymentState = 'received' | 'pending' | 'processing';
+
+export type PaymentActivity = {
+  id: string;
+  guestName: string;
+  roomName: string;
+  branchName: string;
+  amount: number;
+  status: BookingStatus;
+  paymentState: PaymentState;
+  createdAt: string;
+};
+
+export type PaymentSummary = {
+  receivedTotal: number;
+  receivedCount: number;
+  pendingTotal: number;
+  pendingCount: number;
+  activities: PaymentActivity[];
+};
+
+export type RevenuePoint = {
+  month: string;
+  revenue: number;
+  bookings: number;
+};
+
+// Chuyển khoản VietQR: tiền đã thực nhận khi khách đã thanh toán / đang ở / hoàn tất.
+const RECEIVED_STATUSES = new Set<BookingStatus>(['Đã thanh toán', 'Đang ở', 'Hoàn tất']);
+// Đang chờ khách chuyển khoản (thanh toán hoặc đặt cọc).
+const PENDING_STATUSES = new Set<BookingStatus>(['Chờ thanh toán', 'Chờ cọc']);
+
+function toPaymentState(status: BookingStatus): PaymentState {
+  if (RECEIVED_STATUSES.has(status)) return 'received';
+  if (PENDING_STATUSES.has(status)) return 'pending';
+  return 'processing';
+}
+
+export async function getPaymentSummary(limit = 6): Promise<PaymentSummary> {
+  const snapshots = await getBookingSnapshots(Math.max(limit, 40));
+  const activities: PaymentActivity[] = snapshots.map((booking) => ({
+    id: booking.id,
+    guestName: booking.guestName || booking.customerName || 'Khách lẻ',
+    roomName: booking.room.card_name,
+    branchName: booking.branch.name,
+    amount: getBookingDisplayTotal({ amount: booking.amount, menuItemsTotal: booking.menuItemsTotal }),
+    status: booking.status,
+    paymentState: toPaymentState(booking.status),
+    createdAt: booking.createdAt
+  }));
+
+  const received = activities.filter((activity) => activity.paymentState === 'received');
+  const pending = activities.filter((activity) => activity.paymentState === 'pending');
+
+  return {
+    receivedTotal: received.reduce((sum, activity) => sum + activity.amount, 0),
+    receivedCount: received.length,
+    pendingTotal: pending.reduce((sum, activity) => sum + activity.amount, 0),
+    pendingCount: pending.length,
+    activities: activities.slice(0, limit)
+  };
+}
+
+export async function getMonthlyRevenue(): Promise<RevenuePoint[]> {
+  const bookings = await getBookings(500);
+  const byMonth = new Map<string, { revenue: number; bookings: number }>();
+
+  for (const booking of bookings) {
+    if (isCancelledStatus(booking.raw.status)) continue;
+    const monthKey = (booking.stayDate ?? booking.raw.created_at ?? '').slice(0, 7);
+    if (!monthKey) continue;
+    const current = byMonth.get(monthKey) ?? { revenue: 0, bookings: 0 };
+    current.revenue += getBookingDisplayTotal({
+      amount: booking.raw.amount,
+      menuItemsTotal: booking.raw.menu_items_total
+    });
+    current.bookings += 1;
+    byMonth.set(monthKey, current);
+  }
+
+  return [...byMonth.keys()]
+    .sort((a, b) => a.localeCompare(b))
+    .slice(-6)
+    .map((monthKey) => {
+      const entry = byMonth.get(monthKey)!;
+      return { month: formatMonth(monthKey), revenue: entry.revenue, bookings: entry.bookings };
+    });
 }
 
 export async function getGuestSummaries(limit = 8): Promise<GuestSummary[]> {
