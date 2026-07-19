@@ -20,6 +20,12 @@ const SITE_NAME = 'Lavie Home';
 const SITE_TITLE = 'Lavie Home - Đặt Phòng Tự Check-in Tự Động 24/7';
 const SITE_DESCRIPTION =
   'Lavie Home - hệ thống homestay tự check-in 24/7. Chọn chi nhánh, xem phòng, đặt lịch theo khung giờ và thanh toán online nhanh chóng.';
+const SITE_OG_IMAGE = {
+  url: '/og-image.jpg',
+  width: 1200,
+  height: 630,
+  alt: 'Không gian phòng Lavie Home'
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -46,12 +52,14 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: SITE_NAME,
     title: SITE_TITLE,
-    description: SITE_DESCRIPTION
+    description: SITE_DESCRIPTION,
+    images: [SITE_OG_IMAGE]
   },
   twitter: {
     card: 'summary_large_image',
     title: SITE_TITLE,
-    description: SITE_DESCRIPTION
+    description: SITE_DESCRIPTION,
+    images: [SITE_OG_IMAGE.url]
   }
 };
 
