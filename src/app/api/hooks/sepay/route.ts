@@ -18,6 +18,16 @@ function getPool() {
 }
 
 export async function POST(req: NextRequest) {
+  // SePay authenticates webhooks with an API key sent as `Authorization: Apikey <key>`.
+  // Reject anything that doesn't match SEPAY_WEBHOOK_API_KEY (when configured).
+  const expectedKey = process.env.SEPAY_WEBHOOK_API_KEY;
+  if (expectedKey) {
+    const provided = (req.headers.get("authorization") ?? "").replace(/^Apikey\s+/i, "").trim();
+    if (provided !== expectedKey) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   let body: Record<string, unknown>;
 
   try {

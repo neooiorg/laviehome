@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { money } from "@/lib/format";
+import type { BankPaymentConfig } from "@/lib/payment-config";
 
 // Booking statuses that mean the payment has been received (mirrors /api/check-payment).
 const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
@@ -12,11 +13,14 @@ const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "�
 type CheckoutPaymentBoxProps = {
   price: number;
   transferCode: string;
+  /** Bank account details resolved server-side from env (see payment-config). */
+  bankConfig: BankPaymentConfig;
 };
 
 export function CheckoutPaymentBox({
   price,
   transferCode,
+  bankConfig,
 }: CheckoutPaymentBoxProps) {
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
@@ -145,7 +149,7 @@ export function CheckoutPaymentBox({
       
       <div className="mt-5 border-2 border-white/20 bg-white p-5 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_rgba(255,255,255,0.05)]">
         <img
-          src={`https://img.vietqr.io/image/TPB-10004406614-compact2.png?amount=${price}&addInfo=${transferCode}&accountName=TKTT%20FREEGO`}
+          src={`https://img.vietqr.io/image/${bankConfig.bankCode}-${bankConfig.accountNumber}-compact2.png?amount=${price}&addInfo=${encodeURIComponent(transferCode)}&accountName=${encodeURIComponent(bankConfig.accountName)}`}
           alt="Mã QR Chuyển Khoản VietQR"
           width={220}
           height={220}
@@ -156,11 +160,15 @@ export function CheckoutPaymentBox({
       <div className="mt-5 grid gap-3 text-sm">
         <div className="flex justify-between border-b border-white/10 pb-2">
           <span className="text-white/60">Ngân hàng thụ hưởng</span>
-          <span className="font-bold text-white">TPBank</span>
+          <span className="font-bold text-white">{bankConfig.bankName}</span>
+        </div>
+        <div className="flex justify-between border-b border-white/10 pb-2">
+          <span className="text-white/60">Số tài khoản</span>
+          <span className="font-bold text-white select-all">{bankConfig.accountNumber}</span>
         </div>
         <div className="flex justify-between border-b border-white/10 pb-2">
           <span className="text-white/60">Chủ tài khoản</span>
-          <span className="font-bold text-white">TKTT FREEGO</span>
+          <span className="font-bold text-white">{bankConfig.accountName}</span>
         </div>
         <div className="flex justify-between border-b border-white/10 pb-2">
           <span className="text-white/60">Nội dung chuyển khoản</span>

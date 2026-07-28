@@ -19,6 +19,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { CheckoutPaymentBox } from "@/components/checkout-payment-box";
+import type { BankPaymentConfig } from "@/lib/payment-config";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ type CheckoutExperienceProps = {
   menuItems: CheckoutMenuItem[];
   onlinePaymentEnabled: boolean;
   hotline: string;
+  bankConfig: BankPaymentConfig;
 };
 
 export function CheckoutExperience({
@@ -60,6 +62,7 @@ export function CheckoutExperience({
   menuItems,
   onlinePaymentEnabled,
   hotline,
+  bankConfig,
 }: CheckoutExperienceProps) {
   const [pricing, setPricing] = useState<CheckoutPricing>({
     guestCount: 2,
@@ -216,7 +219,7 @@ export function CheckoutExperience({
             </a>
           </section>
         ) : confirmed ? (
-          <CheckoutPaymentBox price={pricing.finalAmount} transferCode={transferCode} />
+          <CheckoutPaymentBox price={pricing.finalAmount} transferCode={transferCode} bankConfig={bankConfig} />
         ) : (
           <section className="section-card p-6 md:p-8 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-white/40">
