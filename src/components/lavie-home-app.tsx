@@ -9,20 +9,12 @@ import {
   BedDouble,
   Bolt,
   CalendarDays,
-  CheckCircle2,
   ChevronUp,
   Clock3,
-  DoorOpen,
-  Film,
-  Gift,
-  Heart,
-  Home,
   MapPin,
   MessageCircle,
   Phone,
-  ShieldCheck,
   Sparkles,
-  UserRound,
   X,
 } from "lucide-react";
 import type { ElementType } from "react";
@@ -30,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { compactPhone, money } from "@/lib/format";
+import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
 import type { MenuItem } from "@/lib/menu-actions";
@@ -42,26 +35,6 @@ const PLACEHOLDER_IMG = "https://placehold.co/420x300/1b1023/white?text=Anh+phon
 
 function safeImg(src: string) {
   return src && (src.startsWith("http") || src.startsWith("/")) ? src : PLACEHOLDER_IMG;
-}
-
-const amenityIconMap: Record<string, React.ElementType> = {
-  netflix: Film,
-  phim: Film,
-  chiếu: Film,
-  giường: BedDouble,
-  sofa: Home,
-  "ghế": Home,
-  "tình yêu": Heart,
-  "gương": UserRound,
-  "wc": DoorOpen,
-  "check cam": ShieldCheck,
-  "tặng": Gift,
-};
-
-function amenityIcon(label: string) {
-  const lower = label.toLocaleLowerCase("vi-VN");
-  const entry = Object.entries(amenityIconMap).find(([key]) => lower.includes(key));
-  return entry?.[1] ?? CheckCircle2;
 }
 
 const BlindBagIcon = ({ size = 16 }: { size?: number }) => (
@@ -571,10 +544,10 @@ export function LavieHomeApp({
                 <h3 className="mt-4 text-base font-extrabold leading-tight text-pink-100">{room.card_name}</h3>
                 <div className="mt-3 flex max-h-28 flex-wrap gap-2 overflow-hidden">
                   {room.room_amenities.slice(0, 8).map((amenity) => {
-                    const Icon = amenityIcon(amenity);
+                    const Icon = resolveAmenityIcon(amenity);
                     return (
                       <span key={amenity} className="inline-flex items-center gap-1 rounded-xl border border-pink-300/40 bg-pink-300/10 px-2.5 py-1.5 text-[0.72rem] font-bold text-white">
-                        <Icon size={13} /> {amenity}
+                        <Icon size={13} /> {parseAmenity(amenity).text}
                       </span>
                     );
                   })}
@@ -1028,10 +1001,10 @@ function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void;
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {room.room_amenities.map((amenity) => {
-                const Icon = amenityIcon(amenity);
+                const Icon = resolveAmenityIcon(amenity);
                 return (
                   <span key={amenity} className="inline-flex items-center gap-1.5 rounded-xl border border-pink-300/30 bg-pink-300/10 px-3 py-2 text-xs font-bold">
-                    <Icon size={14} /> {amenity}
+                    <Icon size={14} /> {parseAmenity(amenity).text}
                   </span>
                 );
               })}

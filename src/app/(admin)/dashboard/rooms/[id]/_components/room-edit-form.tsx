@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { AmenityEditor } from "@/components/amenity-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,6 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
   const [images, setImages] = React.useState<string[]>(room.images ?? []);
   const [amenities, setAmenities] = React.useState<string[]>(room.room_amenities ?? []);
   const [isClassic, setIsClassic] = React.useState(room.is_classic === 1);
-  const [newAmenity, setNewAmenity] = React.useState("");
   const [slotRows, setSlotRows] = React.useState<SlotRow[]>(() => {
     const initialSlots =
       room.time_slots && room.time_slots.length > 0 ? room.time_slots : getRoomSlots(room.card_name);
@@ -189,38 +188,8 @@ export function RoomEditForm({ room, branches }: { room: RoomRow; branches: Bran
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Tiện ích</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-1.5">
-                {amenities.length === 0 && (
-                  <span className="text-sm text-muted-foreground">Chưa có tiện ích nào.</span>
-                )}
-                {amenities.map((a, i) => (
-                  <Badge key={i} variant="secondary" className="gap-1 cursor-pointer" onClick={() => setAmenities(amenities.filter((_, j) => j !== i))}>
-                    {a} <X className="size-3" />
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={newAmenity}
-                  onChange={(e) => setNewAmenity(e.target.value)}
-                  placeholder="Thêm tiện ích..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newAmenity.trim()) {
-                      setAmenities([...amenities, newAmenity.trim()]);
-                      setNewAmenity("");
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { if (newAmenity.trim()) { setAmenities([...amenities, newAmenity.trim()]); setNewAmenity(""); } }}
-                >
-                  Thêm
-                </Button>
-              </div>
+            <CardContent>
+              <AmenityEditor value={amenities} onChange={setAmenities} />
             </CardContent>
           </Card>
 
