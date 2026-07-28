@@ -3,15 +3,12 @@ import { notFound } from 'next/navigation';
 import { BrandWordmark } from '@/components/brand-wordmark';
 import { RoomGallery } from './room-gallery';
 import { RoomBooking } from './room-booking';
-import { 
-  ArrowLeft, 
-  BedDouble, 
-  MapPin, 
-  MessageCircle, 
-  Phone, 
-  Sparkles, 
-  ShieldCheck, 
-  Check, 
+import {
+  ArrowLeft,
+  BedDouble,
+  MapPin,
+  MessageCircle,
+  Phone,
   ArrowRight,
   Clock3
 } from 'lucide-react';
@@ -22,19 +19,11 @@ import { getPublicBranches, getPublicRoomById } from '@/lib/homestay-dashboard';
 import { getMenuItemsByBranch } from '@/lib/menu-actions';
 import { money } from '@/lib/format';
 import { compactPhone } from '@/lib/format';
+import { parseAmenity, resolveAmenityIcon } from '@/lib/amenity-icons';
 
 const PLACEHOLDER_IMG = 'https://placehold.co/900x650/1b1023/white?text=Anh+phong';
 function safeImg(src: string | undefined | null) {
   return src && (src.startsWith('http') || src.startsWith('/')) ? src : PLACEHOLDER_IMG;
-}
-
-// Helper to map amenity names to Lucide icons
-function getAmenityIcon(amenity: string) {
-  const lower = amenity.toLowerCase();
-  if (lower.includes('bồn tắm') || lower.includes('tắm')) return BedDouble;
-  if (lower.includes('máy chiếu') || lower.includes('chiếu')) return Sparkles;
-  if (lower.includes('điều hòa') || lower.includes('máy lạnh')) return ShieldCheck;
-  return Check;
 }
 
 interface PageProps {
@@ -129,14 +118,14 @@ export default async function RoomDetailPage({ params }: PageProps) {
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
                     {room.room_amenities.map((amenity) => {
-                      const Icon = getAmenityIcon(amenity);
+                      const Icon = resolveAmenityIcon(amenity);
                       return (
-                        <div 
+                        <div
                           key={amenity}
                           className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/5 p-3 text-xs font-bold text-white/80"
                         >
                           <Icon size={14} className="text-pink-300 shrink-0" />
-                          <span>{amenity}</span>
+                          <span>{parseAmenity(amenity).text}</span>
                         </div>
                       );
                     })}
