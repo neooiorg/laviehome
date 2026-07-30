@@ -103,7 +103,7 @@ export function RoomMenuOptions({ items, onMenuItemsChange }: RoomMenuOptionsPro
                     {money(Number(item.price))}
                   </span>
                   <div
-                    onClick={(e) => e.stopPropagation()}
+                    aria-hidden
                     className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors ${
                       selected
                         ? "border-yellow-400 bg-yellow-400"

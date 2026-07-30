@@ -210,7 +210,7 @@ export function RoomBooking({
       </div>
 
       <div className="glass-panel booking-panel rounded-3xl overflow-hidden border border-white/10 bg-white/2">
-        <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-y hide-scrollbar">
+        <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain touch-auto hide-scrollbar">
           <table className="min-w-max w-full text-center">
             <thead>
               <tr className="border-b border-white/10 bg-white/5">

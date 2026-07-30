@@ -663,7 +663,7 @@ export function LavieHomeApp({
                   <p className="text-sm">Vui lòng chọn chi nhánh khác hoặc liên hệ hotline để đặt thủ công.</p>
                 </div>
               ) : (
-              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-y">
+              <div ref={bookingScrollRef} className="booking-scroll hide-scrollbar overflow-x-auto overflow-y-hidden overscroll-x-contain touch-auto">
                 <table className="booking-table min-w-max text-center">
                   <thead>
                     {/* Row 1: Tên phòng */}

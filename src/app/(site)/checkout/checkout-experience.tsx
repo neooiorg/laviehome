@@ -103,8 +103,8 @@ export function CheckoutExperience({
     (item.image_url.startsWith("http") || item.image_url.startsWith("/"));
 
   return (
-    <section className="grid items-start gap-6 lg:grid-cols-[1fr_380px]">
-      <div className="grid gap-6">
+    <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid min-w-0 gap-6">
         <CheckoutForm
           bookingId={transferCode}
           price={price}
@@ -117,7 +117,7 @@ export function CheckoutExperience({
 
       {/* Below lg the layout is single-column: cap the summary/payment column so
           its cards (QR box, bank rows) don't stretch full-width on tablets. */}
-      <aside className="grid h-fit w-full max-w-md gap-6 lg:max-w-none lg:sticky lg:top-28">
+      <aside className="grid h-fit w-full min-w-0 max-w-md gap-6 lg:max-w-none lg:sticky lg:top-28">
         <section className="section-card p-6 md:p-8">
           <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-[-0.02em]">
             <FileText className="text-yellow-200" size={21} /> Tóm Tắt Đặt Phòng

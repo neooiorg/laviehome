@@ -249,7 +249,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
   }
 
   return (
-    <form className="grid gap-6" onSubmit={handleSubmit}>
+    <form className="grid min-w-0 grid-cols-1 gap-6" onSubmit={handleSubmit}>
       <section className="section-card p-6 md:p-8">
         <h2 className="flex items-center gap-2 text-xl font-extrabold tracking-[-0.025em]">
           <UserRound className="text-pink-200" size={21} /> Thông Tin Người Đặt
