@@ -147,13 +147,14 @@ export function CheckoutPaymentBox({
         </p>
       </div>
       
-      <div className="mt-5 border-2 border-white/20 bg-white p-5 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_rgba(255,255,255,0.05)]">
+      <div className="mt-5 border-2 border-white/20 bg-white p-4 sm:p-5 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_rgba(255,255,255,0.05)]">
+        {/* No fixed width/height attributes: the VietQR compact2 template is
+            portrait, so forcing a square squished it. Let it keep its natural
+            aspect ratio and cap the width so it scales on mobile/tablet. */}
         <img
           src={`https://img.vietqr.io/image/${bankConfig.bankCode}-${bankConfig.accountNumber}-compact2.png?amount=${price}&addInfo=${encodeURIComponent(transferCode)}&accountName=${encodeURIComponent(bankConfig.accountName)}`}
           alt="Mã QR Chuyển Khoản VietQR"
-          width={220}
-          height={220}
-          className="rounded-lg"
+          className="block h-auto w-full max-w-[260px] rounded-lg"
         />
       </div>
 

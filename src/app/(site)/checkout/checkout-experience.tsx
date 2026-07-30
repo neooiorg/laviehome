@@ -115,7 +115,9 @@ export function CheckoutExperience({
         />
       </div>
 
-      <aside className="grid h-fit gap-6 lg:sticky lg:top-28">
+      {/* Below lg the layout is single-column: cap the summary/payment column so
+          its cards (QR box, bank rows) don't stretch full-width on tablets. */}
+      <aside className="grid h-fit w-full max-w-md gap-6 lg:max-w-none lg:sticky lg:top-28">
         <section className="section-card p-6 md:p-8">
           <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-[-0.02em]">
             <FileText className="text-yellow-200" size={21} /> Tóm Tắt Đặt Phòng
