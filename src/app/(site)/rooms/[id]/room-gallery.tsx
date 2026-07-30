@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+
+import { RoomPhoto } from "@/components/room-photo";
 
 const PLACEHOLDER_IMG = "https://placehold.co/900x650/1b1023/white?text=Anh+phong";
 function safeImg(src: string | undefined | null) {
@@ -15,7 +16,7 @@ export function RoomGallery({ images, alt }: { images: string[]; alt: string }) 
   return (
     <div className="space-y-6">
       <div className="border-4 border-white bg-slate-900 rounded-3xl overflow-hidden shadow-[8px_8px_0px_rgba(243,90,189,0.4)] aspect-[16/10] relative">
-        <Image src={mainSrc} alt={alt} fill priority className="object-cover" />
+        <RoomPhoto src={mainSrc} alt={alt} priority sizes="(max-width: 1024px) 100vw, 800px" />
         <div className="absolute top-4 left-4 bg-pink-600 border-2 border-white text-white px-3 py-1.5 rounded-xl font-extrabold text-xs flex items-center gap-1.5 shadow-[3px_3px_0px_#fff]">
           ✨ Ảnh phòng thực tế 100%
         </div>
@@ -38,11 +39,11 @@ export function RoomGallery({ images, alt }: { images: string[]; alt: string }) 
                     : "border-white/20 hover:border-pink-300 hover:shadow-[4px_4px_0px_rgba(243,90,189,0.3)]"
                 }`}
               >
-                <Image
+                <RoomPhoto
                   src={safeImg(imgUrl)}
                   alt={`${alt} - Góc ${index + 1}`}
-                  fill
-                  className="object-cover transition duration-300 group-hover:scale-105"
+                  sizes="(max-width: 640px) 50vw, 260px"
+                  className="transition duration-300 group-hover:scale-105"
                 />
               </button>
             );

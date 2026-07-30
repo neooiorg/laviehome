@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { BrandWordmark } from "@/components/brand-wordmark";
 import {
@@ -25,6 +24,7 @@ import { compactPhone, money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
+import { RoomPhoto } from "@/components/room-photo";
 import { tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
 import type { MenuItem } from "@/lib/menu-actions";
 import { gsap } from "gsap";
@@ -485,12 +485,10 @@ export function LavieHomeApp({
               <div className="lavie-cyber-mockup relative p-2">
                 <div className="border-4 border-white bg-slate-900 rounded-3xl overflow-hidden shadow-[8px_8px_0px_rgba(243,90,189,0.5)] aspect-[4/3] relative">
                   {featuredRooms[0] && (
-                    <Image
+                    <RoomPhoto
                       src={safeImg(featuredRooms[0].main_image)}
                       alt="Preview Room"
-                      fill
                       sizes="(min-width: 1024px) 500px, 300px"
-                      className="object-cover"
                     />
                   )}
                   {/* Floating Info Badge 1 */}
@@ -587,14 +585,9 @@ export function LavieHomeApp({
           >
             {featuredRooms.map((room) => (
               <article key={room.id} className="room-card-clone snap-center">
-                <Image
-                  src={safeImg(room.main_image)}
-                  alt={`${room.card_name} room`}
-                  width={420}
-                  height={300}
-                  className="h-52 w-full rounded-2xl object-cover"
-                  draggable={false}
-                />
+                <div className="relative h-52 w-full overflow-hidden rounded-2xl bg-slate-900">
+                  <RoomPhoto src={safeImg(room.main_image)} alt={`${room.card_name} room`} sizes="420px" />
+                </div>
                 <h3 className="mt-4 text-base font-extrabold leading-tight text-pink-100">{room.card_name}</h3>
                 <div className="mt-3 flex max-h-28 flex-wrap gap-2 overflow-hidden">
                   {room.room_amenities.slice(0, 8).map((amenity) => {
@@ -1048,14 +1041,12 @@ function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void;
               ? room.images.filter((src) => src && (src.startsWith("http") || src.startsWith("/")))
               : [room.main_image]
             ).slice(0, 10).map((src) => (
-              <Image
+              <div
                 key={src}
-                src={safeImg(src)}
-                alt={room.card_name}
-                width={900}
-                height={650}
-                className="h-[360px] w-full min-w-full snap-center rounded-2xl object-cover sm:h-[520px]"
-              />
+                className="relative h-[360px] w-full min-w-full snap-center overflow-hidden rounded-2xl bg-slate-900 sm:h-[520px]"
+              >
+                <RoomPhoto src={safeImg(src)} alt={room.card_name} sizes="(max-width: 640px) 100vw, 900px" />
+              </div>
             ))}
           </div>
           <div className="flex flex-col">
