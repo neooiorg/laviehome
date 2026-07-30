@@ -108,6 +108,7 @@ export function CheckoutExperience({
         <CheckoutForm
           bookingId={transferCode}
           price={price}
+          roomPrice={roomPrice}
           onPricingChange={handlePricingChange}
           onConfirmed={handleConfirmed}
           onlinePaymentEnabled={onlinePaymentEnabled}

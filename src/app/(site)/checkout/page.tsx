@@ -132,11 +132,16 @@ async function checkTimeslotConflict(
 async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<typeof resolveCheckout>>) {
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
+    // Split the quote so discount codes only ever touch the room: quoted_amount /
+    // amount hold the room-only price, menu_items_total holds the (never-discounted)
+    // menu portion. Display total is amount + menu_items_total.
+    const roomPrice = checkout.roomPrice ?? 0;
+    const menuTotal = Math.max((checkout.price ?? 0) - roomPrice, 0);
     await query(
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name,
-        stay_date, date_label, time_range, timeslot_ids, channel, quoted_amount, amount
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Online', $11, $12)
+        stay_date, date_label, time_range, timeslot_ids, channel, quoted_amount, amount, menu_items_total
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Online', $11, $12, $13)
       ON CONFLICT (id) DO UPDATE SET
         room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
         room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
@@ -149,6 +154,7 @@ async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<type
         channel = COALESCE(bookings.channel, EXCLUDED.channel),
         quoted_amount = COALESCE(NULLIF(bookings.quoted_amount, 0), EXCLUDED.quoted_amount),
         amount = CASE WHEN EXCLUDED.amount > 0 THEN EXCLUDED.amount ELSE bookings.amount END,
+        menu_items_total = EXCLUDED.menu_items_total,
         updated_at = NOW()`,
       [
         id,
@@ -163,8 +169,9 @@ async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<type
         checkout.timeslotIds && checkout.timeslotIds !== "N/A"
           ? stringifyTimeslotIds(parseTimeslotIds(checkout.timeslotIds))
           : null,
-        checkout.price ?? 0,
-        checkout.price ?? 0,
+        roomPrice,
+        roomPrice,
+        menuTotal,
       ]
     );
   } catch {

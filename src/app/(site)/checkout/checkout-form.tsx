@@ -15,7 +15,10 @@ export type CheckoutPricing = {
 
 type CheckoutFormProps = {
   bookingId: string;
+  /** Full quote (room + menu) — the total the customer pays. */
   price: number;
+  /** Room-only portion — the discount code applies to this, never to menu items. */
+  roomPrice: number;
   onPricingChange?: (pricing: CheckoutPricing) => void;
   onConfirmed?: () => void;
   onlinePaymentEnabled?: boolean;
@@ -25,7 +28,7 @@ type DiscountResult =
   | { valid: true; percent: number; description: string }
   | { valid: false; error: string };
 
-export function CheckoutForm({ bookingId, price, onPricingChange, onConfirmed, onlinePaymentEnabled = true }: CheckoutFormProps) {
+export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onConfirmed, onlinePaymentEnabled = true }: CheckoutFormProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
@@ -72,7 +75,8 @@ export function CheckoutForm({ bookingId, price, onPricingChange, onConfirmed, o
 
   const surcharge = guestCount === 3 ? 50000 : guestCount === 4 ? 100000 : 0;
   const discountPercent = discountResult?.valid ? discountResult.percent : 0;
-  const discountAmount = Math.round((price * discountPercent) / 100);
+  // Discount applies to the room only — never to menu items (đồ ăn, bao cao su, gel…).
+  const discountAmount = Math.round((roomPrice * discountPercent) / 100);
   const finalAmount = price + surcharge - discountAmount;
   const appliedDiscountCode = discountResult?.valid ? discountCode.trim().toUpperCase() : null;
 
@@ -445,6 +449,10 @@ export function CheckoutForm({ bookingId, price, onPricingChange, onConfirmed, o
             </button>
           )}
         </div>
+
+        <p className="mt-2 text-[11px] font-semibold text-white/45">
+          * Mã giảm giá chỉ áp dụng cho tiền phòng, không áp dụng cho đồ ăn, tiện ích trong menu.
+        </p>
 
         {(discountResult?.valid || surcharge > 0) && (
           <div className="mt-3 space-y-1 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3">

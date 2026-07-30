@@ -102,11 +102,16 @@ async function resolveAmount(
   bookingId: string,
   guestCount: number,
   discountCode: string | null
-): Promise<number> {
-  const { rows } = await db.query("SELECT COALESCE(quoted_amount, amount) AS quoted_amount FROM bookings WHERE UPPER(id) = $1", [
-    bookingId.toUpperCase(),
-  ]);
-  const baseAmount = Number(rows[0]?.quoted_amount ?? 0);
+): Promise<{ amount: number; total: number }> {
+  const { rows } = await db.query(
+    `SELECT COALESCE(quoted_amount, amount) AS room_base, COALESCE(menu_items_total, 0) AS menu_items_total
+     FROM bookings WHERE UPPER(id) = $1`,
+    [bookingId.toUpperCase()]
+  );
+  // quoted_amount holds the room-only price — the discountable base. Menu items
+  // (đồ ăn, bao cao su, gel, …) are tracked separately and are never discounted.
+  const roomBase = Number(rows[0]?.room_base ?? 0);
+  const menuTotal = Number(rows[0]?.menu_items_total ?? 0);
   const surcharge = SURCHARGE[guestCount] ?? 0;
 
   let discountPercent = 0;
@@ -121,8 +126,9 @@ async function resolveAmount(
     if (dcRows.length > 0) discountPercent = Number(dcRows[0].percent);
   }
 
-  const discountAmount = Math.round((baseAmount * discountPercent) / 100);
-  return baseAmount + surcharge - discountAmount;
+  const discountAmount = Math.round((roomBase * discountPercent) / 100);
+  const amount = roomBase + surcharge - discountAmount; // room charge only (excl. menu)
+  return { amount, total: amount + menuTotal };
 }
 
 export async function POST(req: NextRequest) {
@@ -222,7 +228,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const finalAmount = await resolveAmount(db, id, Number(guest_count ?? 2), discount_code ?? null);
+    const { amount: bookingAmount, total: payTotal } = await resolveAmount(
+      db,
+      id,
+      Number(guest_count ?? 2),
+      discount_code ?? null
+    );
 
     await db.query(
       `INSERT INTO bookings (
@@ -265,8 +276,8 @@ export async function POST(req: NextRequest) {
         resolvedTimeRange,
         resolvedTimeslotIds.length > 0 ? stringifyTimeslotIds(resolvedTimeslotIds) : null,
         existing?.channel ?? "Online",
-        existing ? null : finalAmount,
-        finalAmount,
+        existing ? null : bookingAmount,
+        bookingAmount,
         customer_name ?? null,
         customer_phone ?? null,
         discount_code ?? null,
@@ -279,7 +290,7 @@ export async function POST(req: NextRequest) {
       ]
     );
 
-    return NextResponse.json({ success: true, id, amount: finalAmount });
+    return NextResponse.json({ success: true, id, amount: payTotal });
   } catch (error) {
     console.error("Create booking error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";

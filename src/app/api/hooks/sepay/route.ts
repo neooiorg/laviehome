@@ -51,7 +51,9 @@ export async function POST(req: NextRequest) {
   try {
     const db = getPool();
     const bookingRes = await db.query(
-      `SELECT amount FROM bookings WHERE UPPER(id) = $1 AND status = 'Chờ thanh toán'`,
+      // `amount` is the room-only charge; the customer pays room + menu, so the
+      // expected transfer must add the (never-discounted) menu items total.
+      `SELECT amount + COALESCE(menu_items_total, 0) AS amount FROM bookings WHERE UPPER(id) = $1 AND status = 'Chờ thanh toán'`,
       [bookingId]
     );
 

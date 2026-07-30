@@ -6,6 +6,7 @@ import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { money } from "@/lib/format";
 import { formatCheckoutDate, getRoomSlots, isSlotPast, makeBookingDates, type RoomSlot } from "@/lib/booking-slots";
+import { tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
 import type { MenuItem } from "@/lib/menu-actions";
 import { RoomMenuOptions } from "./_components/room-menu-options";
 
@@ -33,7 +34,18 @@ function isSlotPromo(dayIndex: number) {
   return dayIndex >= 1 && dayIndex <= 5;
 }
 
-export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems: MenuItem[] }) {
+// Customers may pick slots across at most one week.
+const MAX_DAYS = 7;
+
+export function RoomBooking({
+  room,
+  menuItems,
+  comboPromo,
+}: {
+  room: BookingRoom;
+  menuItems: MenuItem[];
+  comboPromo: ComboPromoConfig;
+}) {
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
   const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
   const [menuTotal, setMenuTotal] = useState(0);
@@ -66,10 +78,54 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
     };
   }, [room.id]);
 
-  const subtotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-  const discountRate = selectedSlots.length === 2 ? 0.05 : selectedSlots.length >= 3 ? 0.1 : 0;
-  const extraMinutes = selectedSlots.length === 2 ? 30 : selectedSlots.length >= 3 ? 60 : 0;
-  const comboTotal = Math.max(subtotal - subtotal * discountRate, 0);
+  // Slots grouped by day (in date order), so both the summary and the combo
+  // pricing can reason about one day at a time.
+  const slotsByDay = useMemo(() => {
+    const groups = new Map<string, { date: string; dateIso: string; slots: SelectedSlot[] }>();
+    for (const slot of selectedSlots) {
+      const group = groups.get(slot.dateIso) ?? { date: slot.date, dateIso: slot.dateIso, slots: [] };
+      group.slots.push(slot);
+      groups.set(slot.dateIso, group);
+    }
+    return [...groups.values()]
+      .map((group) => ({ ...group, slots: [...group.slots].sort((a, b) => a.position - b.position) }))
+      .sort((a, b) => a.slots[0].position - b.slots[0].position);
+  }, [selectedSlots]);
+
+  // Combo is scored per day: only slots that are adjacent *within the same day*
+  // earn the discount + bonus minutes. Each day is tallied independently.
+  const { subtotal, discountAmount, extraMinutes } = useMemo(() => {
+    let subtotal = 0;
+    let discountAmount = 0;
+    let extraMinutes = 0;
+    for (const group of slotsByDay) {
+      let i = 0;
+      while (i < group.slots.length) {
+        let end = i;
+        while (end + 1 < group.slots.length && group.slots[end + 1].position - group.slots[end].position === 1) end++;
+        const run = group.slots.slice(i, end + 1);
+        const runTotal = run.reduce((sum, slot) => sum + slot.price, 0);
+        const tier = tierForRun(comboPromo, run.length);
+        subtotal += runTotal;
+        if (tier) {
+          discountAmount += runTotal * (tier.discountPercent / 100);
+          extraMinutes += tier.bonusMinutes;
+        }
+        i = end + 1;
+      }
+    }
+    return { subtotal, discountAmount, extraMinutes };
+  }, [slotsByDay, comboPromo]);
+  const comboTotal = Math.max(subtotal - discountAmount, 0);
+  const promoActive = comboPromo.enabled && comboPromo.tiers.length > 0;
+  const promoNote = promoActive
+    ? comboPromo.tiers
+        .map(
+          (tier) =>
+            `Giảm ${tier.discountPercent}%${tier.bonusMinutes ? ` + tặng ${tier.bonusMinutes} phút` : ""} khi đặt ${tier.minSlots}+ khung giờ liền kề`
+        )
+        .join(", ")
+    : null;
   const handleMenuItemsChange = useCallback((items: MenuItem[], total: number) => {
     setSelectedMenuItems(items);
     setMenuTotal(total);
@@ -80,15 +136,10 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
       if (current.some((item) => item.id === slot.id)) {
         return current.filter((item) => item.id !== slot.id);
       }
-      if (current.length >= 4) return current;
-      if (current.length > 0) {
-        const sameDay = current.every((item) => item.dateIso === slot.dateIso);
-        const nextPositions = [...current.map((item) => item.position), slot.position].sort((a, b) => a - b);
-        const sequential = nextPositions.every(
-          (position, index) => index === 0 || position - nextPositions[index - 1] === 1
-        );
-        if (!sameDay || !sequential) return [slot];
-      }
+      // Free multi-day selection, capped at a week. A new day is only allowed
+      // while fewer than MAX_DAYS distinct days are already picked.
+      const days = new Set(current.map((item) => item.dateIso));
+      if (!days.has(slot.dateIso) && days.size >= MAX_DAYS) return current;
       return [...current, slot].sort((a, b) => a.position - b.position);
     });
   }
@@ -97,6 +148,12 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
     if (!selectedSlots.length) return;
     const first = selectedSlots[0];
     const totalWithMenu = comboTotal + menuTotal;
+    // When more than one day is picked, prefix each day's times with its label so
+    // the multi-day breakdown survives into checkout (which stores one stay_date).
+    const timeRange =
+      slotsByDay.length > 1
+        ? slotsByDay.map((group) => `${group.date}: ${group.slots.map((slot) => slot.time).join(", ")}`).join(" • ")
+        : selectedSlots.map((slot) => slot.time).join(", ");
     const payload = {
       booking_id: makeBookingReference(room.branch_id),
       room_id: room.id,
@@ -105,7 +162,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
       branch_name: room.branch_name,
       branch_id: String(room.branch_id),
       date: formatCheckoutDate(first.dateIso),
-      time_range: selectedSlots.map((slot) => slot.time).join(", "),
+      time_range: timeRange,
       price: totalWithMenu,
       menu_item_ids: selectedMenuItems.map((item) => item.id).join(","),
     };
@@ -126,8 +183,6 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
     window.location.href = `/checkout/?${params.toString()}`;
   }
 
-  const summary = selectedSlots[0];
-
   return (
     <section id="booking" className="scroll-mt-28 mt-12">
       <div className="mb-6 flex flex-col items-center text-center">
@@ -147,9 +202,11 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
         <div className="flex items-center gap-2">
           <span className="w-4 h-4 rounded-md bg-yellow-400" /> Đang chọn
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-4 h-4 rounded-md bg-white/5 ring-1 ring-pink-500/50" /> Khuyến mãi
-        </div>
+        {promoActive && (
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-md bg-white/5 ring-1 ring-pink-500/50" /> Khuyến mãi
+          </div>
+        )}
       </div>
 
       <div className="glass-panel booking-panel rounded-3xl overflow-hidden border border-white/10 bg-white/2">
@@ -157,11 +214,11 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
           <table className="min-w-max w-full text-center">
             <thead>
               <tr className="border-b border-white/10 bg-white/5">
-                <th className="sticky left-0 z-20 bg-[#1f1428] px-3 py-2.5 text-[11px] font-black uppercase tracking-wider text-pink-200 border-r border-white/10">
+                <th className="sticky left-0 z-20 bg-[#1f1428] px-2 py-1.5 md:px-3 md:py-2.5 text-[10px] md:text-[11px] font-black uppercase tracking-wider text-pink-200 border-r border-white/10">
                   Ngày
                 </th>
                 {slots.map((slot, i) => (
-                  <th key={i} className="px-3 py-2.5 border-r border-white/10 text-[11px] font-bold text-white/80 min-w-[104px]">
+                  <th key={i} className="px-1.5 py-1.5 md:px-3 md:py-2.5 border-r border-white/10 text-[10px] md:text-[11px] font-bold text-white/80 min-w-[70px] md:min-w-[104px]">
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="text-white/95 tracking-tight">{slot.label}</span>
                       <span className="flex items-center gap-1 text-[9px] font-bold text-white/40">
@@ -176,7 +233,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
             <tbody>
               {dates.map((date, dayIndex) => (
                 <tr key={date.iso} className="border-b border-white/5 hover:bg-white/3 transition-colors">
-                  <td className="sticky left-0 z-10 bg-[#1b1023] px-3 py-2 text-center border-r border-white/10 font-bold text-xs text-white/80 whitespace-nowrap">
+                  <td className="sticky left-0 z-10 bg-[#1b1023] px-2 py-1 md:px-3 md:py-2 text-center border-r border-white/10 font-bold text-[11px] md:text-xs text-white/80 whitespace-nowrap">
                     <span className={date.label === "Hôm nay" ? "text-pink-400 font-extrabold" : ""}>
                       {date.label} <span className="text-white/50">{date.dateLabel}</span>
                     </span>
@@ -186,7 +243,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
                     const booked = bookedSlotIdSet.has(id);
                     const past = !booked && isSlotPast(dayIndex, slot.label);
                     const selected = selectedSlots.some((item) => item.id === id);
-                    const promo = isSlotPromo(dayIndex);
+                    const promo = promoActive && isSlotPromo(dayIndex);
                     const slotPrice = room.slot_prices?.[slotIndex];
                     const price =
                       typeof slotPrice === "number" && slotPrice > 0
@@ -196,7 +253,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
                           : room.price_from;
 
                     return (
-                      <td key={id} className="px-1 py-1 border-r border-white/5 align-middle min-w-[104px]">
+                      <td key={id} className="px-0.5 py-0.5 md:px-1 md:py-1 border-r border-white/5 align-middle min-w-[70px] md:min-w-[104px]">
                         <button
                           type="button"
                           disabled={booked || past}
@@ -212,7 +269,7 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
                           }
                           title={booked ? "Đã đặt" : past ? "Đã qua" : `${slot.label} - ${money(price)}đ`}
                           className={`
-                            mx-auto flex h-9 w-[92px] items-center justify-center rounded-xl border text-[10px] font-bold transition-all duration-200 outline-none
+                            mx-auto flex h-8 w-[62px] md:h-9 md:w-[92px] items-center justify-center rounded-lg md:rounded-xl border text-[9px] md:text-[10px] font-bold transition-all duration-200 outline-none
                             ${
                               booked
                                 ? "bg-rose-500 border-transparent text-white/50 cursor-not-allowed"
@@ -244,22 +301,30 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
         <div className="mt-5 rounded-3xl p-6 border-2 border-white/20 bg-[#1b111f] shadow-[6px_6px_0px_rgba(255,255,255,0.05)]">
           <h3 className="text-base font-extrabold text-pink-200 border-b border-white/10 pb-3 mb-4 flex items-center gap-2">
             <Sparkles size={16} /> Khung giờ đã chọn
+            <span className="ml-auto text-xs font-bold text-white/50">
+              {slotsByDay.length} ngày · {selectedSlots.length} khung giờ
+            </span>
           </h3>
-          <div className="grid gap-4 sm:grid-cols-2 text-sm">
-            <div className="flex items-center gap-2 text-white/80">
-              <CalendarDays size={15} className="text-pink-300" /> {summary?.date}
-            </div>
-            <div className="flex items-center gap-2 text-white/80">
-              <Clock3 size={15} className="text-pink-300" /> {selectedSlots.map((s) => s.time).join(", ")}
-            </div>
+          <div className="grid gap-3 text-sm">
+            {slotsByDay.map((group) => (
+              <div key={group.dateIso} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex items-center gap-2 font-bold text-white/85 sm:w-40 sm:shrink-0">
+                  <CalendarDays size={15} className="text-pink-300" /> {group.date}
+                </div>
+                <div className="flex items-start gap-2 text-white/70">
+                  <Clock3 size={15} className="mt-0.5 shrink-0 text-pink-300" />
+                  <span>{group.slots.map((s) => s.time).join(", ")}</span>
+                </div>
+              </div>
+            ))}
           </div>
-          {selectedSlots.length > 1 && (
+          {discountAmount > 0 && (
             <div className="mt-4 flex flex-wrap gap-5 border-t border-white/5 pt-4 text-sm">
               <span className="text-white/70">
                 Giá gốc: <span className="font-bold text-white">{money(subtotal)}đ</span>
               </span>
               <span className="text-emerald-300">
-                Ưu đãi: <span className="font-bold">-{money(subtotal * discountRate)}đ ({Math.round(discountRate * 100)}%)</span>
+                Ưu đãi: <span className="font-bold">-{money(discountAmount)}đ</span>
               </span>
               <span className="text-cyan-300">
                 Tặng thêm: <span className="font-bold">+{extraMinutes} phút</span>
@@ -286,7 +351,8 @@ export function RoomBooking({ room, menuItems }: { room: BookingRoom; menuItems:
 
       <div className="mt-4 border-2 border-cyan-400 bg-cyan-950/20 rounded-2xl p-4 text-center shadow-[4px_4px_0px_#22d3ee]">
         <p className="text-xs md:text-sm font-black text-cyan-300 leading-relaxed">
-          ** Giảm 5% + tặng 30 phút khi đặt 2 khung giờ liền kề, 10% + 60 phút khi đặt 3-4 khung giờ
+          {promoNote && <>** {promoNote} (tính riêng theo từng ngày). </>}
+          Có thể chọn nhiều ngày, tối đa 1 tuần.
         </p>
       </div>
 

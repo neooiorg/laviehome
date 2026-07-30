@@ -17,6 +17,7 @@ import { SiteHeader } from '@/components/site-header';
 import { BottomNav } from '@/components/bottom-nav';
 import { getPublicBranches, getPublicRoomById } from '@/lib/homestay-dashboard';
 import { getMenuItemsByBranch } from '@/lib/menu-actions';
+import { getComboPromoConfig } from '@/lib/settings-actions';
 import { money } from '@/lib/format';
 import { compactPhone } from '@/lib/format';
 import { parseAmenity, resolveAmenityIcon } from '@/lib/amenity-icons';
@@ -47,7 +48,10 @@ export default async function RoomDetailPage({ params }: PageProps) {
     return notFound();
   }
 
-  const menuItems = (await getMenuItemsByBranch(room.branch_id)).filter((item) => item.is_active);
+  const [menuItems, comboPromo] = await Promise.all([
+    getMenuItemsByBranch(room.branch_id).then((items) => items.filter((item) => item.is_active)),
+    getComboPromoConfig(),
+  ]);
   const branch = branches.find((b) => b.id === room.branch_id) ?? branches[0];
   const validImages = (room.images ?? []).filter((img) => img && (img.startsWith('http') || img.startsWith('/')));
   const allImages = validImages.length > 0 ? validImages : [safeImg(room.main_image)];
@@ -193,6 +197,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
               time_slots: room.time_slots ?? null,
             }}
             menuItems={menuItems}
+            comboPromo={comboPromo}
           />
         </div>
       </div>
