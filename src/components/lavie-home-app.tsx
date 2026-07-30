@@ -25,6 +25,7 @@ import { compactPhone, money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
+import { tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
 import type { MenuItem } from "@/lib/menu-actions";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -110,6 +111,9 @@ function isSlotPromo(dayIndex: number) {
   return dayIndex >= 1 && dayIndex <= 5;
 }
 
+// Customers may pick slots for one room across at most one week.
+const MAX_DAYS = 7;
+
 function isSlotBlindBag(roomName: string, dayIndex: number, slotIndex: number) {
   const hash = roomName.charCodeAt(roomName.length - 2) + dayIndex * 7 + slotIndex * 3;
   return hash % 5 === 1;
@@ -153,10 +157,12 @@ export function LavieHomeApp({
   branches,
   rooms,
   menuItems,
+  comboPromo,
 }: {
   branches: Branch[];
   rooms: Room[];
   menuItems: MenuItem[];
+  comboPromo: ComboPromoConfig;
 }) {
   const [activeBranchId, setActiveBranchId] = useState(branches[0]?.id ?? 30);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlot[]>([]);
@@ -219,11 +225,55 @@ export function LavieHomeApp({
   const dates = useMemo(() => makeDates(), []);
   const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
 
-  const subtotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-  const discountRate = selectedSlots.length === 2 ? 0.05 : selectedSlots.length >= 3 ? 0.1 : 0;
-  const extraMinutes = selectedSlots.length === 2 ? 30 : selectedSlots.length >= 3 ? 60 : 0;
-  const comboTotal = subtotal - subtotal * discountRate;
-  const grandTotal = Math.max(comboTotal, 0) + menuTotal;
+  const promoActive = comboPromo.enabled && comboPromo.tiers.length > 0;
+
+  // Selected slots grouped by day (one room per booking is enforced in toggleSlot).
+  const slotsByDay = useMemo(() => {
+    const groups = new Map<string, { date: string; dateIso: string; slots: SelectedSlot[] }>();
+    for (const slot of selectedSlots) {
+      const group = groups.get(slot.dateIso) ?? { date: slot.date, dateIso: slot.dateIso, slots: [] };
+      group.slots.push(slot);
+      groups.set(slot.dateIso, group);
+    }
+    return [...groups.values()]
+      .map((group) => ({ ...group, slots: [...group.slots].sort((a, b) => a.position - b.position) }))
+      .sort((a, b) => a.slots[0].position - b.slots[0].position);
+  }, [selectedSlots]);
+
+  // Combo is scored per day: only adjacent slots within the same day earn the
+  // discount + bonus minutes, and each day is tallied independently.
+  const { subtotal, discountAmount, extraMinutes } = useMemo(() => {
+    let subtotal = 0;
+    let discountAmount = 0;
+    let extraMinutes = 0;
+    for (const group of slotsByDay) {
+      let i = 0;
+      while (i < group.slots.length) {
+        let end = i;
+        while (end + 1 < group.slots.length && group.slots[end + 1].position - group.slots[end].position === 1) end++;
+        const run = group.slots.slice(i, end + 1);
+        const runTotal = run.reduce((sum, slot) => sum + slot.price, 0);
+        const tier = tierForRun(comboPromo, run.length);
+        subtotal += runTotal;
+        if (tier) {
+          discountAmount += runTotal * (tier.discountPercent / 100);
+          extraMinutes += tier.bonusMinutes;
+        }
+        i = end + 1;
+      }
+    }
+    return { subtotal, discountAmount, extraMinutes };
+  }, [slotsByDay, comboPromo]);
+  const comboTotal = Math.max(subtotal - discountAmount, 0);
+  const grandTotal = comboTotal + menuTotal;
+  const promoNote = promoActive
+    ? comboPromo.tiers
+        .map(
+          (tier) =>
+            `Giảm ${tier.discountPercent}%${tier.bonusMinutes ? ` + tặng ${tier.bonusMinutes} phút` : ""} khi đặt ${tier.minSlots}+ khung giờ liền kề`
+        )
+        .join(", ")
+    : null;
   const handleMenuItemsChange = useCallback((items: MenuItem[], total: number) => {
     setSelectedMenuItems(items);
     setMenuTotal(total);
@@ -318,15 +368,13 @@ export function LavieHomeApp({
       if (current.some((item) => item.id === slot.id)) {
         return current.filter((item) => item.id !== slot.id);
       }
-
-      if (current.length >= 4) return current;
-      if (current.length > 0) {
-        const sameRoom = current.every((item) => item.room.id === slot.room.id && item.date === slot.date);
-        const nextPositions = [...current.map((item) => item.position), slot.position].sort((a, b) => a - b);
-        const sequential = nextPositions.every((position, index) => index === 0 || position - nextPositions[index - 1] === 1);
-        if (!sameRoom || !sequential) return [slot];
+      // One room per booking: picking a different room resets the selection.
+      if (current.length > 0 && current[0].room.id !== slot.room.id) {
+        return [slot];
       }
-
+      // Free multi-day selection for that room, capped at a week.
+      const days = new Set(current.map((item) => item.dateIso));
+      if (!days.has(slot.dateIso) && days.size >= MAX_DAYS) return current;
       return [...current, slot].sort((a, b) => a.position - b.position);
     });
   }
@@ -351,6 +399,12 @@ export function LavieHomeApp({
     const firstSlot = selectedSlots[0];
     const timeslotIds = selectedSlots.map((slot) => slot.id).join(",");
     const checkoutDate = formatCheckoutDate(firstSlot.dateIso);
+    // When more than one day is picked, keep each day's label with its times so
+    // the multi-day breakdown survives into checkout (which stores one stay_date).
+    const timeRange =
+      slotsByDay.length > 1
+        ? slotsByDay.map((group) => `${group.date}: ${group.slots.map((slot) => slot.time).join(", ")}`).join(" • ")
+        : selectedSlots.map((slot) => slot.time).join(", ");
     const payload = {
       booking_id: makeBookingReference(firstSlot.room.branch_id),
       room_id: firstSlot.room.id,
@@ -359,7 +413,7 @@ export function LavieHomeApp({
       branch_name: firstSlot.room.branch_name,
       branch_id: String(firstSlot.room.branch_id),
       date: checkoutDate,
-      time_range: selectedSlots.map((slot) => slot.time).join(", "),
+      time_range: timeRange,
       price: grandTotal,
       menu_item_ids: selectedMenuItems.map((item) => item.id).join(","),
     };
@@ -593,10 +647,12 @@ export function LavieHomeApp({
               <span className="w-5 h-5 rounded-lg bg-yellow-400 text-black border border-yellow-300" />
               <span>Đang chọn</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-lg border-2 border-transparent bg-origin-border bg-gradient-to-r from-orange-400 to-pink-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
-              <span>Khuyến mãi</span>
-            </div>
+            {promoActive && (
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-lg border-2 border-transparent bg-origin-border bg-gradient-to-r from-orange-400 to-pink-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                <span>Khuyến mãi</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 flex items-center justify-center">
                 <BlindBagIcon size={20} />
@@ -640,7 +696,7 @@ export function LavieHomeApp({
                         getRoomSlots(room.card_name, room.time_slots).map((slot, sIdx) => (
                           <th
                             key={`${room.id}-slot-head-${sIdx}`}
-                            className="py-1.5 px-1 border-r border-white/10 text-[10px] font-medium text-white/70 text-center min-w-[82px]"
+                            className="py-1.5 px-0.5 md:px-1 border-r border-white/10 text-[10px] font-medium text-white/70 text-center min-w-[54px] md:min-w-[82px]"
                           >
                             <div className="flex flex-col items-center justify-center gap-0.5">
                               <span className="font-semibold text-white/95 tracking-tighter text-[9.5px]">{slot.label}</span>
@@ -674,12 +730,12 @@ export function LavieHomeApp({
                             const booked = bookedSlotIdSet.has(id);
                             const past = !booked && isSlotPast(dayIndex, slot.label);
                             const selected = selectedSlots.some((item) => item.id === id);
-                            const promo = isSlotPromo(dayIndex);
+                            const promo = promoActive && isSlotPromo(dayIndex);
                             const hasBlindBag = isSlotBlindBag(room.card_name, dayIndex, slotIndex);
                             const price = slot.isOvernight ? room.full_day_price : room.price_from;
 
                             return (
-                              <td key={id} className="py-1 px-1 text-center border-r border-white/5 align-middle min-w-[82px]">
+                              <td key={id} className="py-0.5 px-0.5 md:py-1 md:px-1 text-center border-r border-white/5 align-middle min-w-[54px] md:min-w-[82px]">
                                 <button
                                   disabled={booked || past}
                                   onClick={() =>
@@ -694,7 +750,7 @@ export function LavieHomeApp({
                                     })
                                   }
                                   className={`
-                                    w-14 h-9 rounded-xl transition-all duration-200 flex items-center justify-center relative cursor-pointer outline-none border mx-auto
+                                    w-[46px] h-8 md:w-14 md:h-9 rounded-lg md:rounded-xl transition-all duration-200 flex items-center justify-center relative cursor-pointer outline-none border mx-auto
                                     ${
                                       booked
                                         ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
@@ -747,22 +803,36 @@ export function LavieHomeApp({
               <div id="booking-summary" className="scroll-mt-28 rounded-3xl p-6 border-2 border-white/20 bg-[#1b111f] shadow-[6px_6px_0px_rgba(255,255,255,0.05)]">
                 <h3 className="text-base font-extrabold text-pink-200 border-b border-white/10 pb-3 mb-4 flex items-center gap-2">
                   <Sparkles size={16} /> Chi tiết khung giờ đã chọn
+                  <span className="ml-auto text-xs font-bold text-white/50">
+                    {slotsByDay.length} ngày · {selectedSlots.length} khung giờ
+                  </span>
                 </h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+                <div className="grid gap-4 sm:grid-cols-2 text-sm">
                   <SummaryRow icon={BedDouble} label="Phòng" value={selectedSummary?.room ?? "Chưa chọn"} />
                   <SummaryRow icon={MapPin} label="Chi nhánh" value={selectedSummary?.branch ?? currentBranch?.name ?? "Chưa chọn"} />
-                  <SummaryRow icon={CalendarDays} label="Ngày" value={selectedSummary?.date ?? "Chưa chọn"} />
-                  <SummaryRow icon={Clock3} label="Khung giờ" value={selectedSummary?.time ?? "Chưa chọn"} />
+                </div>
+                <div className="mt-4 grid gap-2 border-t border-white/5 pt-4 text-sm">
+                  {slotsByDay.map((group) => (
+                    <div key={group.dateIso} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                      <div className="flex items-center gap-2 font-bold text-white/85 sm:w-44 sm:shrink-0">
+                        <CalendarDays size={15} className="text-pink-300" /> {group.date}
+                      </div>
+                      <div className="flex items-start gap-2 text-white/70">
+                        <Clock3 size={15} className="mt-0.5 shrink-0 text-pink-300" />
+                        <span>{group.slots.map((s) => s.time).join(", ")}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 justify-between border-t border-white/5 pt-4 text-sm text-white/70">
-                  <div className="flex gap-6">
+                  <div className="flex flex-wrap gap-6">
                     <div>Giá gốc: <span className="text-white font-bold">{money(subtotal)}đ</span></div>
                     {menuTotal > 0 && (
                       <div className="text-yellow-200">Menu items: <span className="font-bold">+{money(menuTotal)}đ</span></div>
                     )}
-                    {selectedSlots.length > 1 && (
+                    {discountAmount > 0 && (
                       <>
-                        <div className="text-emerald-300">Ưu đãi: <span className="font-bold">-{money(subtotal * discountRate)}đ ({Math.round(discountRate * 100)}%)</span></div>
+                        <div className="text-emerald-300">Ưu đãi: <span className="font-bold">-{money(discountAmount)}đ</span></div>
                         <div className="text-cyan-300">Tặng thêm: <span className="font-bold">+{extraMinutes} phút nghỉ</span></div>
                       </>
                     )}
@@ -789,7 +859,8 @@ export function LavieHomeApp({
             {/* Discount Policy Note with cyan border */}
             <div className="border-2 border-cyan-400 bg-cyan-950/20 rounded-2xl p-5 text-center shadow-[4px_4px_0px_#22d3ee]">
               <p className="text-sm md:text-base font-black text-cyan-300 leading-relaxed">
-                ** Khách hàng được giảm 5% và tặng thêm 30 Phút khi book 2 khung giờ, 10% và 60 Phút khi book 3 hoặc 4 khung giờ
+                {promoNote && <>** {promoNote} (tính riêng theo từng ngày). </>}
+                Có thể chọn nhiều ngày cho cùng một phòng, tối đa 1 tuần.
               </p>
             </div>
           </div>
@@ -917,11 +988,12 @@ export function LavieHomeApp({
           <div className="hidden md:flex fixed bottom-0 inset-x-0 z-40 items-center justify-between gap-4 border-t-2 border-yellow-300/30 bg-[#1b1024]/95 backdrop-blur-xl px-8 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.4)]">
             <div className="flex items-baseline gap-4">
               <span className="text-sm font-bold text-white/60">
-                {selectedSummary?.room} · {selectedSummary?.date} · {selectedSummary?.time}
+                {selectedSummary?.room} · {slotsByDay.length > 1 ? `${slotsByDay.length} ngày` : selectedSummary?.date} ·{" "}
+                {selectedSlots.length} khung giờ
               </span>
               <span className="text-xl font-black text-yellow-200">{money(grandTotal)}đ</span>
-              {selectedSlots.length > 1 && (
-                <span className="text-sm font-bold text-emerald-300">-{Math.round(discountRate * 100)}% + {extraMinutes} phút</span>
+              {discountAmount > 0 && (
+                <span className="text-sm font-bold text-emerald-300">-{money(discountAmount)}đ + {extraMinutes} phút</span>
               )}
             </div>
             <button onClick={goToCheckout} className="primary-button !min-h-11 px-8 text-base font-extrabold uppercase tracking-wide cursor-pointer">
