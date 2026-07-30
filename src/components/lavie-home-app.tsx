@@ -675,14 +675,14 @@ export function LavieHomeApp({
                   <thead>
                     {/* Row 1: Tên phòng */}
                     <tr className="border-b border-white/10 bg-white/5">
-                      <th colSpan={2} className="sticky left-0 z-30 w-[6.5rem] min-w-[6.5rem] bg-[#1f1428] p-3 text-center border-r border-white/10 text-xs font-black uppercase tracking-wider text-pink-200">
+                      <th colSpan={2} className="sticky left-0 z-30 w-[6.5rem] min-w-[6.5rem] bg-[#1f1428] py-1.5 px-2 text-center border-r border-white/10 text-[11px] font-black uppercase tracking-wider text-pink-200">
                         Tên phòng
                       </th>
                       {calendarRooms.map((room) => (
                         <th
                           key={room.id}
                           colSpan={getRoomSlots(room.card_name, room.time_slots).length}
-                          className="p-3 text-center border-r border-white/10 text-sm font-extrabold text-pink-100"
+                          className="py-1.5 px-2 text-center border-r border-white/10 text-[13px] font-extrabold text-pink-100"
                         >
                           {room.card_name.replace("Phòng ", "")}
                         </th>
@@ -690,17 +690,17 @@ export function LavieHomeApp({
                     </tr>
                     {/* Row 2: Thứ / Ngày / Slots */}
                     <tr className="border-b border-white/10 bg-white/3">
-                      <th className="sticky left-0 z-30 w-[3.1rem] min-w-[3.1rem] bg-[#1f1428] py-1.5 px-1 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Thứ</th>
-                      <th className="sticky left-[3.1rem] z-30 w-[3.4rem] min-w-[3.4rem] bg-[#1f1428] py-1.5 px-1 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Ngày</th>
+                      <th className="sticky left-0 z-30 w-[3.1rem] min-w-[3.1rem] bg-[#1f1428] py-0.5 px-1 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Thứ</th>
+                      <th className="sticky left-[3.1rem] z-30 w-[3.4rem] min-w-[3.4rem] bg-[#1f1428] py-0.5 px-1 border-r border-white/10 text-[11px] font-bold text-white/60 text-center">Ngày</th>
                       {calendarRooms.map((room) =>
                         getRoomSlots(room.card_name, room.time_slots).map((slot, sIdx) => (
                           <th
                             key={`${room.id}-slot-head-${sIdx}`}
-                            className="py-1.5 px-0.5 md:px-1 border-r border-white/10 text-[10px] font-medium text-white/70 text-center min-w-[54px] md:min-w-[82px]"
+                            className="py-1 px-0.5 md:px-1 border-r border-white/10 text-[10px] font-medium text-white/70 text-center min-w-[54px] md:min-w-[82px]"
                           >
-                            <div className="flex flex-col items-center justify-center gap-0.5">
-                              <span className="font-semibold text-white/95 tracking-tighter text-[9.5px]">{slot.label}</span>
-                              <span className="flex items-center gap-0.5 text-[8.5px] font-bold text-white/40 tracking-tighter">
+                            <div className="flex flex-col items-center justify-center gap-0">
+                              <span className="font-semibold text-white/95 tracking-tighter text-[9px] leading-tight">{slot.label}</span>
+                              <span className="flex items-center gap-0.5 text-[8px] font-bold text-white/40 tracking-tighter">
                                 {slot.isOvernight && <span className="text-pink-300">🌙</span>}
                                 {slot.duration}
                               </span>
@@ -713,12 +713,12 @@ export function LavieHomeApp({
                   <tbody>
                     {dates.map((date, dayIndex) => (
                       <tr key={date.iso} className="border-b border-white/5 hover:bg-white/3 transition-colors duration-150">
-                        <td className="sticky left-0 z-10 w-[3.1rem] min-w-[3.1rem] bg-[#1b1023] py-1.5 px-1 text-center border-r border-white/10 font-bold text-xs text-white/80">
+                        <td className="sticky left-0 z-10 w-[3.1rem] min-w-[3.1rem] bg-[#1b1023] py-0.5 px-1 text-center border-r border-white/10 font-bold text-xs text-white/80">
                           <span className={date.label === "Hôm nay" ? "text-pink-400 font-extrabold" : ""}>
                             {date.label}
                           </span>
                         </td>
-                        <td className="sticky left-[3.1rem] z-10 w-[3.4rem] min-w-[3.4rem] bg-[#1b1023] py-1.5 px-1 text-center border-r border-white/10 font-bold text-xs text-white/80">
+                        <td className="sticky left-[3.1rem] z-10 w-[3.4rem] min-w-[3.4rem] bg-[#1b1023] py-0.5 px-1 text-center border-r border-white/10 font-bold text-xs text-white/80">
                           <span className={date.label === "Hôm nay" ? "text-pink-400 font-extrabold" : ""}>
                             {date.dateLabel}
                           </span>
@@ -735,7 +735,7 @@ export function LavieHomeApp({
                             const price = slot.isOvernight ? room.full_day_price : room.price_from;
 
                             return (
-                              <td key={id} className="py-0.5 px-0.5 md:py-1 md:px-1 text-center border-r border-white/5 align-middle min-w-[54px] md:min-w-[82px]">
+                              <td key={id} className="py-px px-0.5 md:px-1 text-center border-r border-white/5 align-middle min-w-[54px] md:min-w-[82px]">
                                 <button
                                   disabled={booked || past}
                                   onClick={() =>
@@ -750,7 +750,7 @@ export function LavieHomeApp({
                                     })
                                   }
                                   className={`
-                                    w-[46px] h-8 md:w-14 md:h-9 rounded-lg md:rounded-xl transition-all duration-200 flex items-center justify-center relative cursor-pointer outline-none border mx-auto
+                                    w-[46px] h-6 md:w-14 md:h-7 rounded-md transition-all duration-200 flex items-center justify-center relative cursor-pointer outline-none border mx-auto
                                     ${
                                       booked
                                         ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
@@ -766,19 +766,19 @@ export function LavieHomeApp({
                                   title={booked ? "Đã đặt" : past ? "Đã qua" : `Khung giờ ${slot.label} - Giá: ${money(price)}đ`}
                                 >
                                   {booked ? (
-                                    <span className="text-[10px] font-bold text-white/50">-</span>
+                                    <span className="text-[9px] font-bold text-white/50">-</span>
                                   ) : selected ? (
-                                    <span className="text-[9.5px] font-black text-black">
+                                    <span className="text-[8px] font-black text-black leading-none">
                                       {money(price)}đ
                                     </span>
                                   ) : (
                                     <>
                                       {hasBlindBag && (
                                         <div className="absolute inset-0 flex items-center justify-center animate-float">
-                                          <BlindBagIcon size={18} />
+                                          <BlindBagIcon size={15} />
                                         </div>
                                       )}
-                                      <span className="opacity-0 hover:opacity-100 absolute inset-0 flex items-center justify-center text-[9px] font-extrabold bg-slate-900/90 text-white rounded-xl transition-opacity duration-150">
+                                      <span className="opacity-0 hover:opacity-100 absolute inset-0 flex items-center justify-center text-[8px] font-extrabold bg-slate-900/90 text-white rounded-md transition-opacity duration-150">
                                         {money(price)}đ
                                       </span>
                                     </>

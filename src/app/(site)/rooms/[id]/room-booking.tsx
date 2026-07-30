@@ -218,7 +218,7 @@ export function RoomBooking({
                   Ngày
                 </th>
                 {slots.map((slot, i) => (
-                  <th key={i} className="px-1.5 py-1.5 md:px-3 md:py-2.5 border-r border-white/10 text-[10px] md:text-[11px] font-bold text-white/80 min-w-[70px] md:min-w-[104px]">
+                  <th key={i} className="px-1.5 py-1 md:px-3 md:py-1.5 border-r border-white/10 text-[10px] md:text-[11px] font-bold text-white/80 min-w-[70px] md:min-w-[104px]">
                     <div className="flex flex-col items-center gap-0.5">
                       <span className="text-white/95 tracking-tight">{slot.label}</span>
                       <span className="flex items-center gap-1 text-[9px] font-bold text-white/40">
@@ -233,7 +233,7 @@ export function RoomBooking({
             <tbody>
               {dates.map((date, dayIndex) => (
                 <tr key={date.iso} className="border-b border-white/5 hover:bg-white/3 transition-colors">
-                  <td className="sticky left-0 z-10 bg-[#1b1023] px-2 py-1 md:px-3 md:py-2 text-center border-r border-white/10 font-bold text-[11px] md:text-xs text-white/80 whitespace-nowrap">
+                  <td className="sticky left-0 z-10 bg-[#1b1023] px-2 py-0.5 md:px-3 md:py-1 text-center border-r border-white/10 font-bold text-[11px] md:text-xs text-white/80 whitespace-nowrap">
                     <span className={date.label === "Hôm nay" ? "text-pink-400 font-extrabold" : ""}>
                       {date.label} <span className="text-white/50">{date.dateLabel}</span>
                     </span>
@@ -253,7 +253,7 @@ export function RoomBooking({
                           : room.price_from;
 
                     return (
-                      <td key={id} className="px-0.5 py-0.5 md:px-1 md:py-1 border-r border-white/5 align-middle min-w-[70px] md:min-w-[104px]">
+                      <td key={id} className="px-0.5 py-px md:px-1 border-r border-white/5 align-middle min-w-[70px] md:min-w-[104px]">
                         <button
                           type="button"
                           disabled={booked || past}
@@ -269,7 +269,7 @@ export function RoomBooking({
                           }
                           title={booked ? "Đã đặt" : past ? "Đã qua" : `${slot.label} - ${money(price)}đ`}
                           className={`
-                            mx-auto flex h-8 w-[62px] md:h-9 md:w-[92px] items-center justify-center rounded-lg md:rounded-xl border text-[9px] md:text-[10px] font-bold transition-all duration-200 outline-none
+                            mx-auto flex h-6 w-[62px] md:h-7 md:w-[92px] items-center justify-center rounded-md border text-[9px] font-bold transition-all duration-200 outline-none
                             ${
                               booked
                                 ? "bg-rose-500 border-transparent text-white/50 cursor-not-allowed"
