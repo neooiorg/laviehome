@@ -118,11 +118,11 @@ export function CheckoutExperience({
       {/* Below lg the layout is single-column: cap the summary/payment column so
           its cards (QR box, bank rows) don't stretch full-width on tablets. */}
       <aside className="grid h-fit w-full min-w-0 max-w-md gap-6 lg:max-w-none lg:sticky lg:top-28">
-        <section className="section-card p-6 md:p-8">
+        <section className="section-card overflow-hidden p-6 md:p-8">
           <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-[-0.02em]">
-            <FileText className="text-yellow-200" size={21} /> Tóm Tắt Đặt Phòng
+            <FileText className="shrink-0 text-yellow-200" size={21} /> Tóm Tắt Đặt Phòng
           </h2>
-          <div className="mt-5 grid gap-3 text-sm">
+          <div className="mt-5 grid min-w-0 gap-3 text-sm">
             <CheckoutLine icon={Home} label="Phòng" value={roomName} />
             <CheckoutLine icon={MapPin} label="Chi nhánh" value={branchName} />
             <CheckoutLine icon={CalendarDays} label="Lịch Đặt" value={date} />
@@ -272,11 +272,11 @@ export function CheckoutExperience({
 
 function CheckoutLine({ icon: Icon, label, value }: { icon: ElementType; label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white/5 px-4 py-3">
+    <div className="min-w-0 rounded-2xl bg-white/5 px-4 py-3">
       <p className="flex items-center gap-2 text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-white/38">
-        <Icon size={15} className="text-pink-200" /> {label}
+        <Icon size={15} className="shrink-0 text-pink-200" /> {label}
       </p>
-      <p className="mt-1 text-sm font-extrabold text-white/88">{value}</p>
+      <p className="mt-1 text-sm font-extrabold text-white/88 break-words">{value}</p>
     </div>
   );
 }

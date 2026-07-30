@@ -697,19 +697,6 @@ input {
   overflow: hidden;
 }
 
-.booking-panel::after {
-  content: "";
-  position: absolute;
-  top: 3.05rem;
-  right: 0.85rem;
-  bottom: 0.85rem;
-  z-index: 18;
-  width: 3.6rem;
-  border-bottom-right-radius: 1.15rem;
-  background: linear-gradient(90deg, transparent, rgba(24, 13, 29, 0.62));
-  pointer-events: none;
-}
-
 .booking-scroll {
   max-height: min(62vh, 520px);
   overflow: auto;
