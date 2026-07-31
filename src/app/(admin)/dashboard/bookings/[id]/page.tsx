@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { getBookingById } from "@/lib/homestay-dashboard";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 import { BookingStatusSelect } from "../_components/booking-status-select";
+import { BookingDocumentImage } from "./_components/booking-document-image";
 
 function money(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
@@ -68,7 +69,6 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column — main info */}
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader className="pb-3">
@@ -125,7 +125,6 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
 
-        {/* Right column — CCCD + meta */}
         <div className="space-y-6">
           {(booking.cccdFront || booking.cccdBack) && (
             <Card>
@@ -133,32 +132,8 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 <CardTitle className="text-base">CCCD / CMND</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {booking.cccdFront && (
-                  <div>
-                    <p className="mb-1.5 text-xs text-muted-foreground">Mặt trước</p>
-                    <a href={booking.cccdFront} target="_blank" rel="noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={booking.cccdFront}
-                        alt="CCCD mặt trước"
-                        className="w-full rounded-lg border object-cover"
-                      />
-                    </a>
-                  </div>
-                )}
-                {booking.cccdBack && (
-                  <div>
-                    <p className="mb-1.5 text-xs text-muted-foreground">Mặt sau</p>
-                    <a href={booking.cccdBack} target="_blank" rel="noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={booking.cccdBack}
-                        alt="CCCD mặt sau"
-                        className="w-full rounded-lg border object-cover"
-                      />
-                    </a>
-                  </div>
-                )}
+                {booking.cccdFront && <BookingDocumentImage src={booking.cccdFront} label="Mặt trước" />}
+                {booking.cccdBack && <BookingDocumentImage src={booking.cccdBack} label="Mặt sau" />}
               </CardContent>
             </Card>
           )}
