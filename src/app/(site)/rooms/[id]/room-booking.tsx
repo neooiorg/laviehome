@@ -6,7 +6,7 @@ import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { money } from "@/lib/format";
 import { formatCheckoutDate, getRoomSlots, isSlotStartPast, makeBookingDates, type RoomSlot } from "@/lib/booking-slots";
-import { tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
+import { isStartInComboPromoWindows, tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
 import type { MenuItem } from "@/lib/menu-actions";
 import { RoomMenuOptions } from "./_components/room-menu-options";
 
@@ -26,6 +26,7 @@ type SelectedSlot = {
   date: string;
   dateIso: string;
   time: string;
+  start?: string;
   price: number;
   position: number;
 };
@@ -102,10 +103,17 @@ export function RoomBooking({
       let i = 0;
       while (i < group.slots.length) {
         let end = i;
-        while (end + 1 < group.slots.length && group.slots[end + 1].position - group.slots[end].position === 1) end++;
+        const promoEligible = isStartInComboPromoWindows(comboPromo, group.slots[i].start);
+        while (
+          end + 1 < group.slots.length &&
+          group.slots[end + 1].position - group.slots[end].position === 1 &&
+          isStartInComboPromoWindows(comboPromo, group.slots[end + 1].start) === promoEligible
+        ) {
+          end++;
+        }
         const run = group.slots.slice(i, end + 1);
         const runTotal = run.reduce((sum, slot) => sum + slot.price, 0);
-        const tier = tierForRun(comboPromo, run.length);
+        const tier = promoEligible ? tierForRun(comboPromo, run.length) : null;
         subtotal += runTotal;
         if (tier) {
           discountAmount += runTotal * (tier.discountPercent / 100);
@@ -263,6 +271,7 @@ export function RoomBooking({
                               date: date.label === "Hôm nay" ? "Hôm nay" : `${date.label}, ${date.dateLabel}`,
                               dateIso: date.iso,
                               time: `${slot.label} (${slot.duration})`,
+                              start: slot.start,
                               price,
                               position: dayIndex * slots.length + slotIndex,
                             })

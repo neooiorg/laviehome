@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
     const branchRes = await pool.query<{ id: number }>(`
       INSERT INTO branches (name, hotline, google_maps_link, active, classic_booking_enabled)
       VALUES
-        ('Cần Thơ - Tân An', '0706 595 899',
-         'https://www.google.com/maps/search/98+Tr%E1%BA%A7n+Minh+S%C6%A1n+T%C3%A2n+An+C%E1%BA%A7n+Th%C6%A1',
+        ('Cần Thơ - 98A Trần Minh Sơn, P Tân An, TP Cần Thơ', '0706 595 899',
+         'https://maps.app.goo.gl/mXpUyc24zTH1CvaGA',
          1, 1)
       ON CONFLICT DO NOTHING
       RETURNING id
@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
     if (branchRes.rows.length > 0) {
       branchId = branchRes.rows[0].id;
     } else {
-      const existing = await pool.query<{ id: number }>(`SELECT id FROM branches WHERE name = 'Cần Thơ - Tân An' LIMIT 1`);
+      const existing = await pool.query<{ id: number }>(
+        `SELECT id FROM branches WHERE name IN ('Cần Thơ - 98A Trần Minh Sơn, P Tân An, TP Cần Thơ', 'Cần Thơ - Tân An') LIMIT 1`
+      );
       branchId = existing.rows[0].id;
     }
 
@@ -128,7 +130,7 @@ export async function GET(req: NextRequest) {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           branchId,
-          'Cần Thơ - Tân An',
+          'Cần Thơ - 98A Trần Minh Sơn, P Tân An, TP Cần Thơ',
           room.card_name,
           room.price_from,
           room.price_to,
@@ -160,7 +162,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      branch: { id: branchId, name: 'Cần Thơ - Tân An' },
+      branch: { id: branchId, name: 'Cần Thơ - 98A Trần Minh Sơn, P Tân An, TP Cần Thơ' },
       rooms_inserted: inserted,
       discount_codes: ['LAVIENEW'],
       users: ['nttantts@gmail.com', 'admin.laviehome@neooi.com'],

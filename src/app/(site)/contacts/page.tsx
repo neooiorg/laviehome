@@ -1,8 +1,8 @@
-import Link from 'next/link';
-import { ArrowRight, BedDouble, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { ArrowRight, BedDouble, ExternalLink, MapPin, MessageCircle, Phone } from 'lucide-react';
 
 import { SiteHeader } from '@/components/site-header';
 import { BottomNav } from '@/components/bottom-nav';
+import { CUSTOMER_LOCATION, CUSTOMER_SOCIAL_LINKS } from '@/config/customer-info';
 import { getPublicBranches, getPublicRooms } from '@/lib/homestay-dashboard';
 import { compactPhone } from '@/lib/format';
 
@@ -52,6 +52,7 @@ export default async function ContactsPage() {
                     <MapPin size={18} className='mt-0.5 shrink-0 text-pink-200' />
                     <span>
                       {branch.name}
+                      <span className='mt-1 block text-xs text-white/50'>{CUSTOMER_LOCATION.note}</span>
                     </span>
                   </div>
                   <div className='flex items-start gap-3'>
@@ -81,11 +82,29 @@ export default async function ContactsPage() {
                     </a>
                     <a
                       className='inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-white/20 bg-white/5 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-[3px_3px_0px_rgba(255,255,255,0.15)] hover:shadow-[5px_5px_0px_white] hover:border-white hover:-translate-y-0.5 transition-all cursor-pointer duration-150'
-                      href={branch.google_maps_link}
+                      href={branch.google_maps_link || CUSTOMER_LOCATION.mapsUrl}
                       target='_blank'
                       rel='noopener noreferrer'
                     >
                       Bản đồ <ArrowRight size={14} />
+                    </a>
+                  </div>
+                  <div className='grid grid-cols-2 gap-3'>
+                    <a
+                      className='inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-pink-500 bg-pink-600/10 py-2.5 text-xs font-extrabold uppercase tracking-wider text-pink-200 shadow-[3px_3px_0px_#ec4899] hover:shadow-[5px_5px_0px_#ec4899] hover:-translate-y-0.5 transition-all cursor-pointer duration-150'
+                      href={CUSTOMER_SOCIAL_LINKS.tiktok}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      TikTok <ExternalLink size={14} />
+                    </a>
+                    <a
+                      className='inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-sky-500 bg-sky-600/10 py-2.5 text-xs font-extrabold uppercase tracking-wider text-sky-200 shadow-[3px_3px_0px_#0ea5e9] hover:shadow-[5px_5px_0px_#0ea5e9] hover:-translate-y-0.5 transition-all cursor-pointer duration-150'
+                      href={CUSTOMER_SOCIAL_LINKS.facebook}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      Facebook <ExternalLink size={14} />
                     </a>
                   </div>
                 </div>

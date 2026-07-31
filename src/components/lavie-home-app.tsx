@@ -20,13 +20,14 @@ import type { ElementType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
+import { CUSTOMER_LOCATION } from "@/config/customer-info";
 import { compactPhone, money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { isSlotLabelStartPast } from "@/lib/booking-slots";
 import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
 import { RoomPhoto } from "@/components/room-photo";
-import { tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
+import { isStartInComboPromoWindows, tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
 import type { MenuItem } from "@/lib/menu-actions";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -49,28 +50,28 @@ const BlindBagIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-const roomSlots: Record<string, { label: string; duration: string; isOvernight?: boolean }[]> = {
+const roomSlots: Record<string, { label: string; duration: string; start?: string; end?: string; isOvernight?: boolean }[]> = {
   Honey: [
-    { label: "9:00 - 12:00", duration: "3T" },
-    { label: "12:30 - 15:30", duration: "3T" },
-    { label: "16:00 - 19:00", duration: "3T" },
-    { label: "19:30 - 8:20", duration: "12T 50", isOvernight: true }
+    { label: "9:00 - 12:00", duration: "3T", start: "09:00", end: "12:00" },
+    { label: "12:30 - 15:30", duration: "3T", start: "12:30", end: "15:30" },
+    { label: "16:00 - 19:00", duration: "3T", start: "16:00", end: "19:00" },
+    { label: "19:30 - 8:20", duration: "12T 50", start: "19:30", end: "08:20", isOvernight: true }
   ],
   Squid: [
-    { label: "9:30 - 12:30", duration: "3T" },
-    { label: "13:00 - 16:00", duration: "3T" },
-    { label: "16:30 - 19:30", duration: "3T" },
-    { label: "20:00 - 8:50", duration: "12T 50", isOvernight: true }
+    { label: "9:30 - 12:30", duration: "3T", start: "09:30", end: "12:30" },
+    { label: "13:00 - 16:00", duration: "3T", start: "13:00", end: "16:00" },
+    { label: "16:30 - 19:30", duration: "3T", start: "16:30", end: "19:30" },
+    { label: "20:00 - 8:50", duration: "12T 50", start: "20:00", end: "08:50", isOvernight: true }
   ],
   default: [
-    { label: "9:00 - 12:00", duration: "3T" },
-    { label: "12:30 - 15:30", duration: "3T" },
-    { label: "16:00 - 19:00", duration: "3T" },
-    { label: "19:30 - 8:20", duration: "12T 50", isOvernight: true }
+    { label: "9:00 - 12:00", duration: "3T", start: "09:00", end: "12:00" },
+    { label: "12:30 - 15:30", duration: "3T", start: "12:30", end: "15:30" },
+    { label: "16:00 - 19:00", duration: "3T", start: "16:00", end: "19:00" },
+    { label: "19:30 - 8:20", duration: "12T 50", start: "19:30", end: "08:20", isOvernight: true }
   ]
 };
 
-type DisplaySlot = { label: string; duration: string; isOvernight?: boolean };
+type DisplaySlot = { label: string; duration: string; start?: string; end?: string; isOvernight?: boolean };
 
 function getRoomSlots(roomName: string, storedSlots?: DisplaySlot[] | null): DisplaySlot[] {
   if (storedSlots && storedSlots.length > 0) return storedSlots;
@@ -118,6 +119,7 @@ type SelectedSlot = {
   date: string;
   dateIso: string;
   time: string;
+  start?: string;
   price: number;
   position: number;
 };
@@ -243,10 +245,17 @@ export function LavieHomeApp({
       let i = 0;
       while (i < group.slots.length) {
         let end = i;
-        while (end + 1 < group.slots.length && group.slots[end + 1].position - group.slots[end].position === 1) end++;
+        const promoEligible = isStartInComboPromoWindows(comboPromo, group.slots[i].start);
+        while (
+          end + 1 < group.slots.length &&
+          group.slots[end + 1].position - group.slots[end].position === 1 &&
+          isStartInComboPromoWindows(comboPromo, group.slots[end + 1].start) === promoEligible
+        ) {
+          end++;
+        }
         const run = group.slots.slice(i, end + 1);
         const runTotal = run.reduce((sum, slot) => sum + slot.price, 0);
-        const tier = tierForRun(comboPromo, run.length);
+        const tier = promoEligible ? tierForRun(comboPromo, run.length) : null;
         subtotal += runTotal;
         if (tier) {
           discountAmount += runTotal * (tier.discountPercent / 100);
@@ -731,6 +740,7 @@ export function LavieHomeApp({
                                       date: date.label === "Hôm nay" ? "Hôm nay" : `${date.label}, ${date.dateLabel}`,
                                       dateIso: date.iso,
                                       time: `${slot.label} (${slot.duration})`,
+                                      start: slot.start,
                                       price,
                                       position: dayIndex * slots.length + slotIndex,
                                     })
@@ -906,6 +916,10 @@ export function LavieHomeApp({
             <div className="space-y-2 text-xs font-bold">
               <p className="text-white text-xs font-black mb-1">
                 {currentBranch?.name ?? "Lavie Home"}
+              </p>
+              <p className="flex items-start gap-2 text-white/55">
+                <MapPin size={14} className="mt-0.5 shrink-0" />
+                <span>{CUSTOMER_LOCATION.note}</span>
               </p>
               <a 
                 href={`tel:${compactPhone(currentBranch?.hotline ?? "0909123456")}`}

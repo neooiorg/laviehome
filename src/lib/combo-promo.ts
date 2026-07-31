@@ -16,19 +16,52 @@ export type ComboPromoTier = {
   bonusMinutes: number;
 };
 
+export type ComboPromoWindow = {
+  /** Start time as "HH:MM" (24h). */
+  start: string;
+  /** End time as "HH:MM" (24h). */
+  end: string;
+};
+
 export type ComboPromoConfig = {
   enabled: boolean;
   tiers: ComboPromoTier[];
+  /**
+   * Optional start-time windows where combo promos apply. Empty means all day,
+   * preserving older configs that only had tiers.
+   */
+  windows: ComboPromoWindow[];
 };
 
 /** Mirrors the pricing that used to be hardcoded in the booking grid. */
 export const DEFAULT_COMBO_PROMO_CONFIG: ComboPromoConfig = {
   enabled: true,
+  windows: [],
   tiers: [
     { minSlots: 2, discountPercent: 5, bonusMinutes: 30 },
     { minSlots: 3, discountPercent: 10, bonusMinutes: 60 },
   ],
 };
+
+export function isValidComboPromoTime(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function comboPromoTimeToMinutes(value: string): number | null {
+  if (!isValidComboPromoTime(value)) return null;
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function normalizeComboPromoWindow(entry: unknown): ComboPromoWindow | null {
+  if (!entry || typeof entry !== "object") return null;
+  const window = entry as Record<string, unknown>;
+  const start = String(window.start ?? "").trim();
+  const end = String(window.end ?? "").trim();
+  if (!isValidComboPromoTime(start) || !isValidComboPromoTime(end)) return null;
+  if (start === end) return null;
+  return { start, end };
+}
 
 /**
  * Coerce an untrusted value (DB row or client payload) into a safe config.
@@ -38,6 +71,10 @@ export function normalizeComboPromoConfig(raw: unknown): ComboPromoConfig {
   if (!raw || typeof raw !== "object") return DEFAULT_COMBO_PROMO_CONFIG;
   const obj = raw as Record<string, unknown>;
   const enabled = obj.enabled !== false;
+  const windowsRaw = Array.isArray(obj.windows) ? obj.windows : [];
+  const windows = windowsRaw
+    .map(normalizeComboPromoWindow)
+    .filter((window): window is ComboPromoWindow => window !== null);
   const tiersRaw = Array.isArray(obj.tiers) ? obj.tiers : [];
   const tiers = tiersRaw
     .map((entry) => {
@@ -59,7 +96,32 @@ export function normalizeComboPromoConfig(raw: unknown): ComboPromoConfig {
         tier.bonusMinutes >= 0
     )
     .sort((a, b) => a.minSlots - b.minSlots);
-  return { enabled, tiers };
+  return { enabled, tiers, windows };
+}
+
+/**
+ * Whether a slot start minute is inside the configured promo windows. Empty
+ * windows means "all day" for backwards compatibility.
+ */
+export function isStartInComboPromoWindows(
+  config: ComboPromoConfig,
+  start: string | null | undefined
+): boolean {
+  if (config.windows.length === 0) return true;
+  if (!start) return false;
+
+  const startMinutes = comboPromoTimeToMinutes(start);
+  if (startMinutes === null) return false;
+
+  return config.windows.some((window) => {
+    const windowStart = comboPromoTimeToMinutes(window.start);
+    const windowEnd = comboPromoTimeToMinutes(window.end);
+    if (windowStart === null || windowEnd === null) return false;
+    if (windowEnd > windowStart) {
+      return startMinutes >= windowStart && startMinutes < windowEnd;
+    }
+    return startMinutes >= windowStart || startMinutes < windowEnd;
+  });
 }
 
 /**
