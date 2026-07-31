@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { BottomNav } from "@/components/bottom-nav";
 import { SiteHeader } from "@/components/site-header";
+import { CUSTOMER_CONTACT } from "@/config/customer-info";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { compactPhone } from "@/lib/format";
 import { getActiveBookingsForRoomDate } from "@/lib/booking-records";
@@ -97,7 +98,7 @@ async function resolveCheckout(
     price: Number.isFinite(price) ? price : 0,
     roomPrice,
     menuItems,
-    hotline: branch?.hotline ?? "0909.123.456",
+    hotline: branch?.hotline ?? CUSTOMER_CONTACT.phoneDisplay,
     map: branch?.google_maps_link ?? "/contacts",
   };
 }

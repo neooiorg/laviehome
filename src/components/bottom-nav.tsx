@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Home, MapPin, Phone, Search } from "lucide-react";
+import { CUSTOMER_CONTACT } from "@/config/customer-info";
 import { compactPhone } from "@/lib/format";
 
-export function BottomNav({ hotline = "0909123456" }: { hotline?: string }) {
+export function BottomNav({ hotline = CUSTOMER_CONTACT.phoneLocalCompact }: { hotline?: string }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-white/10 bg-[#1b1024]/95 px-2 py-2 backdrop-blur-xl md:hidden">
       <Link className="bottom-link" href="/#rooms">

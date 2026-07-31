@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
-import { ChevronsUpDown, Plus } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -11,8 +10,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -72,9 +69,6 @@ export function OrgSwitcher({ orgs }: { orgs?: Organization[] }) {
             side="bottom"
             sideOffset={4}
           >
-            <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-              Organizations
-            </DropdownMenuLabel>
             <DropdownMenuGroup>
               {defaultOrgs.map((org) => (
                 <DropdownMenuItem
@@ -104,13 +98,6 @@ export function OrgSwitcher({ orgs }: { orgs?: Organization[] }) {
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings/organizations" className="cursor-pointer">
-                <Plus className="mr-2 size-4" />
-                <span>Add organization</span>
-              </Link>
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

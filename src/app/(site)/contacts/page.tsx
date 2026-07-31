@@ -2,7 +2,7 @@ import { ArrowRight, BedDouble, ExternalLink, MapPin, MessageCircle, Phone } fro
 
 import { SiteHeader } from '@/components/site-header';
 import { BottomNav } from '@/components/bottom-nav';
-import { CUSTOMER_LOCATION, CUSTOMER_SOCIAL_LINKS } from '@/config/customer-info';
+import { CUSTOMER_CONTACT, CUSTOMER_LOCATION, CUSTOMER_SOCIAL_LINKS } from '@/config/customer-info';
 import { getPublicBranches, getPublicRooms } from '@/lib/homestay-dashboard';
 import { compactPhone } from '@/lib/format';
 
@@ -74,7 +74,7 @@ export default async function ContactsPage() {
                   <div className='grid grid-cols-2 gap-3'>
                     <a
                       className='inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-blue-500 bg-blue-600/10 py-2.5 text-xs font-extrabold uppercase tracking-wider text-blue-300 shadow-[3px_3px_0px_#3b82f6] hover:shadow-[5px_5px_0px_#3b82f6] hover:-translate-y-0.5 transition-all cursor-pointer duration-150'
-                      href={`https://zalo.me/${compactPhone(branch.hotline)}`}
+                      href={CUSTOMER_CONTACT.zaloUrl}
                       target='_blank'
                       rel='noopener noreferrer'
                     >

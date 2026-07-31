@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandWordmark } from "@/components/brand-wordmark";
+import { CUSTOMER_CONTACT } from "@/config/customer-info";
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -218,12 +219,23 @@ export function SiteHeader() {
                 <ul className="list-disc space-y-1.5 pl-8 text-white/70">
                   <li>
                     Quý khách vui lòng gọi Hotline{" "}
-                    <a href="tel:0909123456" className="font-bold text-yellow-200 hover:underline">
-                      0909.123.456
+                    <a href={`tel:${CUSTOMER_CONTACT.telHref}`} className="font-bold text-yellow-200 hover:underline">
+                      {CUSTOMER_CONTACT.phoneDisplay}
                     </a>{" "}
                     để yêu cầu hủy.
                   </li>
-                  <li>Hoặc liên hệ tài khoản Zalo hỗ trợ.</li>
+                  <li>
+                    Hoặc liên hệ{" "}
+                    <a
+                      href={CUSTOMER_CONTACT.zaloUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-blue-200 hover:underline"
+                    >
+                      Zalo Lavie Home {CUSTOMER_CONTACT.phoneDisplay}
+                    </a>{" "}
+                    để được hỗ trợ.
+                  </li>
                 </ul>
               </div>
 

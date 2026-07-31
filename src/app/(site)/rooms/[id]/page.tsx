@@ -15,6 +15,7 @@ import {
 
 import { SiteHeader } from '@/components/site-header';
 import { BottomNav } from '@/components/bottom-nav';
+import { CUSTOMER_CONTACT } from '@/config/customer-info';
 import { getPublicBranches, getPublicRoomById } from '@/lib/homestay-dashboard';
 import { getMenuItemsByBranch } from '@/lib/menu-actions';
 import { getComboPromoConfig } from '@/lib/settings-actions';
@@ -146,7 +147,7 @@ export default async function RoomDetailPage({ params }: PageProps) {
                   </a>
 
                   <a 
-                    href={`https://zalo.me/${compactPhone(branch?.hotline ?? '0909123456')}`}
+                    href={CUSTOMER_CONTACT.zaloUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 w-full rounded-xl border-2 border-blue-500 bg-blue-600/10 py-3.5 text-xs font-extrabold uppercase tracking-wider text-blue-300 shadow-[3px_3px_0px_#3b82f6] hover:shadow-[5px_5px_0px_#3b82f6] hover:-translate-y-0.5 transition-all cursor-pointer duration-150"
@@ -254,14 +255,14 @@ export default async function RoomDetailPage({ params }: PageProps) {
             </h4>
             <div className="space-y-2 text-xs font-bold">
               <a 
-                href={`tel:${compactPhone(branch?.hotline ?? '0909123456')}`}
+                href={`tel:${compactPhone(branch?.hotline ?? CUSTOMER_CONTACT.phoneLocalCompact)}`}
                 className="flex items-center gap-2 text-pink-300 hover:text-pink-400 transition-colors"
               >
                 <Phone size={14} />
-                Hotline: {branch?.hotline ?? '0909 123 456'}
+                Hotline: {branch?.hotline ?? CUSTOMER_CONTACT.phoneLocalDisplay}
               </a>
               <a 
-                href={`https://zalo.me/${compactPhone(branch?.hotline ?? '0909123456')}`}
+                href={CUSTOMER_CONTACT.zaloUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-blue-300 hover:text-blue-400 transition-colors"

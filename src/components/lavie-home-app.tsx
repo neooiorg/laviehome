@@ -20,7 +20,7 @@ import type { ElementType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
-import { CUSTOMER_LOCATION } from "@/config/customer-info";
+import { CUSTOMER_CONTACT, CUSTOMER_LOCATION } from "@/config/customer-info";
 import { compactPhone, money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
@@ -922,14 +922,14 @@ export function LavieHomeApp({
                 <span>{CUSTOMER_LOCATION.note}</span>
               </p>
               <a 
-                href={`tel:${compactPhone(currentBranch?.hotline ?? "0909123456")}`}
+                href={`tel:${compactPhone(currentBranch?.hotline ?? CUSTOMER_CONTACT.phoneLocalCompact)}`}
                 className="flex items-center gap-2 text-pink-300 hover:text-pink-400 transition-colors"
               >
                 <Phone size={14} />
-                Hotline: {currentBranch?.hotline ?? "0909 123 456"}
+                Hotline: {currentBranch?.hotline ?? CUSTOMER_CONTACT.phoneLocalDisplay}
               </a>
               <a 
-                href={`https://zalo.me/${compactPhone(currentBranch?.hotline ?? "0909123456")}`}
+                href={CUSTOMER_CONTACT.zaloUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-blue-300 hover:text-blue-400 transition-colors"
@@ -962,10 +962,10 @@ export function LavieHomeApp({
         <a className="float-button bg-slate-700" href="#top" aria-label="Lên đầu trang">
           <ChevronUp size={22} />
         </a>
-        <a className="float-button bg-emerald-500" href={`tel:${compactPhone(currentBranch?.hotline ?? "0909123456")}`} aria-label="Gọi ngay">
+        <a className="float-button bg-emerald-500" href={`tel:${compactPhone(currentBranch?.hotline ?? CUSTOMER_CONTACT.phoneLocalCompact)}`} aria-label="Gọi ngay">
           <Phone size={22} />
         </a>
-        <a className="float-button bg-blue-600" href={`https://zalo.me/${compactPhone(currentBranch?.hotline ?? "0909123456")}`} aria-label="Zalo" target="_blank" rel="noopener noreferrer">
+        <a className="float-button bg-blue-600" href={CUSTOMER_CONTACT.zaloUrl} aria-label="Zalo" target="_blank" rel="noopener noreferrer">
           <MessageCircle size={20} />
         </a>
       </div>
@@ -1003,7 +1003,7 @@ export function LavieHomeApp({
         </>
       )}
 
-      <BottomNav hotline={currentBranch?.hotline ?? "0909123456"} />
+      <BottomNav hotline={currentBranch?.hotline ?? CUSTOMER_CONTACT.phoneLocalCompact} />
 
       {modalRoom ? <RoomModal room={modalRoom} onClose={() => setModalRoom(null)} onBook={() => setModalRoom(null)} /> : null}
     </div>

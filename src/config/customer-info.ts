@@ -9,3 +9,11 @@ export const CUSTOMER_SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@laviehome_cantho?_r=1&_t=ZS-98TwENOKvi9",
   facebook: "https://www.facebook.com/share/1Ey62ErR5c/?mibextid=wwXIfr",
 };
+
+export const CUSTOMER_CONTACT = {
+  phoneDisplay: "+84 70 659 5899",
+  phoneLocalDisplay: "0706 595 899",
+  phoneLocalCompact: "0706595899",
+  telHref: "+84706595899",
+  zaloUrl: "https://zalo.me/84706595899",
+};
