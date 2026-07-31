@@ -10,7 +10,9 @@ import {
   CalendarDays,
   ChevronUp,
   Clock3,
+  Download,
   MapPin,
+  Maximize2,
   MessageCircle,
   Phone,
   Sparkles,
@@ -38,6 +40,10 @@ const PLACEHOLDER_IMG = "https://placehold.co/420x300/1b1023/white?text=Anh+phon
 
 function safeImg(src: string) {
   return src && (src.startsWith("http") || src.startsWith("/")) ? src : PLACEHOLDER_IMG;
+}
+
+function downloadHref(src: string) {
+  return `/api/download-image?src=${encodeURIComponent(src)}`;
 }
 
 const BlindBagIcon = ({ size = 16 }: { size?: number }) => (
@@ -1030,6 +1036,15 @@ function Legend({ color, label }: { color: string; label: string }) {
 }
 
 function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void; onBook: () => void }) {
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const roomImages = (
+    room.images.filter((src) => src && (src.startsWith("http") || src.startsWith("/"))).length > 0
+      ? room.images.filter((src) => src && (src.startsWith("http") || src.startsWith("/")))
+      : [room.main_image]
+  )
+    .map((src) => safeImg(src))
+    .slice(0, 10);
+
   return (
     <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
       <div className="glass-panel mx-auto my-8 max-w-6xl overflow-hidden rounded-3xl">
@@ -1044,15 +1059,38 @@ function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void;
         </div>
         <div className="grid gap-5 p-5 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="hide-scrollbar flex snap-x gap-4 overflow-x-auto">
-            {(room.images.filter((src) => src && (src.startsWith("http") || src.startsWith("/"))).length > 0
-              ? room.images.filter((src) => src && (src.startsWith("http") || src.startsWith("/")))
-              : [room.main_image]
-            ).slice(0, 10).map((src) => (
+            {roomImages.map((src, index) => (
               <div
                 key={src}
                 className="relative h-[360px] w-full min-w-full snap-center overflow-hidden rounded-2xl bg-slate-900 sm:h-[520px]"
               >
-                <RoomPhoto src={safeImg(src)} alt={room.card_name} sizes="(max-width: 640px) 100vw, 900px" />
+                <button
+                  type="button"
+                  onClick={() => setPreviewSrc(src)}
+                  className="absolute inset-0 cursor-zoom-in"
+                  aria-label={`Xem ảnh lớn ${index + 1}`}
+                >
+                  <RoomPhoto src={src} alt={room.card_name} sizes="(max-width: 640px) 100vw, 900px" />
+                </button>
+                <div className="absolute right-3 top-3 z-10 flex gap-2">
+                  <a
+                    href={downloadHref(src)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/30 bg-black/55 text-white backdrop-blur transition hover:bg-pink-600"
+                    aria-label="Tải ảnh xuống"
+                    title="Tải ảnh xuống"
+                  >
+                    <Download size={18} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewSrc(src)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/30 bg-black/55 text-white backdrop-blur transition hover:bg-pink-600"
+                    aria-label="Xem ảnh lớn"
+                    title="Xem ảnh lớn"
+                  >
+                    <Maximize2 size={18} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1085,6 +1123,38 @@ function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void;
           </div>
         </div>
       </div>
+      {previewSrc ? (
+        <div className="fixed inset-0 z-[80] bg-black/90 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="absolute right-4 top-4 z-10 flex gap-2">
+            <a
+              href={downloadHref(previewSrc)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white backdrop-blur transition hover:bg-pink-600"
+              aria-label="Tải ảnh xuống"
+              title="Tải ảnh xuống"
+            >
+              <Download size={20} />
+            </a>
+            <button
+              type="button"
+              onClick={() => setPreviewSrc(null)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/25 bg-white/10 text-white backdrop-blur transition hover:bg-pink-600"
+              aria-label="Đóng ảnh lớn"
+              title="Đóng"
+            >
+              <X size={22} />
+            </button>
+          </div>
+          <button
+            type="button"
+            className="absolute inset-0 cursor-zoom-out"
+            onClick={() => setPreviewSrc(null)}
+            aria-label="Đóng ảnh lớn"
+          />
+          <div className="pointer-events-none relative h-full w-full">
+            <RoomPhoto src={previewSrc} alt={room.card_name} sizes="100vw" className="pointer-events-auto" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
