@@ -23,21 +23,34 @@ export function CheckoutPaymentBox({
   bankConfig,
 }: CheckoutPaymentBoxProps) {
   const router = useRouter();
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  // Anchor the countdown to an absolute deadline instead of decrementing a
+  // counter each tick: browsers throttle setInterval in background tabs, so when
+  // the customer switches to their banking app the naive counter drifts and the
+  // "10 phút" window appears to last much longer than it should. Recomputing the
+  // remaining time from the wall clock keeps it accurate and self-corrects the
+  // instant the tab regains focus.
+  const [deadline] = useState(() => Date.now() + 600_000); // 10 minutes
+  const [timeLeft, setTimeLeft] = useState(600);
   const [isPaid, setIsPaid] = useState(false);
   const isExpired = timeLeft <= 0;
 
-  // Countdown timer — one stable interval, decrement via functional update so it
-  // is NOT recreated every second (which would break other effects that depend on it).
   useEffect(() => {
     if (isPaid) return;
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev <= 0 ? 0 : prev - 1));
-    }, 1000);
+    const tick = () => setTimeLeft(Math.max(0, Math.round((deadline - Date.now()) / 1000)));
+    tick(); // sync immediately on mount
 
-    return () => clearInterval(timer);
-  }, [isPaid]);
+    const timer = setInterval(tick, 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [isPaid, deadline]);
 
   // Format time (MM:SS)
   const formatTime = (seconds: number) => {
@@ -105,6 +118,16 @@ export function CheckoutPaymentBox({
     return () => clearTimeout(redirectTimer);
   }, [isPaid, router, transferCode]);
 
+  // When the payment window closes, don't leave the customer staring at a dead
+  // QR code — send them back to the homepage.
+  useEffect(() => {
+    if (isPaid || !isExpired) return;
+
+    const redirectTimer = setTimeout(() => router.replace("/"), 2500);
+
+    return () => clearTimeout(redirectTimer);
+  }, [isExpired, isPaid, router]);
+
   if (isPaid) {
     return (
       <section className="section-card p-6 md:p-8 text-center animate-fade-in">
@@ -128,6 +151,22 @@ export function CheckoutPaymentBox({
           href={`/checking?code=${encodeURIComponent(transferCode)}`}
         >
           Tra Cứu Lịch Trình
+        </Link>
+      </section>
+    );
+  }
+
+  if (isExpired) {
+    return (
+      <section className="section-card p-6 md:p-8 text-center animate-fade-in">
+        <h2 className="text-2xl font-extrabold tracking-tight text-white">Phiên Thanh Toán Đã Hết Hạn</h2>
+        <p className="mt-3 text-sm leading-6 text-white/70">
+          Mã đặt phòng <span className="font-extrabold text-pink-300">{transferCode}</span> đã quá thời gian giữ chỗ.
+          Vui lòng chọn lại khung giờ và đặt phòng mới.
+        </p>
+        <p className="mt-4 text-xs font-semibold text-white/60">Đang chuyển bạn về trang chủ...</p>
+        <Link className="primary-button mt-6 w-full text-center py-3.5 block" href="/">
+          Về Trang Chủ
         </Link>
       </section>
     );
