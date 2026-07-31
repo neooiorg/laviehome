@@ -6,7 +6,9 @@ import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
 import {
   formatDateLabelFromIso,
   getRoomIdFromTimeslotIds,
+  getRoomSlots,
   inferTimeslotIds,
+  isTimeslotStartPast,
   normalizeDateLabelToIso,
   stringifyTimeslotIds,
 } from "@/lib/booking-slots";
@@ -205,6 +207,20 @@ export async function POST(req: NextRequest) {
       timeRange: resolvedTimeRange,
       timeslotIds: timeslot_ids ?? existing?.timeslot_ids,
     });
+
+    // Reject a brand-new booking whose slot has already started — a customer must
+    // not be able to book a past timeslot (e.g. from a stale tab). Updates to an
+    // existing booking are exempt so post-payment re-saves keep working.
+    if (!existing && resolvedRoomName && resolvedTimeslotIds.length > 0) {
+      const roomSlots = getRoomSlots(resolvedRoomName, room?.time_slots);
+      const nowMs = Date.now();
+      if (resolvedTimeslotIds.some((slotId) => isTimeslotStartPast(slotId, roomSlots, nowMs))) {
+        return NextResponse.json(
+          { error: "Khung giờ đã qua. Vui lòng chọn khung giờ khác." },
+          { status: 409 }
+        );
+      }
+    }
 
     if (resolvedRoomId && resolvedRoomName && resolvedStayDate && resolvedTimeslotIds.length > 0) {
       const activeBookings = await getActiveBookingsForRoomDate({

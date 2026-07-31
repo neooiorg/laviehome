@@ -130,16 +130,20 @@ export function findSlotOverlaps(slots: RoomSlot[]): Array<[number, number]> {
 
 export function makeBookingDates(total = 9) {
   const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+  // Base the calendar on Vietnam's local date, not the device/UTC date: shift the
+  // epoch by +7h and read it with UTC getters so "Hôm nay" is correct even at 2am
+  // (when toISOString() would still report the previous UTC day).
+  const base = Date.now() + VN_UTC_OFFSET_MINUTES * 60_000;
 
   return Array.from({ length: total }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() + index);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const date = new Date(base);
+    date.setUTCDate(date.getUTCDate() + index);
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
 
     return {
-      iso: date.toISOString().slice(0, 10),
-      label: index === 0 ? "Hôm nay" : weekdays[date.getDay()],
+      iso: `${date.getUTCFullYear()}-${month}-${day}`,
+      label: index === 0 ? "Hôm nay" : weekdays[date.getUTCDay()],
       dateLabel: `${day}-${month}`,
     };
   });
@@ -223,6 +227,85 @@ export function parseTimeslotId(value: string) {
     dateIso: match[2],
     slotIndex: Number(match[3]),
   };
+}
+
+/** Vietnam has no daylight-saving; bookings are always in local time (UTC+7). */
+const VN_UTC_OFFSET_MINUTES = 7 * 60;
+
+/** UTC epoch (ms) for a Vietnam-local wall time, with an optional overnight day offset. */
+function vnSlotEpoch(dateIso: string, minutesFromMidnight: number, dayOffset: number): number | null {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const midnightUtc = Date.UTC(y, m - 1, d) - VN_UTC_OFFSET_MINUTES * 60_000;
+  return midnightUtc + (dayOffset * 24 * 60 + minutesFromMidnight) * 60_000;
+}
+
+/**
+ * Whether a slot's START time (on its date, Vietnam time) is already in the past.
+ * Used to stop customers picking a slot that has already begun — independent of
+ * the device's clock/timezone. Returns false when the start time can't be parsed.
+ */
+export function isSlotStartPast(
+  dateIso: string,
+  slot: RoomSlot,
+  now: number = Date.now()
+): boolean {
+  const startMin = timeToMinutes(slot.start);
+  if (startMin === null) return false;
+  const startEpoch = vnSlotEpoch(dateIso, startMin, 0);
+  if (startEpoch === null) return false;
+  return now >= startEpoch;
+}
+
+/** {@link isSlotStartPast} but reads the start time from a display label like "9:00 - 12:00". */
+export function isSlotLabelStartPast(
+  dateIso: string,
+  slotLabel: string,
+  now: number = Date.now()
+): boolean {
+  const start = slotLabel.split(" - ")[0]?.trim();
+  const startMin = timeToMinutes(start);
+  if (startMin === null) return false;
+  const startEpoch = vnSlotEpoch(dateIso, startMin, 0);
+  if (startEpoch === null) return false;
+  return now >= startEpoch;
+}
+
+/** {@link isSlotStartPast} resolved from a timeslot id + the room's slots list. */
+export function isTimeslotStartPast(
+  timeslotId: string,
+  slots: RoomSlot[],
+  now: number = Date.now()
+): boolean {
+  const { dateIso, slotIndex } = parseTimeslotId(timeslotId);
+  if (dateIso === null || slotIndex === null) return false;
+  const slot = slots[slotIndex];
+  if (!slot) return false;
+  return isSlotStartPast(dateIso, slot, now);
+}
+
+/**
+ * Whether a timeslot's end time has already passed, i.e. the stay is over and the
+ * slot is free again. Overnight slots (end <= start) end on the following day.
+ * All times are interpreted in Vietnam local time (UTC+7) regardless of server TZ.
+ * Returns false when the slot/time can't be resolved (fail safe: keep it blocked).
+ */
+export function isTimeslotEnded(
+  timeslotId: string,
+  slots: RoomSlot[],
+  now: number = Date.now()
+): boolean {
+  const { dateIso, slotIndex } = parseTimeslotId(timeslotId);
+  if (dateIso === null || slotIndex === null) return false;
+  const slot = slots[slotIndex];
+  if (!slot) return false;
+  const startMin = timeToMinutes(slot.start);
+  const endMin = timeToMinutes(slot.end);
+  if (endMin === null) return false;
+  const overnight = startMin !== null && endMin <= startMin;
+  const endEpoch = vnSlotEpoch(dateIso, endMin, overnight ? 1 : 0);
+  if (endEpoch === null) return false;
+  return now >= endEpoch;
 }
 
 export function getRoomIdFromTimeslotIds(value: string | null | undefined): number | null {

@@ -23,6 +23,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { compactPhone, money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
+import { isSlotLabelStartPast } from "@/lib/booking-slots";
 import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
 import { RoomPhoto } from "@/components/room-photo";
 import { tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
@@ -80,30 +81,22 @@ function getRoomSlots(roomName: string, storedSlots?: DisplaySlot[] | null): Dis
 
 function makeDates() {
   const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+  // Vietnam-local calendar (UTC+7) so "Hôm nay" and the slot ids stay correct
+  // even in the early-morning hours when the UTC date is still yesterday.
+  const base = Date.now() + 7 * 60 * 60_000;
 
   return Array.from({ length: 9 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() + index);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const weekday = weekdays[date.getDay()];
+    const date = new Date(base);
+    date.setUTCDate(date.getUTCDate() + index);
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const weekday = weekdays[date.getUTCDay()];
     return {
-      iso: date.toISOString().slice(0, 10),
+      iso: `${date.getUTCFullYear()}-${month}-${day}`,
       label: index === 0 ? "Hôm nay" : weekday,
       dateLabel: `${day}-${month}`
     };
   });
-}
-
-function isSlotPast(dayIndex: number, slotLabel: string): boolean {
-  if (dayIndex !== 0) return false;
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const startTime = slotLabel.split(" - ")[0];
-  if (!startTime) return false;
-  const [h, m] = startTime.split(":").map(Number);
-  const slotStart = h * 60 + (m || 0);
-  return nowMinutes > slotStart;
 }
 
 function isSlotPromo(dayIndex: number) {
@@ -721,7 +714,7 @@ export function LavieHomeApp({
                           return slots.map((slot, slotIndex) => {
                             const id = `${room.id}-${date.iso}-${slotIndex}`;
                             const booked = bookedSlotIdSet.has(id);
-                            const past = !booked && isSlotPast(dayIndex, slot.label);
+                            const past = !booked && isSlotLabelStartPast(date.iso, slot.label);
                             const selected = selectedSlots.some((item) => item.id === id);
                             const promo = promoActive && isSlotPromo(dayIndex);
                             const hasBlindBag = isSlotBlindBag(room.card_name, dayIndex, slotIndex);

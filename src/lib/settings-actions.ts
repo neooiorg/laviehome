@@ -12,6 +12,10 @@ import {
 const ONLINE_PAYMENT_KEY = 'online_payment_enabled';
 const MAINTENANCE_KEY = 'maintenance_mode';
 const COMBO_PROMO_KEY = 'combo_promo_config';
+const BOOKING_HOLD_KEY = 'booking_hold_minutes';
+
+/** Default window (minutes) an unpaid "Chờ thanh toán" booking keeps holding its slot. */
+export const DEFAULT_BOOKING_HOLD_MINUTES = 10;
 
 async function ensureSettingsTable(): Promise<void> {
   await query(
@@ -109,4 +113,41 @@ export async function setComboPromoConfig(config: ComboPromoConfig): Promise<voi
   revalidatePath('/dashboard/settings');
   // Room detail pages render the promo banner/pricing from this config.
   revalidatePath('/', 'layout');
+}
+
+/** Clamp any untrusted minutes value to a safe non-negative integer. */
+function normalizeHoldMinutes(raw: unknown): number {
+  const n = Math.trunc(Number(raw));
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_BOOKING_HOLD_MINUTES;
+  return Math.min(n, 24 * 60); // cap at 24h
+}
+
+/**
+ * Minutes an unpaid "Chờ thanh toán" booking keeps holding its timeslot before the
+ * slot is treated as released. `0` disables auto-release (holds never expire).
+ * Defaults to {@link DEFAULT_BOOKING_HOLD_MINUTES} and fails open on a table error.
+ */
+export async function getBookingHoldMinutes(): Promise<number> {
+  try {
+    await ensureSettingsTable();
+    const rows = await query<{ value: string }>(
+      `SELECT value FROM app_settings WHERE key = $1`,
+      [BOOKING_HOLD_KEY]
+    );
+    if (!rows.length) return DEFAULT_BOOKING_HOLD_MINUTES;
+    return normalizeHoldMinutes(rows[0].value);
+  } catch {
+    return DEFAULT_BOOKING_HOLD_MINUTES;
+  }
+}
+
+export async function setBookingHoldMinutes(minutes: number): Promise<void> {
+  await ensureSettingsTable();
+  const value = normalizeHoldMinutes(minutes);
+  await query(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+    [BOOKING_HOLD_KEY, String(value)]
+  );
+  revalidatePath('/dashboard/settings');
 }

@@ -5,7 +5,7 @@ import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 
 import { makeBookingReference } from "@/lib/booking-reference";
 import { money } from "@/lib/format";
-import { formatCheckoutDate, getRoomSlots, isSlotPast, makeBookingDates, type RoomSlot } from "@/lib/booking-slots";
+import { formatCheckoutDate, getRoomSlots, isSlotStartPast, makeBookingDates, type RoomSlot } from "@/lib/booking-slots";
 import { tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
 import type { MenuItem } from "@/lib/menu-actions";
 import { RoomMenuOptions } from "./_components/room-menu-options";
@@ -241,7 +241,7 @@ export function RoomBooking({
                   {slots.map((slot, slotIndex) => {
                     const id = `${room.id}-${date.iso}-${slotIndex}`;
                     const booked = bookedSlotIdSet.has(id);
-                    const past = !booked && isSlotPast(dayIndex, slot.label);
+                    const past = !booked && isSlotStartPast(date.iso, slot);
                     const selected = selectedSlots.some((item) => item.id === id);
                     const promo = promoActive && isSlotPromo(dayIndex);
                     const slotPrice = room.slot_prices?.[slotIndex];

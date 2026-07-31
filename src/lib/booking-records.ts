@@ -9,6 +9,7 @@ import {
   type RoomSlot,
 } from "@/lib/booking-slots";
 import { query } from "@/lib/postgres";
+import { getBookingHoldMinutes } from "@/lib/settings-actions";
 
 export type RawBookingRecord = {
   id: string;
@@ -80,6 +81,37 @@ const CANCELLED_STATUSES = new Set(["Đã hủy", "Hủy", "Cancelled"]);
 
 export function isCancelledStatus(status: string | null | undefined) {
   return status ? CANCELLED_STATUSES.has(status) : false;
+}
+
+/** The auto-assigned status for an online booking awaiting a bank transfer. */
+const PENDING_PAYMENT_STATUS = "Chờ thanh toán";
+
+/**
+ * An unpaid online booking only holds its timeslot for a limited window. Past
+ * that window (`holdMinutes`, configurable in admin) the hold is treated as
+ * released so the slot frees up for other guests. `holdMinutes <= 0` disables
+ * expiry entirely. Only `Chờ thanh toán` bookings expire — deposit/confirmed
+ * statuses set by staff are never auto-released.
+ */
+export function isExpiredPendingHold(
+  raw: Pick<RawBookingRecord, "status" | "created_at">,
+  holdMinutes: number,
+  now: number = Date.now()
+): boolean {
+  if (holdMinutes <= 0) return false;
+  if (raw.status !== PENDING_PAYMENT_STATUS) return false;
+  const createdAt = new Date(raw.created_at).getTime();
+  if (!Number.isFinite(createdAt)) return false;
+  return now - createdAt > holdMinutes * 60_000;
+}
+
+/** Whether a booking still blocks its timeslot: not cancelled and not an expired unpaid hold. */
+export function holdsSlot(
+  raw: Pick<RawBookingRecord, "status" | "created_at">,
+  holdMinutes: number,
+  now: number = Date.now()
+): boolean {
+  return !isCancelledStatus(raw.status) && !isExpiredPendingHold(raw, holdMinutes, now);
 }
 
 export async function fetchRawBookings(options?: {
@@ -251,8 +283,11 @@ export async function getActiveBookingsForRoomDate(input: {
     ]
   );
 
+  const holdMinutes = await getBookingHoldMinutes();
+  const now = Date.now();
+
   return matches
     .map((row) => normalizeBookingRecord(row, input.rooms, input.branches))
-    .filter((booking) => !isCancelledStatus(booking.raw.status))
+    .filter((booking) => holdsSlot(booking.raw, holdMinutes, now))
     .filter((booking) => booking.roomId === input.roomId && booking.stayDate === input.dateIso);
 }

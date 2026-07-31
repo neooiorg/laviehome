@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { fetchRawBookings, isCancelledStatus, normalizeBookingRecord } from "@/lib/booking-records";
+import { fetchRawBookings, holdsSlot, normalizeBookingRecord } from "@/lib/booking-records";
+import { getRoomSlots, isTimeslotEnded } from "@/lib/booking-slots";
 import { getAllRooms, getPublicBranches } from "@/lib/homestay-dashboard";
+import { getBookingHoldMinutes } from "@/lib/settings-actions";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -18,11 +20,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [branches, rooms, rawBookings] = await Promise.all([
+    const [branches, rooms, rawBookings, holdMinutes] = await Promise.all([
       getPublicBranches(),
       getAllRooms(),
       fetchRawBookings({ limit: 1500 }),
+      getBookingHoldMinutes(),
     ]);
+    const now = Date.now();
 
     const targetBranch = Number.isFinite(branchId)
       ? branches.find((branch) => branch.id === branchId) ?? null
@@ -44,9 +48,14 @@ export async function GET(req: NextRequest) {
 
     const bookedSlotIds = rawBookings
       .map((booking) => normalizeBookingRecord(booking, rooms, branches))
-      .filter((booking) => !isCancelledStatus(booking.raw.status))
+      .filter((booking) => holdsSlot(booking.raw, holdMinutes, now))
       .filter((booking) => booking.roomId !== null && roomIds.has(booking.roomId))
-      .flatMap((booking) => booking.timeslotIds);
+      // Release each slot the moment its end time passes ("đã ở xong"), so a room
+      // that has finished its stay frees up even mid-day — not just on future dates.
+      .flatMap((booking) => {
+        const slots = getRoomSlots(booking.roomName, booking.room?.time_slots);
+        return booking.timeslotIds.filter((slotId) => !isTimeslotEnded(slotId, slots, now));
+      });
 
     return NextResponse.json({ bookedSlotIds: [...new Set(bookedSlotIds)] });
   } catch (error) {
