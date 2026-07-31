@@ -119,8 +119,14 @@ export async function fetchRawBookings(options?: {
   id?: string;
   branchId?: number;
   status?: string;
+  /**
+   * Include the CCCD images (base64, up to several MB each). Off by default so
+   * list views don't drag megabytes of images into the RSC payload — only the
+   * single-booking detail needs them.
+   */
+  includeImages?: boolean;
 }) {
-  const { limit = 1000, id, branchId, status } = options ?? {};
+  const { limit = 1000, id, branchId, status, includeImages = false } = options ?? {};
   const where: string[] = [];
   const params: unknown[] = [];
 
@@ -141,6 +147,9 @@ export async function fetchRawBookings(options?: {
 
   params.push(limit);
   const whereClause = where.length > 0 ? `where ${where.join(" and ")}` : "";
+  const cccdColumns = includeImages
+    ? "cccd_front,\n      cccd_back,"
+    : "null::text as cccd_front,\n      null::text as cccd_back,";
 
   return query<RawBookingRecord>(
     `
@@ -166,8 +175,7 @@ export async function fetchRawBookings(options?: {
       has_decoration,
       discount_code,
       notes,
-      cccd_front,
-      cccd_back,
+      ${cccdColumns}
       created_at::text
     from bookings
     ${whereClause}
@@ -256,8 +264,8 @@ export async function getActiveBookingsForRoomDate(input: {
       has_decoration,
       discount_code,
       notes,
-      cccd_front,
-      cccd_back,
+      null::text as cccd_front,
+      null::text as cccd_back,
       created_at::text
     from bookings
     where status not in ('Đã hủy', 'Hủy', 'Cancelled')

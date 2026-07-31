@@ -195,11 +195,11 @@ export function Bookings({
                 table.setPageIndex(0);
               }}
             >
-              <SelectTrigger size="sm" className="h-8">
-                <span className="text-muted-foreground">Chi nhánh:</span>
+              <SelectTrigger size="sm" className="h-8 w-full md:w-52">
+                <span className="shrink-0 text-muted-foreground">Chi nhánh:</span>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent position="popper" align="start">
+              <SelectContent position="popper" align="start" className="max-w-[16rem]">
                 <SelectGroup>
                   <SelectItem value="All">Tất cả</SelectItem>
                   {branches.map((branch) => (

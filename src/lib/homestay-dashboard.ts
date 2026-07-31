@@ -321,7 +321,7 @@ export async function getBookingById(id: string): Promise<BookingSnapshot | null
   const [branches, rooms, rawBookings] = await Promise.all([
     getBranches(),
     getAllRooms(),
-    fetchRawBookings({ id, limit: 1 })
+    fetchRawBookings({ id, limit: 1, includeImages: true })
   ]);
   const booking = rawBookings[0];
   if (!booking) return null;
