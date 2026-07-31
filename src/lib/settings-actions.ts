@@ -15,7 +15,7 @@ const COMBO_PROMO_KEY = 'combo_promo_config';
 const BOOKING_HOLD_KEY = 'booking_hold_minutes';
 
 /** Default window (minutes) an unpaid "Chờ thanh toán" booking keeps holding its slot. */
-export const DEFAULT_BOOKING_HOLD_MINUTES = 10;
+const DEFAULT_BOOKING_HOLD_MINUTES = 10;
 
 async function ensureSettingsTable(): Promise<void> {
   await query(
