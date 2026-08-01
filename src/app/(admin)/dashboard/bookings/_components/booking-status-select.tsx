@@ -6,7 +6,15 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { updateBookingStatus } from "@/lib/booking-actions";
 import type { BookingStatus } from "@/lib/homestay-dashboard";
 
-const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+const STATUSES: BookingStatus[] = [
+  "Chờ thanh toán",
+  "Đã thanh toán",
+  "Đã xác nhận",
+  "Chờ cọc",
+  "Đang ở",
+  "Hoàn tất",
+  "Đã hết hạn - Không thanh toán",
+];
 
 interface Props {
   id: string;
@@ -27,7 +35,7 @@ export function BookingStatusSelect({ id, currentStatus }: Props) {
 
   return (
     <Select value={status} onValueChange={handleChange} disabled={pending}>
-      <SelectTrigger size="sm" className="h-7 w-36">
+      <SelectTrigger size="sm" className="h-7 w-56">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

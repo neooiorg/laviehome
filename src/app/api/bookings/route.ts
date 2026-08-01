@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 
-import { getActiveBookingsForRoomDate } from "@/lib/booking-records";
+import { expireStalePendingBookings, getActiveBookingsForRoomDate } from "@/lib/booking-records";
 import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
 import {
   formatDateLabelFromIso,
@@ -327,6 +327,7 @@ export async function GET(req: NextRequest) {
   try {
     const db = getPool();
     await ensureTable(db);
+    await expireStalePendingBookings();
 
     const params: string[] = [];
     const conditions: string[] = [];

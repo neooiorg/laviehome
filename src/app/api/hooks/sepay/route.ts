@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 
 import { extractBookingReference } from "@/lib/booking-reference";
+import { expireStalePendingBookings } from "@/lib/booking-records";
 import { broadcastBookingUpdate } from "@/lib/sse-clients";
 
 let pool: Pool | null = null;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const db = getPool();
+    await expireStalePendingBookings();
     const bookingRes = await db.query(
       // `amount` is the room-only charge; the customer pays room + menu, so the
       // expected transfer must add the (never-discounted) menu items total.

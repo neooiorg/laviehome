@@ -4,11 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { money } from '@/lib/format';
 import { getBookingSnapshots } from '@/lib/homestay-dashboard';
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
+const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  'Chờ thanh toán': 'secondary',
+  'Đã thanh toán': 'default',
   'Đã xác nhận': 'default',
   'Chờ cọc': 'secondary',
   'Đang ở': 'outline',
   'Hoàn tất': 'secondary',
+  'Đã hết hạn - Không thanh toán': 'destructive',
 };
 
 export async function RecentBookings() {

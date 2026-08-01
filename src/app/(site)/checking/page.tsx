@@ -27,13 +27,13 @@ type Booking = {
 
 function statusColor(status: string) {
   if (status === "Đã xác nhận") return "text-emerald-400 border-emerald-500/30 bg-emerald-500/10";
-  if (status === "Đã huỷ") return "text-red-400 border-red-500/30 bg-red-500/10";
+  if (status === "Đã huỷ" || status === "Đã hết hạn - Không thanh toán") return "text-red-400 border-red-500/30 bg-red-500/10";
   return "text-yellow-300 border-yellow-400/30 bg-yellow-400/10";
 }
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "Đã xác nhận") return <CheckCircle2 size={15} className="text-emerald-400" />;
-  if (status === "Đã huỷ") return <XCircle size={15} className="text-red-400" />;
+  if (status === "Đã huỷ" || status === "Đã hết hạn - Không thanh toán") return <XCircle size={15} className="text-red-400" />;
   return <Clock size={15} className="text-yellow-300" />;
 }
 

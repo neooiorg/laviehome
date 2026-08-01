@@ -17,6 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
   'Chờ cọc': 'var(--chart-2)',
   'Đang ở': 'var(--chart-3)',
   'Hoàn tất': 'var(--chart-4)',
+  'Đã hết hạn - Không thanh toán': '#ef4444',
 };
 
 const STATUS_DOT: Record<string, string> = {
@@ -26,6 +27,7 @@ const STATUS_DOT: Record<string, string> = {
   'Chờ cọc': 'bg-[var(--chart-2)]',
   'Đang ở': 'bg-[var(--chart-3)]',
   'Hoàn tất': 'bg-[var(--chart-4)]',
+  'Đã hết hạn - Không thanh toán': 'bg-red-500',
 };
 
 export function PieGraph({ data }: { data: StatusPoint[] }) {

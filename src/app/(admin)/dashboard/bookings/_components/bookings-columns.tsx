@@ -36,6 +36,10 @@ const statusMeta: Record<string, { badgeClass: string; dotClass: string }> = {
     badgeClass: "border-muted-foreground/30 text-muted-foreground",
     dotClass: "bg-muted-foreground",
   },
+  "Đã hết hạn - Không thanh toán": {
+    badgeClass: "border-red-200 text-red-700 dark:border-red-500/30 dark:text-red-400",
+    dotClass: "bg-red-500",
+  },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -119,6 +123,7 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
         { label: "Chờ cọc", value: "Chờ cọc" },
         { label: "Đang ở", value: "Đang ở" },
         { label: "Hoàn tất", value: "Hoàn tất" },
+        { label: "Đã hết hạn - Không thanh toán", value: "Đã hết hạn - Không thanh toán" },
       ],
     },
     cell: ({ row }) => <StatusBadge status={row.original.status} />,

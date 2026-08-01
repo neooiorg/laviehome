@@ -27,10 +27,13 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 const statusMeta: Record<string, { badgeClass: string; dotClass: string }> = {
+  "Chờ thanh toán": { badgeClass: "border-orange-200 text-orange-700 dark:border-orange-500/30 dark:text-orange-400", dotClass: "bg-orange-500" },
+  "Đã thanh toán": { badgeClass: "border-emerald-200 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-400", dotClass: "bg-emerald-500" },
   "Đã xác nhận": { badgeClass: "border-blue-200 text-blue-700 dark:border-blue-500/30 dark:text-blue-400", dotClass: "bg-blue-500" },
   "Chờ cọc": { badgeClass: "border-amber-200 text-amber-700 dark:border-amber-500/30 dark:text-amber-400", dotClass: "bg-amber-500" },
   "Đang ở": { badgeClass: "border-green-200 text-green-700 dark:border-green-500/30 dark:text-green-400", dotClass: "bg-green-500" },
   "Hoàn tất": { badgeClass: "border-muted-foreground/30 text-muted-foreground", dotClass: "bg-muted-foreground" },
+  "Đã hết hạn - Không thanh toán": { badgeClass: "border-red-200 text-red-700 dark:border-red-500/30 dark:text-red-400", dotClass: "bg-red-500" },
 };
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {

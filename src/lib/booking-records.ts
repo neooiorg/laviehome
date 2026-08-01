@@ -77,14 +77,17 @@ export type NormalizedBookingRecord = {
   branch: CatalogBranch | null;
 };
 
-const CANCELLED_STATUSES = new Set(["Đã hủy", "Hủy", "Cancelled"]);
+/** Status persisted when an online booking stayed unpaid past the hold window. */
+export const EXPIRED_UNPAID_STATUS = "Đã hết hạn - Không thanh toán";
+
+const CANCELLED_STATUSES = new Set(["Đã hủy", "Hủy", "Cancelled", EXPIRED_UNPAID_STATUS]);
 
 export function isCancelledStatus(status: string | null | undefined) {
   return status ? CANCELLED_STATUSES.has(status) : false;
 }
 
 /** The auto-assigned status for an online booking awaiting a bank transfer. */
-const PENDING_PAYMENT_STATUS = "Chờ thanh toán";
+export const PENDING_PAYMENT_STATUS = "Chờ thanh toán";
 
 /**
  * An unpaid online booking only holds its timeslot for a limited window. Past
@@ -112,6 +115,22 @@ export function holdsSlot(
   now: number = Date.now()
 ): boolean {
   return !isCancelledStatus(raw.status) && !isExpiredPendingHold(raw, holdMinutes, now);
+}
+
+export async function expireStalePendingBookings(holdMinutes?: number) {
+  const minutes = holdMinutes ?? await getBookingHoldMinutes();
+  if (minutes <= 0) return [];
+
+  return query<{ id: string }>(
+    `
+    update bookings
+    set status = $1, updated_at = now()
+    where status = $2
+      and created_at < now() - ($3::int * interval '1 minute')
+    returning id
+    `,
+    [EXPIRED_UNPAID_STATUS, PENDING_PAYMENT_STATUS, minutes]
+  );
 }
 
 export async function fetchRawBookings(options?: {
@@ -268,7 +287,7 @@ export async function getActiveBookingsForRoomDate(input: {
       null::text as cccd_back,
       created_at::text
     from bookings
-    where status not in ('Đã hủy', 'Hủy', 'Cancelled')
+    where status not in ('Đã hủy', 'Hủy', 'Cancelled', 'Đã hết hạn - Không thanh toán')
       and (
         room_id = $1
         or room_name = $2

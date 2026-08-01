@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 
+import { expireStalePendingBookings } from "@/lib/booking-records";
+
 let pool: Pool | null = null;
 function getPool() {
   if (!pool) {
@@ -26,6 +28,7 @@ export async function GET(request: Request) {
 
   try {
     const db = getPool();
+    await expireStalePendingBookings();
     const res = await db.query(
       "SELECT status FROM bookings WHERE UPPER(id) = $1",
       [bookingId.toUpperCase()]

@@ -1,6 +1,13 @@
 import 'server-only';
 
-import { type NormalizedBookingRecord, fetchRawBookings, isCancelledStatus, normalizeBookingRecord } from '@/lib/booking-records';
+import {
+  EXPIRED_UNPAID_STATUS,
+  type NormalizedBookingRecord,
+  expireStalePendingBookings,
+  fetchRawBookings,
+  isCancelledStatus,
+  normalizeBookingRecord
+} from '@/lib/booking-records';
 import { normalizeDateLabelToIso, type RoomSlot } from '@/lib/booking-slots';
 import { money } from '@/lib/format';
 import { query } from '@/lib/postgres';
@@ -11,7 +18,14 @@ export type DashboardMetric = {
   note: string;
 };
 
-export type BookingStatus = 'Chờ thanh toán' | 'Đã thanh toán' | 'Đã xác nhận' | 'Chờ cọc' | 'Đang ở' | 'Hoàn tất';
+export type BookingStatus =
+  | 'Chờ thanh toán'
+  | 'Đã thanh toán'
+  | 'Đã xác nhận'
+  | 'Chờ cọc'
+  | 'Đang ở'
+  | 'Hoàn tất'
+  | typeof EXPIRED_UNPAID_STATUS;
 
 export type BookingSnapshot = {
   id: string;
@@ -231,6 +245,7 @@ function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
 }
 
 async function getBookings(limit = 12) {
+  await expireStalePendingBookings();
   const [branches, rooms, rawBookings] = await Promise.all([getBranches(), getAllRooms(), fetchRawBookings({ limit })]);
 
   return rawBookings.map((booking) => normalizeBookingRecord(booking, rooms, branches));
@@ -318,6 +333,7 @@ export async function getRoomSummaries(limit = 8): Promise<RoomSummary[]> {
 }
 
 export async function getBookingById(id: string): Promise<BookingSnapshot | null> {
+  await expireStalePendingBookings();
   const [branches, rooms, rawBookings] = await Promise.all([
     getBranches(),
     getAllRooms(),
@@ -336,7 +352,7 @@ export async function getBookingSnapshots(limit = 12): Promise<BookingSnapshot[]
 
 export async function getBookingStatusSummary(limit = 12): Promise<BookingStatusPoint[]> {
   const snapshots = await getBookingSnapshots(limit);
-  const bookingStatuses: BookingStatus[] = ['Đã xác nhận', 'Chờ cọc', 'Đang ở', 'Hoàn tất'];
+  const bookingStatuses: BookingStatus[] = ['Đã xác nhận', 'Chờ cọc', 'Đang ở', 'Hoàn tất', EXPIRED_UNPAID_STATUS];
 
   return bookingStatuses.map((status) => {
     const count = snapshots.filter((snapshot) => snapshot.status === status).length;
@@ -403,6 +419,7 @@ export async function getTrendPoints(): Promise<TrendPoint[]> {
   const premiumByMonth = new Map<string, number>();
 
   for (const booking of bookings) {
+    if (isCancelledStatus(booking.raw.status)) continue;
     if (!booking.stayDate) continue;
     const monthKey = booking.stayDate.slice(0, 7);
     byMonth.set(monthKey, (byMonth.get(monthKey) ?? 0) + 1);
@@ -479,7 +496,7 @@ export async function getOperationalAlerts(limit = 6): Promise<AlertItem[]> {
 }
 
 export async function getRevenueSummary(limit = 12) {
-  const bookings = await getBookingSnapshots(limit);
+  const bookings = (await getBookingSnapshots(limit)).filter((booking) => !isCancelledStatus(booking.status));
   const totals = bookings.map((booking) =>
     getBookingDisplayTotal({ amount: booking.amount, menuItemsTotal: booking.menuItemsTotal })
   );
@@ -591,6 +608,7 @@ export async function getGuestSummaries(limit = 8): Promise<GuestSummary[]> {
   const guests = new Map<string, GuestSummary>();
 
   for (const booking of bookings) {
+    if (isCancelledStatus(booking.raw.status)) continue;
     const guestName = booking.guestName || 'Khách lẻ';
     const current = guests.get(guestName);
     const nextTotal =
