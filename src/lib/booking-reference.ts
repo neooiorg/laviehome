@@ -12,3 +12,11 @@ export function makeBookingReference(branchId: number | string | null | undefine
 export function extractBookingReference(input: string) {
   return input.toUpperCase().match(/LVH\d{8,12}/)?.[0] ?? null;
 }
+
+export function makePaymentReference(bookingId: string, sequence: number) {
+  return `${bookingId.toUpperCase()}P${String(sequence).padStart(2, "0")}`;
+}
+
+export function extractPaymentReference(input: string) {
+  return input.toUpperCase().match(/LVH\d{8,12}(?:P\d{2,6})?/)?.[0] ?? null;
+}

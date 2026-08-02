@@ -70,7 +70,7 @@ async function getPaidBooking(bookingId: string) {
       coalesce(br.google_maps_link, '') as maps_url
     from bookings b
     left join branches br on br.id = b.branch_id
-    where upper(b.id) = $1
+    where upper(b.id) = $1 or upper(b.payment_reference) = $1
     `,
     [bookingId.toUpperCase()]
   );
@@ -81,7 +81,7 @@ async function getPaidBooking(bookingId: string) {
     booking.door_code = generateDoorCode();
     await query(`update bookings set door_code = $1, updated_at = now() where upper(id) = $2`, [
       booking.door_code,
-      bookingId.toUpperCase(),
+      booking.id.toUpperCase(),
     ]);
   }
 

@@ -13,10 +13,11 @@ const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "�
 type CheckoutPaymentBoxProps = {
   price: number;
   transferCode: string;
+  bookingCode?: string;
   bankConfig: BankPaymentConfig;
 };
 
-export function CheckoutPaymentBox({ price, transferCode, bankConfig }: CheckoutPaymentBoxProps) {
+export function CheckoutPaymentBox({ price, transferCode, bookingCode = transferCode, bankConfig }: CheckoutPaymentBoxProps) {
   const router = useRouter();
   const [deadline] = useState(() => Date.now() + 600_000);
   const [timeLeft, setTimeLeft] = useState(600);
@@ -90,10 +91,11 @@ export function CheckoutPaymentBox({ price, transferCode, bankConfig }: Checkout
 
     source.onmessage = (event) => {
       try {
-        const payload = JSON.parse(event.data) as { bookingId?: string; status?: string };
+        const payload = JSON.parse(event.data) as { bookingId?: string; paymentReference?: string; status?: string };
         if (
           !cancelled &&
-          payload.bookingId?.toUpperCase() === transferCode.toUpperCase() &&
+          (payload.bookingId?.toUpperCase() === bookingCode.toUpperCase() ||
+            payload.paymentReference?.toUpperCase() === transferCode.toUpperCase()) &&
           payload.status &&
           PAID_STATUSES.includes(payload.status)
         ) {
@@ -112,7 +114,7 @@ export function CheckoutPaymentBox({ price, transferCode, bankConfig }: Checkout
       window.removeEventListener("focus", checkOnFocus);
       source.close();
     };
-  }, [transferCode, isPaid, isExpired, checkPaymentStatus]);
+  }, [transferCode, bookingCode, isPaid, isExpired, checkPaymentStatus]);
 
   useEffect(() => {
     if (isPaid || !isExpired) return;
@@ -143,7 +145,7 @@ export function CheckoutPaymentBox({ price, transferCode, bankConfig }: Checkout
       <section className="section-card p-6 text-center animate-fade-in md:p-8">
         <h2 className="text-2xl font-extrabold tracking-tight text-white">Phiên Thanh Toán Đã Hết Hạn</h2>
         <p className="mt-3 text-sm leading-6 text-white/70">
-          Mã đặt phòng <span className="font-extrabold text-pink-300">{transferCode}</span> đã quá thời gian giữ chỗ.
+          Mã đặt phòng <span className="font-extrabold text-pink-300">{bookingCode}</span> đã quá thời gian giữ chỗ.
           Vui lòng chọn lại khung giờ và đặt phòng mới.
         </p>
         <p className="mt-4 text-xs font-semibold text-white/60">Đang chuyển bạn về trang chủ...</p>

@@ -55,6 +55,8 @@ async function ensureTable(db: Pool) {
       cccd_front TEXT,
       cccd_back TEXT,
       door_code VARCHAR(8),
+      payment_reference VARCHAR(80),
+      payment_amount BIGINT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
@@ -84,6 +86,8 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS cccd_front TEXT,
       ADD COLUMN IF NOT EXISTS cccd_back TEXT,
       ADD COLUMN IF NOT EXISTS door_code VARCHAR(8),
+      ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(80),
+      ADD COLUMN IF NOT EXISTS payment_amount BIGINT,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
@@ -164,8 +168,16 @@ export async function POST(req: NextRequest) {
       has_decoration,
       cccd_front,
       cccd_back,
+      payment_reference,
+      clear_payment_reference,
     } = body;
     const guest_name: string = customer_name ?? "";
+    const normalizedPaymentReference =
+      typeof payment_reference === "string" &&
+      payment_reference.trim().toUpperCase().startsWith(String(id ?? "").toUpperCase())
+        ? payment_reference.trim().toUpperCase()
+        : null;
+    const shouldClearPaymentReference = clear_payment_reference === true && !normalizedPaymentReference;
 
     if (!id) {
       return NextResponse.json({ error: "Missing booking id" }, { status: 400 });
@@ -272,8 +284,8 @@ export async function POST(req: NextRequest) {
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name, stay_date, date_label, time_range,
         timeslot_ids, channel, quoted_amount, amount, customer_name, customer_phone, customer_email, discount_code,
-        notes, guest_count, has_car, has_decoration, cccd_front, cccd_back
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+        notes, guest_count, has_car, has_decoration, cccd_front, cccd_back, payment_reference, payment_amount
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
       ON CONFLICT (id) DO UPDATE SET
         room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
         room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
@@ -297,6 +309,16 @@ export async function POST(req: NextRequest) {
         amount = EXCLUDED.amount,
         cccd_front = COALESCE(EXCLUDED.cccd_front, bookings.cccd_front),
         cccd_back = COALESCE(EXCLUDED.cccd_back, bookings.cccd_back),
+        payment_reference = CASE
+          WHEN $26::boolean THEN NULL
+          WHEN EXCLUDED.payment_reference IS NOT NULL THEN EXCLUDED.payment_reference
+          ELSE bookings.payment_reference
+        END,
+        payment_amount = CASE
+          WHEN $26::boolean THEN NULL
+          WHEN EXCLUDED.payment_reference IS NOT NULL THEN EXCLUDED.payment_amount
+          ELSE bookings.payment_amount
+        END,
         updated_at = NOW()`,
       [
         id,
@@ -322,6 +344,9 @@ export async function POST(req: NextRequest) {
         has_decoration ?? false,
         cccd_front ?? null,
         cccd_back ?? null,
+        normalizedPaymentReference,
+        normalizedPaymentReference ? payTotal : null,
+        shouldClearPaymentReference,
       ]
     );
 

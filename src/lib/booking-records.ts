@@ -92,6 +92,8 @@ export function isCancelledStatus(status: string | null | undefined) {
 export async function ensureBookingNotificationColumns() {
   await query(`alter table bookings add column if not exists customer_email varchar(255)`).catch(() => []);
   await query(`alter table bookings add column if not exists door_code varchar(8)`).catch(() => []);
+  await query(`alter table bookings add column if not exists payment_reference varchar(80)`).catch(() => []);
+  await query(`alter table bookings add column if not exists payment_amount bigint`).catch(() => []);
 }
 
 /** The auto-assigned status for an online booking awaiting a bank transfer. */

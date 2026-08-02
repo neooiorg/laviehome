@@ -18,6 +18,8 @@ function getPool() {
 async function ensureLocalBookingNotificationColumns(db: Pool) {
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(80)`).catch(() => null);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_amount BIGINT`).catch(() => null);
 }
 
 export async function GET(request: Request) {
@@ -50,7 +52,7 @@ export async function GET(request: Request) {
          COALESCE(br.google_maps_link, '') AS maps_url
        FROM bookings b
        LEFT JOIN branches br ON br.id = b.branch_id
-       WHERE UPPER(b.id) = $1`,
+       WHERE UPPER(b.id) = $1 OR UPPER(b.payment_reference) = $1`,
       [bookingId.toUpperCase()]
     );
 
@@ -60,7 +62,7 @@ export async function GET(request: Request) {
         row.door_code = generateDoorCode();
         await db.query(`UPDATE bookings SET door_code = $1, updated_at = NOW() WHERE UPPER(id) = $2`, [
           row.door_code,
-          bookingId.toUpperCase(),
+          row.id.toUpperCase(),
         ]);
       }
       return NextResponse.json({

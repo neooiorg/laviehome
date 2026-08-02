@@ -19,13 +19,14 @@ export function removeSseClient(id: string) {
   clients.delete(id);
 }
 
-export function broadcastBookingUpdate(bookingId: string, status: string) {
+export function broadcastBookingUpdate(bookingId: string, status: string, paymentReference?: string) {
   const target = bookingId.toUpperCase();
-  const data = `data: ${JSON.stringify({ bookingId, status })}\n\n`;
+  const paymentTarget = paymentReference?.toUpperCase();
+  const data = `data: ${JSON.stringify({ bookingId, paymentReference, status })}\n\n`;
   const encoded = new TextEncoder().encode(data);
   for (const [id, client] of clients) {
     // Scoped clients only get their own booking; unscoped (admin) get everything.
-    if (client.bookingId && client.bookingId !== target) continue;
+    if (client.bookingId && client.bookingId !== target && client.bookingId !== paymentTarget) continue;
     try {
       client.controller.enqueue(encoded);
     } catch {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 
-import { extractBookingReference } from "@/lib/booking-reference";
+import { extractBookingReference, extractPaymentReference } from "@/lib/booking-reference";
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
 import { generateDoorCode } from "@/lib/door-code";
 import { broadcastBookingUpdate } from "@/lib/sse-clients";
@@ -22,6 +22,8 @@ function getPool() {
 async function ensureBookingNotificationColumns(db: Pool) {
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(80)`).catch(() => null);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_amount BIGINT`).catch(() => null);
 }
 
 const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
@@ -53,10 +55,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Missing content or amount" }, { status: 400 });
   }
 
-  const bookingId = extractBookingReference(content);
+  const paymentReference = extractPaymentReference(content);
+  const bookingId = extractBookingReference(paymentReference ?? content);
   if (!bookingId) {
     return NextResponse.json({ success: true });
   }
+  const hasVersionedPaymentReference = Boolean(paymentReference && paymentReference !== bookingId);
 
   try {
     const db = getPool();
@@ -69,6 +73,8 @@ export async function POST(req: NextRequest) {
          COALESCE(b.menu_items_total, 0) AS menu_items_total,
          COALESCE(b.guest_count, 2) AS guest_count,
          b.discount_code,
+         b.payment_reference,
+         b.payment_amount,
          dc.percent AS discount_percent
        FROM bookings b
        LEFT JOIN discount_codes dc
@@ -76,9 +82,13 @@ export async function POST(req: NextRequest) {
         AND dc.active = TRUE
         AND (dc.expires_at IS NULL OR dc.expires_at > NOW())
         AND (dc.max_uses IS NULL OR dc.used_count <= dc.max_uses)
-       WHERE UPPER(b.id) = $1
+       WHERE ${
+         hasVersionedPaymentReference
+           ? "UPPER(b.payment_reference) = $1"
+           : "UPPER(b.id) = $1 AND (b.payment_reference IS NULL OR UPPER(b.payment_reference) = $1)"
+       }
        LIMIT 1`,
-      [bookingId]
+      [hasVersionedPaymentReference ? paymentReference : bookingId]
     );
 
     if (bookingRes.rows.length === 0) {
@@ -97,7 +107,12 @@ export async function POST(req: NextRequest) {
     const discountedExpectedAmount =
       roomBase + surcharge - Math.round((roomBase * discountPercent) / 100) + menuTotal;
     const storedExpectedAmount = Number(booking.amount ?? 0) + menuTotal;
-    const expectedAmount = discountPercent > 0 ? discountedExpectedAmount : storedExpectedAmount;
+    const expectedAmount =
+      Number(booking.payment_amount ?? 0) > 0
+        ? Number(booking.payment_amount)
+        : discountPercent > 0
+          ? discountedExpectedAmount
+          : storedExpectedAmount;
 
     if (amount < expectedAmount) {
       console.warn(`SePay: underpayment for ${bookingId} - got ${amount}, expected ${expectedAmount}`);
@@ -117,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     if (res.rowCount && res.rowCount > 0) {
       const paidBooking = res.rows[0];
-      broadcastBookingUpdate(bookingId, "Đã thanh toán");
+      broadcastBookingUpdate(bookingId, "Đã thanh toán", paymentReference ?? undefined);
       try {
         await sendBookingConfirmationEmail({
           bookingId: paidBooking.id,

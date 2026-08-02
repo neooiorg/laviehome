@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ElementType } from "react";
 import Link from "next/link";
 import {
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { CheckoutForm, type CheckoutPricing } from "./checkout-form";
 import { money } from "@/lib/format";
+import { makePaymentReference } from "@/lib/booking-reference";
 
 type CheckoutMenuItem = {
   id: number;
@@ -74,18 +75,41 @@ export function CheckoutExperience({
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   const [confirmed, setConfirmed] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [paymentNeedsRefresh, setPaymentNeedsRefresh] = useState(false);
+  const paymentSequenceRef = useRef(1);
 
   const handlePricingChange = useCallback((next: CheckoutPricing) => {
     setPricing(next);
   }, []);
 
-  const handleConfirmed = useCallback(() => {
+  const handlePreparePaymentReference = useCallback(() => {
+    if (!onlinePaymentEnabled) return null;
+
+    return makePaymentReference(transferCode, paymentSequenceRef.current);
+  }, [onlinePaymentEnabled, transferCode]);
+
+  const handlePaymentDetailsChanged = useCallback(() => {
+    if (!confirmed && !paymentReference) return;
+
+    setConfirmed(false);
+    setPaymentReference(null);
+    setPaymentNeedsRefresh(true);
+  }, [confirmed, paymentReference]);
+
+  const handleConfirmed = useCallback((nextPaymentReference: string | null = null) => {
+    if (onlinePaymentEnabled) {
+      const reference = nextPaymentReference ?? makePaymentReference(transferCode, paymentSequenceRef.current);
+      setPaymentReference(reference);
+      paymentSequenceRef.current += 1;
+      setPaymentNeedsRefresh(false);
+    }
     setConfirmed(true);
     // When online payment is off, confirming the details is the end of the flow:
     // pop a success dialog telling the customer staff will reach out. When it's
     // on, we instead reveal the QR (handled by the scroll effect below).
     if (!onlinePaymentEnabled) setSuccessOpen(true);
-  }, [onlinePaymentEnabled]);
+  }, [onlinePaymentEnabled, transferCode]);
 
   // Reveal + scroll to the payment QR only after the customer confirms their
   // details (online-payment flow only).
@@ -110,8 +134,11 @@ export function CheckoutExperience({
           price={price}
           roomPrice={roomPrice}
           onPricingChange={handlePricingChange}
+          onPreparePaymentReference={handlePreparePaymentReference}
+          onPaymentDetailsChanged={handlePaymentDetailsChanged}
           onConfirmed={handleConfirmed}
           onlinePaymentEnabled={onlinePaymentEnabled}
+          paymentNeedsRefresh={paymentNeedsRefresh}
         />
       </div>
 
@@ -221,8 +248,14 @@ export function CheckoutExperience({
               <Phone size={17} /> Gọi hotline {hotline}
             </a>
           </section>
-        ) : confirmed ? (
-          <CheckoutPaymentBox price={pricing.finalAmount} transferCode={transferCode} bankConfig={bankConfig} />
+        ) : confirmed && paymentReference ? (
+          <CheckoutPaymentBox
+            key={paymentReference}
+            price={pricing.finalAmount}
+            transferCode={paymentReference}
+            bookingCode={transferCode}
+            bankConfig={bankConfig}
+          />
         ) : (
           <section className="section-card p-6 md:p-8 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/5 text-white/40">

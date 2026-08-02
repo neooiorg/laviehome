@@ -20,15 +20,28 @@ type CheckoutFormProps = {
   /** Room-only portion — the discount code applies to this, never to menu items. */
   roomPrice: number;
   onPricingChange?: (pricing: CheckoutPricing) => void;
-  onConfirmed?: () => void;
+  onPreparePaymentReference?: () => string | null;
+  onPaymentDetailsChanged?: () => void;
+  onConfirmed?: (paymentReference?: string | null) => void;
   onlinePaymentEnabled?: boolean;
+  paymentNeedsRefresh?: boolean;
 };
 
 type DiscountResult =
   | { valid: true; percent: number; description: string }
   | { valid: false; error: string };
 
-export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onConfirmed, onlinePaymentEnabled = true }: CheckoutFormProps) {
+export function CheckoutForm({
+  bookingId,
+  price,
+  roomPrice,
+  onPricingChange,
+  onPreparePaymentReference,
+  onPaymentDetailsChanged,
+  onConfirmed,
+  onlinePaymentEnabled = true,
+  paymentNeedsRefresh = false,
+}: CheckoutFormProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
@@ -48,6 +61,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
   const [cccdBackName, setCccdBackName] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const lastDraftFingerprintRef = useRef("");
+  const reportedDiscountUseRef = useRef<string | null>(null);
 
   function readFileAsBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -96,6 +110,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
       const data: DiscountResult = await res.json();
       setDiscountResult(data);
       setSaved(false);
+      if (data.valid) onPaymentDetailsChanged?.();
     } catch {
       setDiscountResult({ valid: false, error: "Không thể kết nối máy chủ" });
     } finally {
@@ -107,9 +122,10 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
     setDiscountCode("");
     setDiscountResult(null);
     setSaved(false);
+    onPaymentDetailsChanged?.();
   }
 
-  const buildBookingPayload = useCallback(() => {
+  const buildBookingPayload = useCallback((nextPaymentReference?: string | null, clearPaymentReference = false) => {
     return {
       id: bookingId,
       customer_name: customerName.trim() || null,
@@ -122,6 +138,8 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
       discount_code: appliedDiscountCode,
       cccd_front: cccdFront,
       cccd_back: cccdBack,
+      payment_reference: nextPaymentReference ?? null,
+      clear_payment_reference: clearPaymentReference,
     };
   }, [appliedDiscountCode, bookingId, cccdBack, cccdFront, customerEmail, customerName, customerPhone, guestCount, hasCar, hasDecoration, notes]);
 
@@ -136,7 +154,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
   }, [discountAmount, discountPercent, guestCount, onPricingChange, surcharge]);
 
   useEffect(() => {
-    const payload = buildBookingPayload();
+    const payload = buildBookingPayload(null, paymentNeedsRefresh);
     const hasDraftContent = Boolean(
         payload.customer_name ||
         payload.customer_phone ||
@@ -200,6 +218,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
     hasDecoration,
     notes,
     onPricingChange,
+    paymentNeedsRefresh,
     surcharge,
     syncPricingWithServer,
   ]);
@@ -209,7 +228,8 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
     setSaving(true);
 
     try {
-      const payload = buildBookingPayload();
+      const nextPaymentReference = onlinePaymentEnabled ? onPreparePaymentReference?.() ?? bookingId : null;
+      const payload = buildBookingPayload(nextPaymentReference, false);
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -233,20 +253,24 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
         syncPricingWithServer(data.amount);
       }
 
-      if (discountResult?.valid && discountCode) {
+      if (discountResult?.valid && appliedDiscountCode && reportedDiscountUseRef.current !== appliedDiscountCode) {
+        reportedDiscountUseRef.current = appliedDiscountCode;
         fetch("/api/discount", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: discountCode }),
+          body: JSON.stringify({ code: appliedDiscountCode }),
         }).catch(() => {});
       }
 
       setSaved(true);
-      onConfirmed?.();
+      onConfirmed?.(nextPaymentReference);
     } catch {
-      // Even if the final save hit a transient error, the draft was persisted;
-      // let the customer proceed to payment.
-      onConfirmed?.();
+      if (onlinePaymentEnabled) {
+        setConflictError("Không thể cập nhật mã thanh toán. Vui lòng bấm xác nhận lại sau vài giây.");
+      } else {
+        // Offline bookings can still be followed up manually by staff.
+        onConfirmed?.(null);
+      }
     } finally {
       setSaving(false);
     }
@@ -332,6 +356,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
                     onChange={() => {
                       setGuestCount(value as number);
                       setSaved(false);
+                      onPaymentDetailsChanged?.();
                     }}
                   />
                   <span className="block font-extrabold text-white">{title}</span>
@@ -538,7 +563,9 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
         {saving
           ? "Đang lưu..."
           : onlinePaymentEnabled
-            ? saved
+            ? paymentNeedsRefresh
+              ? "Cập Nhật Lại Mã Thanh Toán"
+              : saved
               ? "Đã xác nhận — Chuyển đến thanh toán ↓"
               : "Xác Nhận & Chuyển Đến Thanh Toán"
             : saved
