@@ -92,12 +92,12 @@ function BookingMissingState({ bookingId }: { bookingId: string }) {
   return (
     <main className="site-shell min-h-dvh text-white">
       <SiteHeader />
-      <div className="mx-auto flex min-h-[72dvh] w-[min(100%-2rem,760px)] items-center pb-20 pt-32">
-        <section className="page-panel w-full p-6 text-center md:p-10">
+      <div className="mx-auto flex min-h-[72dvh] w-[min(100%-1.5rem,760px)] items-center pb-24 pt-28 sm:w-[min(100%-2rem,760px)] sm:pt-32">
+        <section className="page-panel w-full rounded-[20px] p-5 text-center sm:rounded-[28px] sm:p-6 md:p-10">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-yellow-200/40 bg-yellow-200/10 text-yellow-100">
             <Search size={28} />
           </div>
-          <h1 className="mt-5 text-3xl font-extrabold tracking-[-0.02em] text-pink-100">
+          <h1 className="mt-5 text-[1.85rem] font-extrabold leading-tight tracking-[-0.02em] text-pink-100 sm:text-3xl">
             Chưa tìm thấy đơn đã thanh toán
           </h1>
           <p className="mt-3 text-sm font-semibold leading-6 text-white/65">
@@ -106,11 +106,11 @@ function BookingMissingState({ bookingId }: { bookingId: string }) {
               : "Thiếu mã đặt phòng để tra cứu thông tin check-in."}
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <Link className="primary-button py-3.5" href="/checking">
+            <Link className="primary-button w-full py-3.5" href="/checking">
               <Search size={17} /> Tra cứu đặt phòng
             </Link>
             <Link
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-white/20 bg-white/5 px-5 text-sm font-extrabold text-white transition hover:border-pink-200 hover:bg-white/10"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-white/20 bg-white/5 px-5 text-sm font-extrabold text-white transition hover:border-pink-200 hover:bg-white/10"
               href="/"
             >
               <Home size={17} /> Về trang chủ
@@ -135,18 +135,18 @@ function SuccessStep({
   children: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-[3.25rem_1fr] gap-4">
+    <div className="grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[3.25rem_minmax(0,1fr)] sm:gap-4">
       <div className="relative flex justify-center">
         {index < 4 && <span className="absolute top-12 bottom-[-1.9rem] w-0.5 rounded-full bg-pink-200/35" />}
-        <span className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-pink-500 to-yellow-200 text-base font-black text-[#170913] shadow-[3px_3px_0px_rgba(243,90,189,0.45)]">
+        <span className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-pink-500 to-yellow-200 text-sm font-black text-[#170913] shadow-[3px_3px_0px_rgba(243,90,189,0.45)] sm:h-12 sm:w-12 sm:text-base">
           {index}
         </span>
       </div>
-      <div className="pb-7">
-        <h3 className="flex items-center gap-2 text-lg font-black uppercase tracking-[0.02em] text-pink-100">
-          <Icon size={19} className="text-yellow-200" /> {title}
+      <div className="min-w-0 pb-7">
+        <h3 className="flex min-w-0 items-start gap-2 text-[0.95rem] font-black uppercase leading-6 tracking-[0.01em] text-pink-100 sm:items-center sm:text-lg">
+          <Icon size={18} className="mt-0.5 shrink-0 text-yellow-200 sm:mt-0" /> <span className="min-w-0 break-words">{title}</span>
         </h3>
-        <div className="mt-2 text-base font-semibold leading-7 text-white/76">{children}</div>
+        <div className="mt-2 min-w-0 break-words text-sm font-semibold leading-6 text-white/76 sm:text-base sm:leading-7">{children}</div>
       </div>
     </div>
   );
@@ -173,35 +173,35 @@ export default async function CheckoutSuccessPage({
   return (
     <main className="site-shell min-h-dvh text-white">
       <SiteHeader />
-      <div className="mx-auto w-[min(100%-2rem,860px)] pb-20 pt-32 md:pt-36">
-        <section className="page-panel overflow-hidden p-0">
-          <div className="px-5 pb-7 pt-8 text-center md:px-9 md:pt-10">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-pink-200/35 bg-pink-200/[0.12] text-pink-100 shadow-[0_0_30px_rgba(243,90,189,0.18)]">
-              <CheckCircle2 size={34} />
+      <div className="mx-auto w-[min(100%-1.5rem,860px)] pb-24 pt-28 sm:w-[min(100%-2rem,860px)] sm:pt-32 md:pt-36">
+        <section className="page-panel overflow-hidden rounded-[20px] p-0 sm:rounded-[28px]">
+          <div className="px-4 pb-6 pt-7 text-center sm:px-5 sm:pb-7 sm:pt-8 md:px-9 md:pt-10">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-pink-200/35 bg-pink-200/[0.12] text-pink-100 shadow-[0_0_30px_rgba(243,90,189,0.18)] sm:h-16 sm:w-16">
+              <CheckCircle2 size={32} />
             </div>
-            <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-yellow-200">
+            <p className="mx-auto mt-4 max-w-[24rem] text-[0.68rem] font-black uppercase leading-5 tracking-[0.1em] text-yellow-200 sm:mt-5 sm:text-xs sm:tracking-[0.16em]">
               LavieHome đã xác nhận thanh toán
             </p>
-            <h1 className="mt-2 text-3xl font-black leading-tight tracking-[-0.02em] text-pink-100 md:text-5xl">
+            <h1 className="mt-2 text-[2rem] font-black leading-tight tracking-[-0.02em] text-pink-100 sm:text-4xl md:text-5xl">
               Đặt phòng thành công
             </h1>
-            <p className="mx-auto mt-3 max-w-[54ch] text-sm font-semibold leading-6 text-white/68 md:text-base">
+            <p className="mx-auto mt-3 max-w-[54ch] text-sm font-semibold leading-6 text-white/72 md:text-base">
               Cảm ơn bạn đã lựa chọn LavieHome. Vui lòng lưu lại thông tin bên dưới để tự check-in thuận tiện.
             </p>
           </div>
 
-          <div className="mx-5 overflow-hidden rounded-2xl border border-pink-200/[0.24] bg-[#170c1d] text-center md:mx-9">
+          <div className="mx-4 overflow-hidden rounded-2xl border border-pink-200/[0.24] bg-[#170c1d] text-center sm:mx-5 md:mx-9">
             <div className="bg-pink-200/10 px-4 py-3 text-base font-extrabold text-pink-100">Mã nhận phòng</div>
-            <div className="border-t border-white/10 px-4 py-4 text-2xl font-black text-white">{booking.id}</div>
-            <div className="border-t border-white/10 px-4 py-4 text-lg font-black text-white">{roomName}</div>
+            <div className="break-words border-t border-white/10 px-3 py-4 text-xl font-black text-white sm:px-4 sm:text-2xl">{booking.id}</div>
+            <div className="break-words border-t border-white/10 px-3 py-4 text-base font-black leading-6 text-white sm:px-4 sm:text-lg">{roomName}</div>
             <div className="border-t border-white/10 px-4 py-4 text-sm font-semibold leading-6 text-white/72">
               <CalendarDays className="mr-1 inline-block text-yellow-200" size={16} />
               {dateLine || "LavieHome sẽ xác nhận thời gian nhận phòng qua Zalo/email."}
             </div>
           </div>
 
-          <div className="px-5 py-8 md:px-9 md:py-10">
-            <h2 className="text-center text-2xl font-black uppercase tracking-[0.04em] text-pink-100 md:text-3xl">
+          <div className="px-4 py-7 sm:px-5 sm:py-8 md:px-9 md:py-10">
+            <h2 className="text-center text-xl font-black uppercase leading-7 tracking-[0.03em] text-pink-100 sm:text-2xl md:text-3xl">
               Hướng dẫn tự check-in
             </h2>
 
@@ -209,7 +209,7 @@ export default async function CheckoutSuccessPage({
               <SuccessStep index={1} title="Địa chỉ" icon={MapPin}>
                 <p>{branchName}</p>
                 <a
-                  className="mt-1 inline-flex items-center gap-1 font-extrabold text-yellow-200 underline decoration-pink-200/60 underline-offset-4"
+                  className="mt-1 inline-flex flex-wrap items-center gap-1 font-extrabold text-yellow-200 underline decoration-pink-200/60 underline-offset-4"
                   href={mapsUrl}
                   target="_blank"
                   rel="noreferrer"
@@ -228,7 +228,7 @@ export default async function CheckoutSuccessPage({
                     Xem hướng dẫn
                   </Link>
                 </p>
-                <p className="mt-2 text-lg font-black text-yellow-200">
+                <p className="mt-2 text-base font-black text-yellow-200 sm:text-lg">
                   Mật khẩu cửa: <span className="font-mono text-pink-100">{booking.door_code}</span>
                 </p>
               </SuccessStep>
@@ -254,11 +254,11 @@ export default async function CheckoutSuccessPage({
             <SuccessEmailActions bookingId={booking.id} customerEmail={booking.customer_email} />
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Link className="primary-button py-3.5" href="/">
+              <Link className="primary-button w-full py-3.5" href="/">
                 <Home size={17} /> Quay lại trang chủ
               </Link>
               <Link
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-white/20 bg-white/5 px-5 text-sm font-extrabold text-white transition hover:border-pink-200 hover:bg-white/10"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-white/20 bg-white/5 px-5 text-sm font-extrabold text-white transition hover:border-pink-200 hover:bg-white/10"
                 href={`/checking?code=${encodeURIComponent(booking.id)}`}
               >
                 <Search size={17} /> Tra cứu đặt phòng

@@ -54,8 +54,8 @@ export function SuccessEmailActions({
   }
 
   return (
-    <section className="rounded-2xl border border-pink-200/20 bg-pink-200/[0.08] px-5 py-6 text-center">
-      <p className="text-base font-bold leading-7 text-pink-100">
+    <section className="rounded-2xl border border-pink-200/20 bg-pink-200/[0.08] px-4 py-5 text-center sm:px-5 sm:py-6">
+      <p className="break-words text-sm font-bold leading-6 text-pink-100 sm:text-base sm:leading-7">
         {emailText
           ? `Thông tin đặt phòng cũng đã được gửi qua ${emailText} cho quý khách.`
           : "Đơn đặt phòng chưa có email khách hàng, vui lòng lưu lại thông tin trên màn hình này."}
@@ -64,7 +64,7 @@ export function SuccessEmailActions({
         type="button"
         onClick={() => void resendEmail()}
         disabled={isSending || !customerEmail}
-        className="primary-button mx-auto mt-5 min-h-12 px-6 disabled:cursor-not-allowed disabled:opacity-55"
+        className="primary-button mx-auto mt-5 min-h-12 w-full px-6 disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto"
       >
         <Mail size={18} /> {isSending ? "Đang gửi..." : "Gửi lại email"}
       </button>

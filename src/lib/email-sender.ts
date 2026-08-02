@@ -3,7 +3,10 @@ import "server-only";
 export const DEFAULT_EMAIL_FROM = "Lavie Home <noreply@neooi.com>";
 
 export function getEmailFrom() {
-  return process.env.RESEND_FROM_EMAIL ?? process.env.EMAIL_FROM ?? DEFAULT_EMAIL_FROM;
+  const configured = process.env.RESEND_FROM_EMAIL ?? process.env.EMAIL_FROM;
+  if (!configured) return DEFAULT_EMAIL_FROM;
+
+  return configured.toLowerCase().includes("@neooi.com") ? configured : DEFAULT_EMAIL_FROM;
 }
 
 export function getResendErrorMessage(error: unknown) {
