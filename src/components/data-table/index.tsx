@@ -37,10 +37,10 @@ export function DataTable<TData>({
   const content = children ?? toolbar;
 
   return (
-    <div className={cn("flex flex-1 flex-col gap-4", className)}>
+    <div className={cn("flex min-w-0 flex-1 flex-col gap-4 overflow-hidden", className)}>
       {content && <div className="px-4 pt-4">{content}</div>}
 
-      <div className="mx-4 min-w-0 overflow-hidden rounded-lg border">
+      <div className="mx-4 w-[calc(100%-2rem)] min-w-0 max-w-[calc(100%-2rem)] overflow-hidden rounded-lg border">
         <ScrollArea type="always" className="w-full max-w-full pb-3">
           <table
             data-slot="table"
