@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { BrandWordmark } from "@/components/brand-wordmark";
 import {
   ArrowLeft,
   ArrowRight,
@@ -20,7 +19,7 @@ import type { ElementType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
-import { CUSTOMER_CONTACT, CUSTOMER_LOCATION } from "@/config/customer-info";
+import { CUSTOMER_CONTACT } from "@/config/customer-info";
 import { compactPhone, money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
@@ -897,110 +896,6 @@ export function LavieHomeApp({
         </section>
 
       </main>
-
-      <footer className="w-full border-t-2 border-white/10 bg-[#140a16] mt-16 pb-20 md:pb-6">
-        <div className="mx-auto w-[min(100%-2rem,1360px)] py-12 grid grid-cols-1 md:grid-cols-3 gap-10 text-left">
-          {/* Slogan and Brand Column */}
-          <div className="space-y-4">
-            <div className="block">
-              <BrandWordmark />
-            </div>
-            <p className="text-xs text-white/60 font-semibold leading-relaxed max-w-[32ch]">
-              Không gian nghỉ ngơi riêng tư hoàn hảo với quy trình tự động check-in 24/7 siêu tốc. Tiện nghi, hiện đại và bảo mật tuyệt đối.
-            </p>
-            <div className="flex gap-3">
-              <span className="bg-pink-600/10 text-pink-300 font-bold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border border-pink-500/30">
-                Bảo mật 100%
-              </span>
-              <span className="bg-yellow-500/10 text-yellow-300 font-bold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border border-yellow-500/30">
-                Ảnh thực tế
-              </span>
-            </div>
-          </div>
-
-          {/* Quick links Column */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-black text-white/50 uppercase tracking-widest">
-              Liên kết nhanh
-            </h4>
-            <ul className="space-y-2 text-xs font-bold text-white/70">
-              <li>
-                <a href="#top" className="hover:text-pink-300 transition-colors">
-                  Trang chủ
-                </a>
-              </li>
-              <li>
-                <Link href="/checking" className="hover:text-pink-300 transition-colors">
-                  Tra cứu đặt phòng
-                </Link>
-              </li>
-              <li>
-                <Link href="/contacts" className="hover:text-pink-300 transition-colors">
-                  Hệ thống chi nhánh
-                </Link>
-              </li>
-              <li>
-                <Link href="/rules" className="hover:text-pink-300 transition-colors">
-                  Nội quy và quy định
-                </Link>
-              </li>
-              <li>
-                <Link href="/cancellation-policy" className="hover:text-pink-300 transition-colors">
-                  Chính sách hủy phòng & hoàn tiền
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact Hotline / Zalo Column */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-black text-white/50 uppercase tracking-widest">
-              Chi nhánh đang chọn
-            </h4>
-            <div className="space-y-2 text-xs font-bold">
-              <p className="text-white text-xs font-black mb-1">
-                {currentBranch?.name ?? "Lavie Home"}
-              </p>
-              <p className="flex items-start gap-2 text-white/55">
-                <MapPin size={14} className="mt-0.5 shrink-0" />
-                <span>{CUSTOMER_LOCATION.note}</span>
-              </p>
-              <a 
-                href={`tel:${compactPhone(currentBranch?.hotline ?? CUSTOMER_CONTACT.phoneLocalCompact)}`}
-                className="flex items-center gap-2 text-pink-300 hover:text-pink-400 transition-colors"
-              >
-                <Phone size={14} />
-                Hotline: {currentBranch?.hotline ?? CUSTOMER_CONTACT.phoneLocalDisplay}
-              </a>
-              <a 
-                href={CUSTOMER_CONTACT.zaloUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-blue-300 hover:text-blue-400 transition-colors"
-              >
-                <MessageCircle size={14} />
-                Nhắn Zalo hỗ trợ 24/7
-              </a>
-              {currentBranch?.google_maps_link && (
-                <a 
-                  href={currentBranch.google_maps_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-yellow-200 hover:text-yellow-300 transition-colors"
-                >
-                  <MapPin size={14} />
-                  Xem bản đồ chỉ đường
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Bottom copyright area */}
-        <div className="border-t border-white/5 py-6 text-center text-[10px] font-bold text-white/40 uppercase tracking-widest">
-          © 2025 Lavie Home. Tất cả quyền được bảo lưu.
-        </div>
-      </footer>
 
       <div className="fixed bottom-7 right-5 z-40 hidden flex-col gap-3 md:flex">
         <a className="float-button bg-slate-700" href="#top" aria-label="Lên đầu trang">

@@ -1,6 +1,7 @@
 import '../../styles/customer.css';
 
 import { MaintenanceScreen } from '@/components/maintenance-screen';
+import { SiteFooter } from '@/components/site-footer';
 import { getMaintenanceMode } from '@/lib/settings-actions';
 import { getPublicBranches } from '@/lib/homestay-dashboard';
 
@@ -13,5 +14,10 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     return <MaintenanceScreen hotline={hotline} />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <SiteFooter />
+    </>
+  );
 }

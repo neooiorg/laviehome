@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { BrandWordmark } from '@/components/brand-wordmark';
 import { RoomGallery } from './room-gallery';
 import { RoomBooking } from './room-booking';
 import {
@@ -8,7 +7,6 @@ import {
   BedDouble,
   MapPin,
   MessageCircle,
-  Phone,
   ArrowRight,
   Clock3
 } from 'lucide-react';
@@ -20,7 +18,6 @@ import { getPublicBranches, getPublicRoomById } from '@/lib/homestay-dashboard';
 import { getMenuItemsByBranch } from '@/lib/menu-actions';
 import { getComboPromoConfig } from '@/lib/settings-actions';
 import { money } from '@/lib/format';
-import { compactPhone } from '@/lib/format';
 import { parseAmenity, resolveAmenityIcon } from '@/lib/amenity-icons';
 
 const PLACEHOLDER_IMG = 'https://placehold.co/900x650/1b1023/white?text=Anh+phong';
@@ -203,95 +200,6 @@ export default async function RoomDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Dynamic Cyberpunk Footer Component */}
-      <footer className="w-full border-t-2 border-white/10 bg-[#140a16] mt-16">
-        <div className="mx-auto w-[min(100%-2rem,1360px)] py-12 grid grid-cols-1 md:grid-cols-3 gap-10 text-left">
-          {/* Slogan and Brand Column */}
-          <div className="space-y-4">
-            <div className="block">
-              <BrandWordmark />
-            </div>
-            <p className="text-xs text-white/60 font-semibold leading-relaxed max-w-[32ch]">
-              Không gian nghỉ ngơi riêng tư hoàn hảo với quy trình tự động check-in 24/7 siêu tốc. Tiện nghi, hiện đại và bảo mật tuyệt đối.
-            </p>
-            <div className="flex gap-3">
-              <span className="bg-pink-600/10 text-pink-300 font-bold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border border-pink-500/30">
-                Bảo mật 100%
-              </span>
-              <span className="bg-yellow-500/10 text-yellow-300 font-bold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border border-yellow-500/30">
-                Ảnh thực tế
-              </span>
-            </div>
-          </div>
-
-          {/* Quick links Column */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-black text-white/50 uppercase tracking-widest">
-              Liên kết nhanh
-            </h4>
-            <ul className="space-y-2 text-xs font-bold text-white/70">
-              <li>
-                <Link href="/" className="hover:text-pink-300 transition-colors">
-                  Trang chủ
-                </Link>
-              </li>
-              <li>
-                <Link href="/checking" className="hover:text-pink-300 transition-colors">
-                  Tra cứu đặt phòng
-                </Link>
-              </li>
-              <li>
-                <Link href="/contacts" className="hover:text-pink-300 transition-colors">
-                  Hệ thống chi nhánh
-                </Link>
-              </li>
-              <li>
-                <Link href="/rules" className="hover:text-pink-300 transition-colors">
-                  Nội quy và quy định
-                </Link>
-              </li>
-              <li>
-                <Link href="/cancellation-policy" className="hover:text-pink-300 transition-colors">
-                  Chính sách hủy phòng & hoàn tiền
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact Hotline / Zalo Column */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-black text-white/50 uppercase tracking-widest">
-              Hỗ trợ khách hàng
-            </h4>
-            <div className="space-y-2 text-xs font-bold">
-              <a 
-                href={`tel:${compactPhone(branch?.hotline ?? CUSTOMER_CONTACT.phoneLocalCompact)}`}
-                className="flex items-center gap-2 text-pink-300 hover:text-pink-400 transition-colors"
-              >
-                <Phone size={14} />
-                Hotline: {branch?.hotline ?? CUSTOMER_CONTACT.phoneLocalDisplay}
-              </a>
-              <a 
-                href={CUSTOMER_CONTACT.zaloUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-blue-300 hover:text-blue-400 transition-colors"
-              >
-                <MessageCircle size={14} />
-                Nhắn Zalo hỗ trợ tức thì
-              </a>
-              <p className="text-[10px] text-white/40 font-semibold pt-2">
-                Hệ thống tổng đài và nhân viên hỗ trợ trực tuyến 24/7.
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Bottom copyright area */}
-        <div className="border-t border-white/5 py-6 text-center text-[10px] font-bold text-white/40 uppercase tracking-widest">
-          © 2025 Lavie Home. Tất cả quyền được bảo lưu.
-        </div>
-      </footer>
       <BottomNav />
     </main>
   );
