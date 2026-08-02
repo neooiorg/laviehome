@@ -39,16 +39,6 @@ function safeImg(src: string) {
   return src && (src.startsWith("http") || src.startsWith("/")) ? src : PLACEHOLDER_IMG;
 }
 
-const BlindBagIcon = ({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M16 4C14 4 12 5.5 11.5 7.5C11 9.5 9 10 9 10C9 10 7.5 10.5 7 12C6.5 13.5 8 15 8 15C8 15 6 17 6 19.5C6 22 8 26 12 27.5C16 29 20 29 24 27.5C28 26 30 22 30 19.5C30 17 28 15 28 15C28 15 29.5 13.5 29 12C28.5 10.5 27 10 27 10C27 10 25 9.5 24.5 7.5C24 5.5 22 4 20 4H16Z" fill="#EF4444" />
-    <path d="M9 10C10.5 10.5 11.5 11.5 12.5 12.5C14.5 11.5 17.5 11.5 19.5 12.5C20.5 11.5 21.5 10.5 23 10C22 12.5 21 13.5 20.5 14C19 14.5 13 14.5 11.5 14C11 13.5 10 12.5 9 10Z" fill="#F59E0B" />
-    <circle cx="16" cy="13.5" r="2.5" fill="#F59E0B" />
-    <path d="M13 13.5L10 16.5M19 13.5L22 16.5" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
-    <path d="M12 21.5C12 21.5 14 23.5 16 23.5C18 23.5 20 21.5 20 21.5" stroke="#FFF" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
 const roomSlots: Record<string, { label: string; duration: string; start?: string; end?: string; isOvernight?: boolean }[]> = {
   Honey: [
     { label: "9:00 - 12:00", duration: "3T", start: "09:00", end: "12:00" },
@@ -110,11 +100,6 @@ const MAX_DAYS = 7;
 function isFullDaySelection(slots: SelectedSlot[], slotCount: number) {
   if (slotCount <= 0 || slots.length !== slotCount) return false;
   return new Set(slots.map((slot) => slot.position % slotCount)).size === slotCount;
-}
-
-function isSlotBlindBag(roomName: string, dayIndex: number, slotIndex: number) {
-  const hash = roomName.charCodeAt(roomName.length - 2) + dayIndex * 7 + slotIndex * 3;
-  return hash % 5 === 1;
 }
 
 type SelectedSlot = {
@@ -675,12 +660,6 @@ export function LavieHomeApp({
                 <span>Khuyến mãi</span>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 flex items-center justify-center">
-                <BlindBagIcon size={20} />
-              </div>
-              <span>Túi mù</span>
-            </div>
           </div>
 
           <div className="flex flex-col gap-5">
@@ -753,7 +732,6 @@ export function LavieHomeApp({
                             const past = !booked && isSlotLabelStartPast(date.iso, slot.label);
                             const selected = selectedSlots.some((item) => item.id === id);
                             const promo = promoActive && isSlotPromo(dayIndex);
-                            const hasBlindBag = isSlotBlindBag(room.card_name, dayIndex, slotIndex);
                             const price = slot.isOvernight ? room.full_day_price : room.price_from;
 
                             return (
@@ -795,16 +773,9 @@ export function LavieHomeApp({
                                       {money(price)}đ
                                     </span>
                                   ) : (
-                                    <>
-                                      {hasBlindBag && (
-                                        <div className="absolute inset-0 flex items-center justify-center animate-float">
-                                          <BlindBagIcon size={15} />
-                                        </div>
-                                      )}
-                                      <span className="opacity-0 hover:opacity-100 absolute inset-0 flex items-center justify-center text-[8px] font-extrabold bg-slate-900/90 text-white rounded-md transition-opacity duration-150">
-                                        {money(price)}đ
-                                      </span>
-                                    </>
+                                    <span className="opacity-0 hover:opacity-100 absolute inset-0 flex items-center justify-center text-[8px] font-extrabold bg-slate-900/90 text-white rounded-md transition-opacity duration-150">
+                                      {money(price)}đ
+                                    </span>
                                   )}
                                 </button>
                               </td>

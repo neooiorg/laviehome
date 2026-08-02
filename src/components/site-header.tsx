@@ -36,10 +36,10 @@ export function SiteHeader() {
           {/* Desktop Version */}
           <div className="hidden md:flex mx-auto max-w-7xl items-center justify-center gap-2 flex-wrap text-xs md:text-sm px-4">
             <span className="inline-flex items-center gap-1 rounded bg-white/20 px-2.5 py-0.5 text-[10px] md:text-xs font-black uppercase tracking-wider text-white border border-white/10">
-              🎁 QUÀ TẶNG LẦN ĐẦU
+              ƯU ĐÃI LẦN ĐẦU
             </span>
             <span>
-              Tặng ngay <strong className="text-yellow-100 font-extrabold">Túi Mù May Mắn</strong> & giảm <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã:
+              Giảm ngay <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã:
             </span>
             <span className="inline-block rounded bg-white px-2 py-0.5 font-mono text-xs font-black text-pink-600 shadow-sm border border-pink-100 select-all cursor-pointer">
               LAVIENEW
@@ -52,19 +52,19 @@ export function SiteHeader() {
               {/* Slide Item 1 */}
               <div className="custom-marquee-content">
                 <span className="inline-flex items-center gap-1 rounded bg-white/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white border border-white/10 shrink-0">
-                  🎁 QUÀ TẶNG LẦN ĐẦU
+                  ƯU ĐÃI LẦN ĐẦU
                 </span>
                 <span>
-                  Tặng ngay <strong className="text-yellow-100 font-extrabold">Túi Mù May Mắn</strong> & giảm <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã: <strong className="bg-white text-pink-600 px-1.5 py-0.5 rounded font-mono text-[10px] font-black mx-1">LAVIENEW</strong>
+                  Giảm ngay <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã: <strong className="bg-white text-pink-600 px-1.5 py-0.5 rounded font-mono text-[10px] font-black mx-1">LAVIENEW</strong>
                 </span>
               </div>
               {/* Slide Item 2 (Duplicate for seamless loop) */}
               <div className="custom-marquee-content">
                 <span className="inline-flex items-center gap-1 rounded bg-white/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white border border-white/10 shrink-0">
-                  🎁 QUÀ TẶNG LẦN ĐẦU
+                  ƯU ĐÃI LẦN ĐẦU
                 </span>
                 <span>
-                  Tặng ngay <strong className="text-yellow-100 font-extrabold">Túi Mù May Mắn</strong> & giảm <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã: <strong className="bg-white text-pink-600 px-1.5 py-0.5 rounded font-mono text-[10px] font-black mx-1">LAVIENEW</strong>
+                  Giảm ngay <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã: <strong className="bg-white text-pink-600 px-1.5 py-0.5 rounded font-mono text-[10px] font-black mx-1">LAVIENEW</strong>
                 </span>
               </div>
             </div>
