@@ -580,7 +580,7 @@ export function LavieHomeApp({
             <div>
               <p className="eyebrow">Danh sách phòng</p>
               <h2 className="mt-2 max-w-3xl text-2xl font-extrabold leading-tight tracking-[-0.025em] md:text-4xl">Phòng tại {currentBranch?.name}</h2>
-              <p className="mt-3 max-w-[62ch] text-sm font-semibold leading-6 text-white/62 md:text-[0.95rem]">{branchRooms.length} phòng đang hiển thị từ dữ liệu gốc.</p>
+              <p className="mt-3 max-w-[62ch] text-sm font-semibold leading-6 text-white/62 md:text-[0.95rem]">{branchRooms.length} phòng đang sẵn sàng.</p>
             </div>
             <div className="flex items-center gap-3">
               <select
