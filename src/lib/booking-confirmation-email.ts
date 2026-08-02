@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { Resend } from "resend";
 
 import { BookingConfirmationEmail } from "@/emails/booking-confirmation-email";
+import { getEmailFrom, getResendErrorMessage } from "@/lib/email-sender";
 
 export type BookingConfirmationPayload = {
   bookingId: string;
@@ -18,16 +19,15 @@ export type BookingConfirmationPayload = {
 };
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://laviehomestay.vn";
-const DEFAULT_FROM = "Lavie Home <noreply@neooi.com>";
 
 export async function sendBookingConfirmationEmail(input: BookingConfirmationPayload) {
   if (!input.customerEmail || !process.env.RESEND_API_KEY) {
-    return { sent: false, reason: "missing_email_or_resend_key" };
+    return { sent: false, reason: "missing_email_or_resend_key", id: null };
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? DEFAULT_FROM,
+  const { data, error } = await resend.emails.send({
+    from: getEmailFrom(),
     to: input.customerEmail,
     subject: `Lavie Home - Đặt phòng thành công ${input.bookingId}`,
     react: createElement(BookingConfirmationEmail, {
@@ -44,5 +44,9 @@ export async function sendBookingConfirmationEmail(input: BookingConfirmationPay
     }),
   });
 
-  return { sent: true };
+  if (error) {
+    throw new Error(`Resend failed: ${getResendErrorMessage(error)}`);
+  }
+
+  return { sent: true, reason: null, id: data?.id ?? null };
 }

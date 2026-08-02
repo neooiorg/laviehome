@@ -42,42 +42,57 @@ export function BookingConfirmationEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={hero}>
+            <Text style={eyebrow}>LavieHome đã xác nhận thanh toán</Text>
             <Heading style={h1}>Đặt phòng thành công</Heading>
-            <Text style={subtitle}>Cảm ơn bạn đã lựa chọn Lavie Home.</Text>
+            <Text style={subtitle}>Cảm ơn bạn đã lựa chọn LavieHome.</Text>
           </Section>
 
           <Section style={content}>
             <Text style={greeting}>Xin chào {customerName || "quý khách"},</Text>
             <Text style={paragraph}>
-              Lavie Home đã nhận được thanh toán cho mã đặt phòng <strong>{bookingId}</strong>.
-              Vui lòng lưu lại thông tin bên dưới để tự check-in.
+              LavieHome đã nhận được thanh toán cho mã đặt phòng <strong>{bookingId}</strong>. Vui lòng lưu lại
+              thông tin bên dưới để tự check-in.
             </Text>
 
             <Section style={infoBox}>
               <Text style={label}>Mã nhận phòng</Text>
               <Text style={bookingCode}>{bookingId}</Text>
-              <Text style={infoLine}>{roomName || "Phòng Lavie Home"}</Text>
-              <Text style={infoLine}>{branchName || "Lavie Home"}</Text>
-              <Text style={infoLine}>{dateLabel || ""} {timeRange ? `- ${timeRange}` : ""}</Text>
+              <Text style={infoLine}>{roomName || "Phòng LavieHome"}</Text>
+              <Text style={infoLine}>{branchName || "LavieHome Cần Thơ"}</Text>
+              <Text style={infoLine}>
+                {dateLabel || ""} {timeRange ? `- ${timeRange}` : ""}
+              </Text>
             </Section>
 
             <Section style={timelineItem}>
               <Text style={stepTitle}>1. Địa chỉ</Text>
-              <Text style={paragraph}>{branchName || "Lavie Home Cần Thơ"}</Text>
-              <Button href={mapsUrl} style={linkButton}>Xem trên Google Maps</Button>
+              <Text style={paragraph}>{branchName || "LavieHome Cần Thơ"}</Text>
+              <Button href={mapsUrl} style={linkButton}>
+                Xem trên Google Maps
+              </Button>
             </Section>
 
             <Section style={timelineItem}>
               <Text style={stepTitle}>2. Hướng dẫn tự check-in</Text>
               <Text style={paragraph}>Quý khách vui lòng xem kỹ hướng dẫn tự check-in và lưu lại.</Text>
-              <Button href={guideUrl} style={linkButton}>Xem hướng dẫn</Button>
+              <Button href={guideUrl} style={linkButton}>
+                Xem hướng dẫn
+              </Button>
               <Text style={doorCodeText}>Mật khẩu cửa: {doorCode}</Text>
             </Section>
 
             <Section style={timelineItem}>
               <Text style={stepTitle}>3. Nội quy</Text>
-              <Text style={paragraph}>Quý khách vui lòng đọc kỹ nội quy và tuân thủ khi ở tại Lavie Home.</Text>
-              <Button href={rulesUrl} style={linkButton}>Xem nội quy</Button>
+              <Text style={paragraph}>Quý khách vui lòng đọc kỹ nội quy và tuân thủ khi ở tại LavieHome.</Text>
+              <Button href={rulesUrl} style={linkButton}>
+                Xem nội quy
+              </Button>
+            </Section>
+
+            <Section style={timelineItem}>
+              <Text style={stepTitle}>4. Mật khẩu Wi-Fi</Text>
+              <Text style={paragraph}>Tên Wifi: LAVIE HOME</Text>
+              <Text style={paragraph}>Mật khẩu: laviehome</Text>
             </Section>
           </Section>
         </Container>
@@ -87,14 +102,14 @@ export function BookingConfirmationEmail({
 }
 
 const main = {
-  backgroundColor: "#101722",
+  backgroundColor: "#100813",
   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   padding: "32px 0",
 };
 
 const container = {
-  backgroundColor: "#121b29",
-  border: "1px solid #2c3a4d",
+  backgroundColor: "#1b111f",
+  border: "1px solid rgba(255, 143, 217, 0.22)",
   borderRadius: "18px",
   margin: "0 auto",
   maxWidth: "560px",
@@ -106,8 +121,17 @@ const hero = {
   textAlign: "center" as const,
 };
 
+const eyebrow = {
+  color: "#f6d76f",
+  fontSize: "12px",
+  fontWeight: "800",
+  letterSpacing: "0",
+  margin: "0 0 10px",
+  textTransform: "uppercase" as const,
+};
+
 const h1 = {
-  color: "#38bdf8",
+  color: "#ff8fd9",
   fontSize: "34px",
   fontWeight: "800",
   letterSpacing: "0",
@@ -115,7 +139,7 @@ const h1 = {
 };
 
 const subtitle = {
-  color: "#ffffff",
+  color: "#fff8fb",
   fontSize: "20px",
   fontWeight: "700",
   margin: "0",
@@ -126,19 +150,19 @@ const content = {
 };
 
 const greeting = {
-  color: "#ffffff",
+  color: "#fff8fb",
   fontSize: "16px",
   fontWeight: "700",
 };
 
 const paragraph = {
-  color: "#d7dce5",
+  color: "#f7d6eb",
   fontSize: "15px",
   lineHeight: "1.65",
 };
 
 const infoBox = {
-  border: "1px solid #46546a",
+  border: "1px solid rgba(255, 143, 217, 0.28)",
   borderRadius: "12px",
   margin: "24px 0",
   overflow: "hidden",
@@ -146,15 +170,16 @@ const infoBox = {
 };
 
 const label = {
-  backgroundColor: "#251f55",
-  color: "#ffffff",
+  backgroundColor: "rgba(255, 143, 217, 0.12)",
+  color: "#fff8fb",
   fontSize: "20px",
+  fontWeight: "700",
   margin: "0",
   padding: "14px",
 };
 
 const bookingCode = {
-  color: "#ffffff",
+  color: "#fff8fb",
   fontSize: "24px",
   fontWeight: "800",
   margin: "0",
@@ -162,8 +187,8 @@ const bookingCode = {
 };
 
 const infoLine = {
-  borderTop: "1px solid #46546a",
-  color: "#ffffff",
+  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+  color: "#fff8fb",
   fontSize: "17px",
   fontWeight: "700",
   margin: "0",
@@ -171,13 +196,15 @@ const infoLine = {
 };
 
 const timelineItem = {
-  borderLeft: "3px solid #0ea5e9",
-  margin: "0 0 24px 10px",
-  padding: "0 0 0 18px",
+  backgroundColor: "#170c1d",
+  border: "1px solid rgba(255, 143, 217, 0.2)",
+  borderRadius: "14px",
+  margin: "0 0 18px",
+  padding: "16px 18px",
 };
 
 const stepTitle = {
-  color: "#38bdf8",
+  color: "#ff8fd9",
   fontSize: "18px",
   fontWeight: "800",
   margin: "0 0 8px",
@@ -185,17 +212,18 @@ const stepTitle = {
 };
 
 const linkButton = {
-  backgroundColor: "#2f2ba8",
+  backgroundColor: "#f35abd",
+  border: "1px solid #ffffff",
   borderRadius: "10px",
-  color: "#ffffff",
+  color: "#170913",
   fontSize: "14px",
-  fontWeight: "700",
+  fontWeight: "800",
   padding: "10px 16px",
   textDecoration: "none",
 };
 
 const doorCodeText = {
-  color: "#ff3b3b",
+  color: "#f6d76f",
   fontSize: "18px",
   fontWeight: "800",
   margin: "14px 0 0",

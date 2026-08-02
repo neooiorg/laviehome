@@ -241,7 +241,7 @@ export function CheckoutExperience({
       <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
         <DialogContent className="border-white/10 bg-[#1b111f] text-white sm:max-w-md">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-pink-200/30 bg-pink-200/10 text-pink-100">
               <CheckCircle2 size={36} />
             </div>
             <DialogTitle className="mt-4 text-xl font-extrabold tracking-[-0.02em] text-white">
