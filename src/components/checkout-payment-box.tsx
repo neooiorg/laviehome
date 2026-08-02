@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
@@ -34,6 +34,22 @@ export function CheckoutPaymentBox({
   const [isPaid, setIsPaid] = useState(false);
   const isExpired = timeLeft <= 0;
 
+  const checkPaymentStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/check-payment?booking_id=${encodeURIComponent(transferCode)}`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (data.paid) {
+        setIsPaid(true);
+        return true;
+      }
+    } catch {
+      // Network hiccups are expected when customers switch back from a banking app.
+    }
+    return false;
+  }, [transferCode]);
+
   useEffect(() => {
     if (isPaid) return;
 
@@ -59,27 +75,31 @@ export function CheckoutPaymentBox({
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  // Payment confirmation is PUSH-based, driven by the SePay webhook:
-  //   SePay → /api/hooks/sepay → broadcastBookingUpdate() → SSE → here.
-  // We open a Server-Sent Events stream scoped to this booking and flip to the
-  // success state the moment the backend pushes the "paid" event. A single
-  // one-shot check on mount covers the edge case where payment already landed
-  // before the stream connected (e.g. the customer reloaded the page). No polling.
+  // Payment confirmation is push-first, with polling as a mobile fallback.
+  // Mobile browsers often suspend the checkout tab while the customer switches
+  // to a banking app, so an SSE-only flow can miss the webhook event.
   useEffect(() => {
     if (isPaid || isExpired) return;
 
     let cancelled = false;
 
-    // One-shot catch-up: did payment already complete before we connected?
-    (async () => {
-      try {
-        const res = await fetch(`/api/check-payment?booking_id=${transferCode}`);
-        const data = await res.json();
-        if (!cancelled && data.paid) setIsPaid(true);
-      } catch {
-        // ignore — the SSE stream below is the primary signal
-      }
-    })();
+    const check = async () => {
+      if (!cancelled) await checkPaymentStatus();
+    };
+
+    void check();
+
+    const pollTimer = setInterval(() => {
+      void check();
+    }, 4000);
+
+    const checkWhenVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    const checkOnFocus = () => void check();
+
+    document.addEventListener("visibilitychange", checkWhenVisible);
+    window.addEventListener("focus", checkOnFocus);
 
     // Primary signal: webhook-driven push over SSE.
     const source = new EventSource(
@@ -104,9 +124,12 @@ export function CheckoutPaymentBox({
 
     return () => {
       cancelled = true;
+      clearInterval(pollTimer);
+      document.removeEventListener("visibilitychange", checkWhenVisible);
+      window.removeEventListener("focus", checkOnFocus);
       source.close();
     };
-  }, [transferCode, isPaid, isExpired]);
+  }, [transferCode, isPaid, isExpired, checkPaymentStatus]);
 
   useEffect(() => {
     if (!isPaid) return;
