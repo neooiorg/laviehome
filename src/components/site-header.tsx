@@ -4,14 +4,12 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandWordmark } from "@/components/brand-wordmark";
-import { CUSTOMER_CONTACT } from "@/config/customer-info";
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
-    if (!mobileOpen && !guideOpen) return;
+    if (!mobileOpen) return;
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -19,7 +17,6 @@ export function SiteHeader() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setMobileOpen(false);
-        setGuideOpen(false);
       }
     }
 
@@ -29,7 +26,7 @@ export function SiteHeader() {
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mobileOpen, guideOpen]);
+  }, [mobileOpen]);
 
   return (
     <>
@@ -86,12 +83,9 @@ export function SiteHeader() {
             <Link className="nav-link" href="/checking">
               Tra Cứu
             </Link>
-            <button
-              className="nav-link cursor-pointer border-none bg-transparent text-left"
-              onClick={() => setGuideOpen(true)}
-            >
+            <Link className="nav-link" href="/guide">
               Hướng Dẫn
-            </button>
+            </Link>
             <Link className="nav-link" href="/contacts">
               Chi Nhánh
             </Link>
@@ -145,15 +139,9 @@ export function SiteHeader() {
               <Link className="mobile-drawer-link" href="/checking" onClick={() => setMobileOpen(false)}>
                 Tra Cứu Đặt Phòng
               </Link>
-              <button
-                className="mobile-drawer-link border-none bg-transparent text-left"
-                onClick={() => {
-                  setMobileOpen(false);
-                  setGuideOpen(true);
-                }}
-              >
+              <Link className="mobile-drawer-link" href="/guide" onClick={() => setMobileOpen(false)}>
                 Hướng Dẫn Sử Dụng
-              </button>
+              </Link>
               <Link className="mobile-drawer-link" href="/contacts" onClick={() => setMobileOpen(false)}>
                 Hệ Thống Chi Nhánh
               </Link>
@@ -172,89 +160,6 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {guideOpen && (
-        <div
-          className="guide-modal-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setGuideOpen(false)}
-        >
-          <div
-            className="guide-modal-card glass-panel relative w-full max-w-xl overflow-hidden rounded-3xl p-6 md:p-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="mobile-drawer-close absolute right-4 top-4"
-              onClick={() => setGuideOpen(false)}
-              aria-label="Đóng hướng dẫn"
-            >
-              <X size={18} strokeWidth={1.5} />
-            </button>
-
-            <h2 className="border-b border-white/10 pb-4 text-center text-xl font-extrabold text-pink-200">
-              Hướng Dẫn Sử Dụng
-            </h2>
-
-            <div className="mt-6 max-h-[70vh] space-y-6 overflow-y-auto pr-1 text-sm text-white/80">
-              <div>
-                <h3 className="mb-2 flex items-center gap-2 text-base font-extrabold text-white">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-pink-500/20 text-xs text-pink-200">
-                    1
-                  </span>
-                  Dành cho khách hàng
-                </h3>
-                <ul className="list-disc space-y-1.5 pl-8 text-white/70">
-                  <li>Tìm kiếm phòng phù hợp với yêu cầu của quý khách.</li>
-                  <li>Chọn khung giờ và nhấn &quot;Xác nhận đặt phòng&quot;.</li>
-                  <li>Nhập thông tin người đặt và hoàn tất thanh toán.</li>
-                  <li>Chờ xác nhận tự động hoặc từ lễ tân Lavie Home qua Zalo.</li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="mb-2 flex items-center gap-2 text-base font-extrabold text-white">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-pink-500/20 text-xs text-pink-200">
-                    2
-                  </span>
-                  Hủy đơn & hoàn tiền
-                </h3>
-                <ul className="list-disc space-y-1.5 pl-8 text-white/70">
-                  <li>
-                    Quý khách vui lòng gọi Hotline{" "}
-                    <a href={`tel:${CUSTOMER_CONTACT.telHref}`} className="font-bold text-yellow-200 hover:underline">
-                      {CUSTOMER_CONTACT.phoneDisplay}
-                    </a>{" "}
-                    để yêu cầu hủy.
-                  </li>
-                  <li>
-                    Hoặc liên hệ{" "}
-                    <a
-                      href={CUSTOMER_CONTACT.zaloUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold text-blue-200 hover:underline"
-                    >
-                      Zalo Lavie Home {CUSTOMER_CONTACT.phoneDisplay}
-                    </a>{" "}
-                    để được hỗ trợ.
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="mb-2 flex items-center gap-2 text-base font-extrabold text-white">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-pink-500/20 text-xs text-pink-200">
-                    3
-                  </span>
-                  Hỗ trợ phát sinh
-                </h3>
-                <ul className="list-disc space-y-1.5 pl-8 text-white/70">
-                  <li>Lavie Home sẵn sàng hỗ trợ 24/7 mọi vấn đề liên quan dịch vụ.</li>
-                  <li>Vui lòng tuân thủ quy định an ninh tại chi nhánh.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

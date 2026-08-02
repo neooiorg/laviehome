@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 
-import { expireStalePendingBookings, getActiveBookingsForRoomDate } from "@/lib/booking-records";
+import { expireStalePendingBookings, fetchRawBookings, holdsSlot, normalizeBookingRecord } from "@/lib/booking-records";
 import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
 import {
   formatDateLabelFromIso,
@@ -10,8 +10,10 @@ import {
   inferTimeslotIds,
   isTimeslotStartPast,
   normalizeDateLabelToIso,
+  parseTimeslotId,
   stringifyTimeslotIds,
 } from "@/lib/booking-slots";
+import { getBookingHoldMinutes } from "@/lib/settings-actions";
 
 let pool: Pool | null = null;
 function getPool() {
@@ -90,6 +92,7 @@ async function ensureTable(db: Pool) {
     `ALTER TABLE bookings ALTER COLUMN room_id DROP NOT NULL`,
     `ALTER TABLE bookings ALTER COLUMN branch_id DROP NOT NULL`,
     `ALTER TABLE bookings ALTER COLUMN time_range DROP NOT NULL`,
+    `ALTER TABLE bookings ALTER COLUMN time_range TYPE TEXT`,
     `ALTER TABLE bookings ALTER COLUMN customer_name DROP NOT NULL`,
     `ALTER TABLE bookings ALTER COLUMN customer_phone DROP NOT NULL`,
   ]) {
@@ -211,10 +214,16 @@ export async function POST(req: NextRequest) {
     // Reject a brand-new booking whose slot has already started — a customer must
     // not be able to book a past timeslot (e.g. from a stale tab). Updates to an
     // existing booking are exempt so post-payment re-saves keep working.
-    if (!existing && resolvedRoomName && resolvedTimeslotIds.length > 0) {
-      const roomSlots = getRoomSlots(resolvedRoomName, room?.time_slots);
+    if (!existing && resolvedTimeslotIds.length > 0) {
       const nowMs = Date.now();
-      if (resolvedTimeslotIds.some((slotId) => isTimeslotStartPast(slotId, roomSlots, nowMs))) {
+      const hasPastSlot = resolvedTimeslotIds.some((slotId) => {
+        const parsed = parseTimeslotId(slotId);
+        const slotRoom = parsed.roomId !== null ? rooms.find((item) => item.id === parsed.roomId) : room;
+        const roomSlots = getRoomSlots(slotRoom?.card_name ?? resolvedRoomName ?? "", slotRoom?.time_slots);
+        return isTimeslotStartPast(slotId, roomSlots, nowMs);
+      });
+
+      if (hasPastSlot) {
         return NextResponse.json(
           { error: "Khung giờ đã qua. Vui lòng chọn khung giờ khác." },
           { status: 409 }
@@ -222,19 +231,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (resolvedRoomId && resolvedRoomName && resolvedStayDate && resolvedTimeslotIds.length > 0) {
-      const activeBookings = await getActiveBookingsForRoomDate({
-        roomId: resolvedRoomId,
-        roomName: resolvedRoomName,
-        dateIso: resolvedStayDate,
-        rooms,
-        branches,
-      });
-
-      const hasConflict = activeBookings.some(
-        (booking) =>
-          booking.raw.id !== id && booking.timeslotIds.some((slotId) => resolvedTimeslotIds.includes(slotId))
-      );
+    if (resolvedTimeslotIds.length > 0) {
+      const selectedSet = new Set(resolvedTimeslotIds);
+      const [rawBookings, holdMinutes] = await Promise.all([
+        fetchRawBookings({ limit: 1500 }),
+        getBookingHoldMinutes(),
+      ]);
+      const nowMs = Date.now();
+      const hasConflict = rawBookings
+        .map((booking) => normalizeBookingRecord(booking, rooms, branches))
+        .filter((booking) => holdsSlot(booking.raw, holdMinutes, nowMs))
+        .some(
+          (booking) =>
+            booking.raw.id !== id && booking.timeslotIds.some((slotId) => selectedSet.has(slotId))
+        );
 
       if (hasConflict) {
         return NextResponse.json(

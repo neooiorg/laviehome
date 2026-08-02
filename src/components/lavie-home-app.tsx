@@ -105,8 +105,13 @@ function isSlotPromo(dayIndex: number) {
   return dayIndex >= 1 && dayIndex <= 5;
 }
 
-// Customers may pick slots for one room across at most one week.
+// Customers may pick slots across multiple rooms, capped by distinct dates.
 const MAX_DAYS = 7;
+
+function isFullDaySelection(slots: SelectedSlot[], slotCount: number) {
+  if (slotCount <= 0 || slots.length !== slotCount) return false;
+  return new Set(slots.map((slot) => slot.position % slotCount)).size === slotCount;
+}
 
 function isSlotBlindBag(roomName: string, dayIndex: number, slotIndex: number) {
   const hash = roomName.charCodeAt(roomName.length - 2) + dayIndex * 7 + slotIndex * 3;
@@ -222,26 +227,53 @@ export function LavieHomeApp({
 
   const promoActive = comboPromo.enabled && comboPromo.tiers.length > 0;
 
-  // Selected slots grouped by day (one room per booking is enforced in toggleSlot).
-  const slotsByDay = useMemo(() => {
-    const groups = new Map<string, { date: string; dateIso: string; slots: SelectedSlot[] }>();
+  // Selected slots grouped by room + day so combo/full-day pricing never mixes
+  // adjacent-looking slots from different rooms.
+  const slotGroups = useMemo(() => {
+    const groups = new Map<string, { roomId: number; roomName: string; date: string; dateIso: string; slots: SelectedSlot[] }>();
     for (const slot of selectedSlots) {
-      const group = groups.get(slot.dateIso) ?? { date: slot.date, dateIso: slot.dateIso, slots: [] };
+      const key = `${slot.room.id}-${slot.dateIso}`;
+      const group = groups.get(key) ?? {
+        roomId: slot.room.id,
+        roomName: slot.room.card_name,
+        date: slot.date,
+        dateIso: slot.dateIso,
+        slots: [],
+      };
       group.slots.push(slot);
-      groups.set(slot.dateIso, group);
+      groups.set(key, group);
     }
     return [...groups.values()]
       .map((group) => ({ ...group, slots: [...group.slots].sort((a, b) => a.position - b.position) }))
-      .sort((a, b) => a.slots[0].position - b.slots[0].position);
+      .sort((a, b) => a.dateIso.localeCompare(b.dateIso) || a.roomId - b.roomId);
   }, [selectedSlots]);
+  const selectedDateCount = useMemo(
+    () => new Set(selectedSlots.map((slot) => slot.dateIso)).size,
+    [selectedSlots]
+  );
+  const selectedRoomCount = useMemo(
+    () => new Set(selectedSlots.map((slot) => slot.room.id)).size,
+    [selectedSlots]
+  );
 
   // Combo is scored per day: only adjacent slots within the same day earn the
   // discount + bonus minutes, and each day is tallied independently.
-  const { subtotal, discountAmount, extraMinutes } = useMemo(() => {
+  const { subtotal, discountAmount, extraMinutes, fullDayCount, fullDayAmount } = useMemo(() => {
     let subtotal = 0;
     let discountAmount = 0;
     let extraMinutes = 0;
-    for (const group of slotsByDay) {
+    let fullDayCount = 0;
+    let fullDayAmount = 0;
+    for (const group of slotGroups) {
+      const groupRoom = group.slots[0]?.room;
+      const groupSlotCount = groupRoom ? getRoomSlots(groupRoom.card_name, groupRoom.time_slots).length : 0;
+      if (groupRoom && isFullDaySelection(group.slots, groupSlotCount)) {
+        subtotal += groupRoom.full_day_price;
+        fullDayAmount += groupRoom.full_day_price;
+        fullDayCount++;
+        continue;
+      }
+
       let i = 0;
       while (i < group.slots.length) {
         let end = i;
@@ -264,8 +296,8 @@ export function LavieHomeApp({
         i = end + 1;
       }
     }
-    return { subtotal, discountAmount, extraMinutes };
-  }, [slotsByDay, comboPromo]);
+    return { subtotal, discountAmount, extraMinutes, fullDayCount, fullDayAmount };
+  }, [slotGroups, comboPromo]);
   const comboTotal = Math.max(subtotal - discountAmount, 0);
   const grandTotal = comboTotal + menuTotal;
   const promoNote = promoActive
@@ -370,20 +402,18 @@ export function LavieHomeApp({
       if (current.some((item) => item.id === slot.id)) {
         return current.filter((item) => item.id !== slot.id);
       }
-      // One room per booking: picking a different room resets the selection.
-      if (current.length > 0 && current[0].room.id !== slot.room.id) {
-        return [slot];
-      }
-      // Free multi-day selection for that room, capped at a week.
+      // Free multi-room, multi-day selection, capped at a week of distinct dates.
       const days = new Set(current.map((item) => item.dateIso));
       if (!days.has(slot.dateIso) && days.size >= MAX_DAYS) return current;
-      return [...current, slot].sort((a, b) => a.position - b.position);
+      return [...current, slot].sort(
+        (a, b) => a.dateIso.localeCompare(b.dateIso) || a.room.id - b.room.id || a.position - b.position
+      );
     });
   }
 
   const selectedSummary = selectedSlots[0]
     ? {
-        room: selectedSlots[0].room.card_name,
+        room: selectedRoomCount > 1 ? `${selectedRoomCount} phòng` : selectedSlots[0].room.card_name,
         date: selectedSlots[0].date,
         branch: selectedSlots[0].room.branch_name,
         time: selectedSlots.map((slot) => slot.time).join(", "),
@@ -401,17 +431,15 @@ export function LavieHomeApp({
     const firstSlot = selectedSlots[0];
     const timeslotIds = selectedSlots.map((slot) => slot.id).join(",");
     const checkoutDate = formatCheckoutDate(firstSlot.dateIso);
-    // When more than one day is picked, keep each day's label with its times so
-    // the multi-day breakdown survives into checkout (which stores one stay_date).
-    const timeRange =
-      slotsByDay.length > 1
-        ? slotsByDay.map((group) => `${group.date}: ${group.slots.map((slot) => slot.time).join(", ")}`).join(" • ")
-        : selectedSlots.map((slot) => slot.time).join(", ");
+    const roomNames = [...new Set(selectedSlots.map((slot) => slot.room.card_name))];
+    const timeRange = slotGroups
+      .map((group) => `${group.roomName} - ${group.date}: ${group.slots.map((slot) => slot.time).join(", ")}`)
+      .join(" • ");
     const payload = {
       booking_id: makeBookingReference(firstSlot.room.branch_id),
       room_id: firstSlot.room.id,
       timeslot_ids: timeslotIds,
-      room_name: firstSlot.room.card_name,
+      room_name: roomNames.join(", "),
       branch_name: firstSlot.room.branch_name,
       branch_id: String(firstSlot.room.branch_id),
       date: checkoutDate,
@@ -449,7 +477,7 @@ export function LavieHomeApp({
       <main className="pt-[104px]">
         {/* Option 3: Neo-Brutalist Cyber-Pink (Chosen Hero Design) with original glowing background */}
         <section className="lavie-hero-section">
-          <div className="lavie-hero-shell !min-h-0 py-12 lg:py-16">
+          <div className="lavie-hero-shell !min-h-0 pt-5 pb-10 sm:pt-7 sm:pb-12 lg:pt-8 lg:pb-16">
             <div className="mx-auto w-[min(100%-2rem,1360px)] grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center relative z-10">
               <div className="space-y-6">
                 <div className="flex flex-wrap gap-2">
@@ -800,7 +828,7 @@ export function LavieHomeApp({
                 <h3 className="text-base font-extrabold text-pink-200 border-b border-white/10 pb-3 mb-4 flex items-center gap-2">
                   <Sparkles size={16} /> Chi tiết khung giờ đã chọn
                   <span className="ml-auto text-xs font-bold text-white/50">
-                    {slotsByDay.length} ngày · {selectedSlots.length} khung giờ
+                    {selectedRoomCount} phòng · {selectedDateCount} ngày · {selectedSlots.length} khung giờ
                   </span>
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2 text-sm">
@@ -808,10 +836,10 @@ export function LavieHomeApp({
                   <SummaryRow icon={MapPin} label="Chi nhánh" value={selectedSummary?.branch ?? currentBranch?.name ?? "Chưa chọn"} />
                 </div>
                 <div className="mt-4 grid gap-2 border-t border-white/5 pt-4 text-sm">
-                  {slotsByDay.map((group) => (
-                    <div key={group.dateIso} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                  {slotGroups.map((group) => (
+                    <div key={`${group.roomId}-${group.dateIso}`} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
                       <div className="flex items-center gap-2 font-bold text-white/85 sm:w-44 sm:shrink-0">
-                        <CalendarDays size={15} className="text-pink-300" /> {group.date}
+                        <CalendarDays size={15} className="text-pink-300" /> {group.roomName} - {group.date}
                       </div>
                       <div className="flex items-start gap-2 text-white/70">
                         <Clock3 size={15} className="mt-0.5 shrink-0 text-pink-300" />
@@ -822,7 +850,12 @@ export function LavieHomeApp({
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 justify-between border-t border-white/5 pt-4 text-sm text-white/70">
                   <div className="flex flex-wrap gap-6">
-                    <div>Giá gốc: <span className="text-white font-bold">{money(subtotal)}đ</span></div>
+                    <div>Tạm tính phòng: <span className="text-white font-bold">{money(subtotal)}đ</span></div>
+                    {fullDayCount > 0 && (
+                      <div className="text-yellow-200">
+                        Giá ngày: <span className="font-bold">{fullDayCount} ngày · {money(fullDayAmount)}đ</span>
+                      </div>
+                    )}
                     {menuTotal > 0 && (
                       <div className="text-yellow-200">Menu items: <span className="font-bold">+{money(menuTotal)}đ</span></div>
                     )}
@@ -856,7 +889,8 @@ export function LavieHomeApp({
             <div className="border-2 border-cyan-400 bg-cyan-950/20 rounded-2xl p-5 text-center shadow-[4px_4px_0px_#22d3ee]">
               <p className="text-sm md:text-base font-black text-cyan-300 leading-relaxed">
                 {promoNote && <>** {promoNote} (tính riêng theo từng ngày). </>}
-                Có thể chọn nhiều ngày cho cùng một phòng, tối đa 1 tuần.
+                Chọn đủ tất cả khung giờ trong một ngày sẽ tự tính theo giá ngày.{" "}
+                Có thể chọn nhiều phòng và nhiều ngày, tối đa 1 tuần.
               </p>
             </div>
           </div>
@@ -903,6 +937,16 @@ export function LavieHomeApp({
               <li>
                 <Link href="/contacts" className="hover:text-pink-300 transition-colors">
                   Hệ thống chi nhánh
+                </Link>
+              </li>
+              <li>
+                <Link href="/rules" className="hover:text-pink-300 transition-colors">
+                  Nội quy và quy định
+                </Link>
+              </li>
+              <li>
+                <Link href="/cancellation-policy" className="hover:text-pink-300 transition-colors">
+                  Chính sách hủy phòng & hoàn tiền
                 </Link>
               </li>
             </ul>
@@ -988,7 +1032,7 @@ export function LavieHomeApp({
           <div className="hidden md:flex fixed bottom-0 inset-x-0 z-40 items-center justify-between gap-4 border-t-2 border-yellow-300/30 bg-[#1b1024]/95 backdrop-blur-xl px-8 py-4 shadow-[0_-8px_24px_rgba(0,0,0,0.4)]">
             <div className="flex items-baseline gap-4">
               <span className="text-sm font-bold text-white/60">
-                {selectedSummary?.room} · {slotsByDay.length > 1 ? `${slotsByDay.length} ngày` : selectedSummary?.date} ·{" "}
+                {selectedSummary?.room} · {selectedDateCount > 1 ? `${selectedDateCount} ngày` : selectedSummary?.date} ·{" "}
                 {selectedSlots.length} khung giờ
               </span>
               <span className="text-xl font-black text-yellow-200">{money(grandTotal)}đ</span>

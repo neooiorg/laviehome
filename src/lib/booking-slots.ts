@@ -314,6 +314,15 @@ export function getRoomIdFromTimeslotIds(value: string | null | undefined): numb
   return parseTimeslotId(first).roomId;
 }
 
+export function getRoomIdsFromTimeslotIds(value: string | null | undefined): number[] {
+  const ids = new Set<number>();
+  for (const timeslotId of parseTimeslotIds(value)) {
+    const roomId = parseTimeslotId(timeslotId).roomId;
+    if (roomId !== null) ids.add(roomId);
+  }
+  return [...ids];
+}
+
 export function getDateFromTimeslotIds(value: string | null | undefined): string | null {
   const first = parseTimeslotIds(value)[0];
   if (!first) return null;

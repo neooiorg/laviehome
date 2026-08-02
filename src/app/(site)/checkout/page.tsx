@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { CUSTOMER_CONTACT } from "@/config/customer-info";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { compactPhone } from "@/lib/format";
-import { getActiveBookingsForRoomDate } from "@/lib/booking-records";
+import { fetchRawBookings, holdsSlot, normalizeBookingRecord } from "@/lib/booking-records";
 import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
 import {
   formatDateLabelFromIso,
@@ -16,7 +16,7 @@ import {
 } from "@/lib/booking-slots";
 import { query } from "@/lib/postgres";
 import { getMenuItemsByIds } from "@/lib/menu-actions";
-import { getOnlinePaymentEnabled } from "@/lib/settings-actions";
+import { getBookingHoldMinutes, getOnlinePaymentEnabled } from "@/lib/settings-actions";
 import { getBankPaymentConfig } from "@/lib/payment-config";
 import { CheckoutExperience } from "./checkout-experience";
 
@@ -109,30 +109,33 @@ async function checkTimeslotConflict(
   branches: Awaited<ReturnType<typeof getPublicBranches>>,
   rooms: Awaited<ReturnType<typeof getPublicRooms>>
 ) {
-  if (!checkout.roomId || !checkout.stayDate || !checkout.roomName || checkout.timeslotIds === "N/A") {
+  if (!checkout.timeslotIds || checkout.timeslotIds === "N/A") {
     return false;
   }
 
   const selectedTimeslotIds = parseTimeslotIds(checkout.timeslotIds);
   if (selectedTimeslotIds.length === 0) return false;
 
-  const activeBookings = await getActiveBookingsForRoomDate({
-    roomId: checkout.roomId,
-    roomName: checkout.roomName,
-    dateIso: checkout.stayDate,
-    rooms,
-    branches,
-  });
+  const selectedSet = new Set(selectedTimeslotIds);
+  const [rawBookings, holdMinutes] = await Promise.all([
+    fetchRawBookings({ limit: 1500 }),
+    getBookingHoldMinutes(),
+  ]);
+  const now = Date.now();
 
-  return activeBookings.some(
+  return rawBookings
+    .map((booking) => normalizeBookingRecord(booking, rooms, branches))
+    .filter((booking) => holdsSlot(booking.raw, holdMinutes, now))
+    .some(
     (booking) =>
-      booking.raw.id !== id && booking.timeslotIds.some((timeslotId) => selectedTimeslotIds.includes(timeslotId))
-  );
+      booking.raw.id !== id && booking.timeslotIds.some((timeslotId) => selectedSet.has(timeslotId))
+    );
 }
 
 async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<typeof resolveCheckout>>) {
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
+    await query(`ALTER TABLE bookings ALTER COLUMN time_range TYPE TEXT`).catch(() => null);
     // Split the quote so discount codes only ever touch the room: quoted_amount /
     // amount hold the room-only price, menu_items_total holds the (never-discounted)
     // menu portion. Display total is amount + menu_items_total.
@@ -191,7 +194,7 @@ export default async function CheckoutPage({
   const transferCode = checkout.bookingId;
 
   const hasConflict =
-    checkout.timeslotIds && checkout.timeslotIds !== "N/A" && checkout.roomName && checkout.stayDate
+    checkout.timeslotIds && checkout.timeslotIds !== "N/A" && checkout.roomName
       ? await checkTimeslotConflict(transferCode, checkout, branches, rooms)
       : false;
 
@@ -203,8 +206,8 @@ export default async function CheckoutPage({
           <div className="text-5xl">⚠️</div>
           <h1 className="text-2xl font-bold">Khung giờ đã được đặt</h1>
           <p className="max-w-md text-white/70">
-            Rất tiếc, khung giờ bạn chọn cho phòng <strong>{checkout.roomName}</strong> vào ngày{" "}
-            <strong>{checkout.date}</strong> đã có người đặt trước. Vui lòng quay lại và chọn khung giờ khác.
+            Rất tiếc, một hoặc nhiều khung giờ bạn chọn cho <strong>{checkout.roomName}</strong> đã có người đặt trước.
+            Vui lòng quay lại và chọn khung giờ khác.
           </p>
           <Link
             href="/"

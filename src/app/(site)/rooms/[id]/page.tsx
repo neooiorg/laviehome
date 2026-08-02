@@ -245,6 +245,16 @@ export default async function RoomDetailPage({ params }: PageProps) {
                   Hệ thống chi nhánh
                 </Link>
               </li>
+              <li>
+                <Link href="/rules" className="hover:text-pink-300 transition-colors">
+                  Nội quy và quy định
+                </Link>
+              </li>
+              <li>
+                <Link href="/cancellation-policy" className="hover:text-pink-300 transition-colors">
+                  Chính sách hủy phòng & hoàn tiền
+                </Link>
+              </li>
             </ul>
           </div>
 

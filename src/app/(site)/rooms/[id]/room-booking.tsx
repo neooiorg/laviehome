@@ -38,6 +38,11 @@ function isSlotPromo(dayIndex: number) {
 // Customers may pick slots across at most one week.
 const MAX_DAYS = 7;
 
+function isFullDaySelection(slots: SelectedSlot[], slotCount: number) {
+  if (slotCount <= 0 || slots.length !== slotCount) return false;
+  return new Set(slots.map((slot) => slot.position % slotCount)).size === slotCount;
+}
+
 export function RoomBooking({
   room,
   menuItems,
@@ -95,11 +100,20 @@ export function RoomBooking({
 
   // Combo is scored per day: only slots that are adjacent *within the same day*
   // earn the discount + bonus minutes. Each day is tallied independently.
-  const { subtotal, discountAmount, extraMinutes } = useMemo(() => {
+  const { subtotal, discountAmount, extraMinutes, fullDayCount, fullDayAmount } = useMemo(() => {
     let subtotal = 0;
     let discountAmount = 0;
     let extraMinutes = 0;
+    let fullDayCount = 0;
+    let fullDayAmount = 0;
     for (const group of slotsByDay) {
+      if (isFullDaySelection(group.slots, slots.length)) {
+        subtotal += room.full_day_price;
+        fullDayAmount += room.full_day_price;
+        fullDayCount++;
+        continue;
+      }
+
       let i = 0;
       while (i < group.slots.length) {
         let end = i;
@@ -122,8 +136,8 @@ export function RoomBooking({
         i = end + 1;
       }
     }
-    return { subtotal, discountAmount, extraMinutes };
-  }, [slotsByDay, comboPromo]);
+    return { subtotal, discountAmount, extraMinutes, fullDayCount, fullDayAmount };
+  }, [slotsByDay, slots.length, room.full_day_price, comboPromo]);
   const comboTotal = Math.max(subtotal - discountAmount, 0);
   const promoActive = comboPromo.enabled && comboPromo.tiers.length > 0;
   const promoNote = promoActive
@@ -327,17 +341,26 @@ export function RoomBooking({
               </div>
             ))}
           </div>
-          {discountAmount > 0 && (
+          {(fullDayCount > 0 || discountAmount > 0) && (
             <div className="mt-4 flex flex-wrap gap-5 border-t border-white/5 pt-4 text-sm">
               <span className="text-white/70">
-                Giá gốc: <span className="font-bold text-white">{money(subtotal)}đ</span>
+                Tạm tính phòng: <span className="font-bold text-white">{money(subtotal)}đ</span>
               </span>
-              <span className="text-emerald-300">
-                Ưu đãi: <span className="font-bold">-{money(discountAmount)}đ</span>
-              </span>
-              <span className="text-cyan-300">
-                Tặng thêm: <span className="font-bold">+{extraMinutes} phút</span>
-              </span>
+              {fullDayCount > 0 && (
+                <span className="text-yellow-200">
+                  Giá ngày: <span className="font-bold">{fullDayCount} ngày · {money(fullDayAmount)}đ</span>
+                </span>
+              )}
+              {discountAmount > 0 && (
+                <span className="text-emerald-300">
+                  Ưu đãi: <span className="font-bold">-{money(discountAmount)}đ</span>
+                </span>
+              )}
+              {extraMinutes > 0 && (
+                <span className="text-cyan-300">
+                  Tặng thêm: <span className="font-bold">+{extraMinutes} phút</span>
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -361,6 +384,7 @@ export function RoomBooking({
       <div className="mt-4 border-2 border-cyan-400 bg-cyan-950/20 rounded-2xl p-4 text-center shadow-[4px_4px_0px_#22d3ee]">
         <p className="text-xs md:text-sm font-black text-cyan-300 leading-relaxed">
           {promoNote && <>** {promoNote} (tính riêng theo từng ngày). </>}
+          Chọn đủ tất cả khung giờ trong một ngày sẽ tự tính theo giá ngày.{" "}
           Có thể chọn nhiều ngày, tối đa 1 tuần.
         </p>
       </div>

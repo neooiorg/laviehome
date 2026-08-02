@@ -6,6 +6,7 @@ import {
   getRoomIdFromTimeslotIds,
   inferTimeslotIds,
   normalizeDateLabelToIso,
+  parseTimeslotId,
   type RoomSlot,
 } from "@/lib/booking-slots";
 import { query } from "@/lib/postgres";
@@ -316,5 +317,10 @@ export async function getActiveBookingsForRoomDate(input: {
   return matches
     .map((row) => normalizeBookingRecord(row, input.rooms, input.branches))
     .filter((booking) => holdsSlot(booking.raw, holdMinutes, now))
-    .filter((booking) => booking.roomId === input.roomId && booking.stayDate === input.dateIso);
+    .filter((booking) =>
+      booking.timeslotIds.some((timeslotId) => {
+        const parsed = parseTimeslotId(timeslotId);
+        return parsed.roomId === input.roomId && parsed.dateIso === input.dateIso;
+      })
+    );
 }
