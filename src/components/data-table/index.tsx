@@ -6,7 +6,6 @@ import { flexRender, type Table as TanstackTable } from "@tanstack/react-table";
 
 import { DataTablePagination } from "@/components/data-table/data-table-pagination";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -41,9 +40,12 @@ export function DataTable<TData>({
     <div className={cn("flex flex-1 flex-col gap-4", className)}>
       {content && <div className="px-4 pt-4">{content}</div>}
 
-      <div className="mx-4 overflow-hidden rounded-lg border">
-        <ScrollArea className="w-full">
-          <Table className={tableClassName}>
+      <div className="mx-4 min-w-0 overflow-hidden rounded-lg border">
+        <ScrollArea className="w-full max-w-full">
+          <table
+            data-slot="table"
+            className={cn("w-full min-w-max caption-bottom text-sm", tableClassName)}
+          >
             <TableHeader className="bg-muted sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -98,7 +100,7 @@ export function DataTable<TData>({
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+          </table>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
