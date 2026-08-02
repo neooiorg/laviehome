@@ -239,7 +239,7 @@ export function Bookings({
           </DataTableToolbar>
         </div>
 
-        <DataTable table={table} emptyMessage="Không có booking nào." />
+        <DataTable table={table} tableClassName="min-w-[1512px] table-fixed" emptyMessage="Không có booking nào." />
       </CardContent>
     </Card>
   );

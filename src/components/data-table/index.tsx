@@ -15,11 +15,13 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { getCommonPinningStyles } from "@/lib/data-table";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData> extends React.ComponentProps<"div"> {
   table: TanstackTable<TData>;
   actionBar?: React.ReactNode;
   emptyMessage?: string;
+  tableClassName?: string;
   /** @deprecated use children instead */
   toolbar?: React.ReactNode;
 }
@@ -27,37 +29,38 @@ interface DataTableProps<TData> extends React.ComponentProps<"div"> {
 export function DataTable<TData>({
   table,
   actionBar,
+  className,
   emptyMessage = "Không có dữ liệu.",
+  tableClassName,
   toolbar,
   children,
 }: DataTableProps<TData>) {
   const content = children ?? toolbar;
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
+    <div className={cn("flex flex-1 flex-col gap-4", className)}>
       {content && <div className="px-4 pt-4">{content}</div>}
 
-      <div className="overflow-hidden rounded-lg border mx-4">
+      <div className="mx-4 overflow-hidden rounded-lg border">
         <ScrollArea className="w-full">
-          <Table>
+          <Table className={tableClassName}>
             <TableHeader className="bg-muted sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      style={getCommonPinningStyles({ column: header.column })}
-                      className="py-3 font-medium text-sm"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map((header) => {
+                    const size = header.column.getSize();
+
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        style={{ ...getCommonPinningStyles({ column: header.column }), width: `${size}px` }}
+                        className="py-3 text-sm font-medium"
+                      >
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -69,18 +72,19 @@ export function DataTable<TData>({
                     data-state={row.getIsSelected() ? "selected" : undefined}
                     className="border-border/60 hover:bg-muted/40"
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        style={getCommonPinningStyles({ column: cell.column })}
-                        className="py-3 align-middle"
-                      >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const size = cell.column.getSize();
+
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          style={{ ...getCommonPinningStyles({ column: cell.column }), width: `${size}px` }}
+                          className="py-3 align-middle"
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 ))
               ) : (
@@ -101,9 +105,7 @@ export function DataTable<TData>({
 
       <div className="flex flex-col gap-2.5 px-4 pb-4">
         <DataTablePagination table={table} />
-        {actionBar &&
-          table.getFilteredSelectedRowModel().rows.length > 0 &&
-          actionBar}
+        {actionBar && table.getFilteredSelectedRowModel().rows.length > 0 && actionBar}
       </div>
     </div>
   );

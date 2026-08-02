@@ -49,9 +49,13 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <Badge className={cn("gap-1.5 border px-2 py-1 font-medium", meta.badgeClass)} variant="outline">
-      <span className={cn("size-1.5 rounded-full", meta.dotClass)} />
-      {status}
+    <Badge
+      className={cn("max-w-[170px] gap-1.5 border px-2 py-1 font-medium", meta.badgeClass)}
+      title={status}
+      variant="outline"
+    >
+      <span className={cn("size-1.5 shrink-0 rounded-full", meta.dotClass)} />
+      <span className="min-w-0 truncate">{status}</span>
     </Badge>
   );
 }
@@ -71,48 +75,58 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
   {
     accessorKey: "guestName",
     header: "Khách",
+    size: 170,
     cell: ({ row }) => (
-      <div>
-        <TruncatedCell
-          text={row.original.guestName}
-          className="max-w-[260px] text-sm font-medium text-foreground"
-        />
-        {row.original.customerPhone && <div className="text-xs text-muted-foreground">{row.original.customerPhone}</div>}
-        {row.original.customerEmail && <div className="text-xs text-muted-foreground">{row.original.customerEmail}</div>}
+      <div className="min-w-0">
+        <TruncatedCell text={row.original.guestName} className="max-w-[150px] text-sm font-medium text-foreground" />
+        {row.original.customerPhone && (
+          <TruncatedCell text={row.original.customerPhone} className="max-w-[150px] text-xs text-muted-foreground" />
+        )}
+        {row.original.customerEmail && (
+          <TruncatedCell text={row.original.customerEmail} className="max-w-[150px] text-xs text-muted-foreground" />
+        )}
       </div>
     ),
   },
   {
     id: "room",
     header: "Phòng",
+    size: 210,
     accessorFn: (row) => row.room.card_name,
-    cell: ({ row }) => <TruncatedCell text={row.original.room.card_name} className="max-w-[160px] text-sm" />,
+    cell: ({ row }) => <TruncatedCell text={row.original.room.card_name} className="max-w-[180px] text-sm" />,
   },
   {
     id: "branch",
     header: "Chi nhánh",
+    size: 170,
     accessorFn: (row) => row.branch.name,
-    cell: ({ row }) => <TruncatedCell text={row.original.branch.name} className="max-w-[160px] text-sm" />,
+    cell: ({ row }) => <TruncatedCell text={row.original.branch.name} className="max-w-[150px] text-sm" />,
   },
   {
     accessorKey: "dateLabel",
     header: "Ngày",
+    size: 120,
     cell: ({ row }) => <div className="whitespace-nowrap text-sm">{row.original.dateLabel}</div>,
   },
   {
     accessorKey: "timeRange",
     header: "Giờ",
-    cell: ({ row }) => <div className="whitespace-nowrap text-sm text-muted-foreground">{row.original.timeRange}</div>,
+    size: 390,
+    cell: ({ row }) => (
+      <TruncatedCell text={row.original.timeRange} className="max-w-[360px] text-sm text-muted-foreground" />
+    ),
   },
   {
     accessorKey: "channel",
     header: "Kênh",
+    size: 90,
     filterFn: "equalsString",
-    cell: ({ row }) => <div className="text-sm">{row.original.channel}</div>,
+    cell: ({ row }) => <TruncatedCell text={row.original.channel} className="max-w-[80px] text-sm" />,
   },
   {
     accessorKey: "status",
     header: "Trạng thái",
+    size: 190,
     filterFn: (row, _id, filterValues: string[]) => !filterValues.length || filterValues.includes(row.original.status),
     meta: {
       label: "Trạng thái",
@@ -132,6 +146,7 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
   {
     accessorKey: "amount",
     header: "Tổng cộng",
+    size: 120,
     cell: ({ row }) => {
       const totalAmount = Number(row.original.amount) + Number(row.original.menuItemsTotal ?? 0);
       return <div className="whitespace-nowrap text-sm font-medium">{money(totalAmount)}đ</div>;
@@ -140,6 +155,7 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
   {
     id: "actions",
     header: "",
+    size: 52,
     cell: ({ row }) => (
       <Button size="icon-sm" variant="ghost" className="size-7 text-muted-foreground" asChild aria-label="Xem chi tiết">
         <Link href={`/dashboard/bookings/${row.original.id}`}>
