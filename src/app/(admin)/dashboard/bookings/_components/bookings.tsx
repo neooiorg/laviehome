@@ -34,6 +34,7 @@ function exportCsv(bookings: BookingSnapshot[]) {
     "ID",
     "Khách",
     "SĐT",
+    "Email",
     "Phòng",
     "Chi nhánh",
     "Ngày",
@@ -43,6 +44,7 @@ function exportCsv(bookings: BookingSnapshot[]) {
     "Tiền phòng",
     "Menu items",
     "Tổng cộng",
+    "Mật khẩu cửa",
     "Tạo lúc",
   ];
   const rows = bookings.map((booking) => {
@@ -53,6 +55,7 @@ function exportCsv(bookings: BookingSnapshot[]) {
       booking.id,
       booking.guestName,
       booking.customerPhone ?? "",
+      booking.customerEmail ?? "",
       booking.room.card_name,
       booking.branch.name,
       booking.stayDate,
@@ -62,6 +65,7 @@ function exportCsv(bookings: BookingSnapshot[]) {
       booking.amount,
       menuItemsTotal,
       totalAmount,
+      booking.doorCode ?? "",
       booking.createdAt,
     ];
   });

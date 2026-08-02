@@ -37,6 +37,7 @@ async function ensureTable(db: Pool) {
       branch_name VARCHAR(255),
       customer_name VARCHAR(255),
       customer_phone VARCHAR(20),
+      customer_email VARCHAR(255),
       stay_date DATE DEFAULT CURRENT_DATE,
       date_label VARCHAR(100),
       time_range VARCHAR(200),
@@ -53,6 +54,7 @@ async function ensureTable(db: Pool) {
       has_decoration BOOLEAN DEFAULT FALSE,
       cccd_front TEXT,
       cccd_back TEXT,
+      door_code VARCHAR(8),
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
@@ -66,6 +68,7 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS branch_name VARCHAR(255),
       ADD COLUMN IF NOT EXISTS customer_name VARCHAR(255),
       ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255),
       ADD COLUMN IF NOT EXISTS stay_date DATE DEFAULT CURRENT_DATE,
       ADD COLUMN IF NOT EXISTS date_label VARCHAR(100),
       ADD COLUMN IF NOT EXISTS time_range VARCHAR(200),
@@ -80,6 +83,7 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS has_decoration BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS cccd_front TEXT,
       ADD COLUMN IF NOT EXISTS cccd_back TEXT,
+      ADD COLUMN IF NOT EXISTS door_code VARCHAR(8),
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
@@ -95,6 +99,7 @@ async function ensureTable(db: Pool) {
     `ALTER TABLE bookings ALTER COLUMN time_range TYPE TEXT`,
     `ALTER TABLE bookings ALTER COLUMN customer_name DROP NOT NULL`,
     `ALTER TABLE bookings ALTER COLUMN customer_phone DROP NOT NULL`,
+    `ALTER TABLE bookings ALTER COLUMN customer_email DROP NOT NULL`,
   ]) {
     await db.query(stmt).catch(() => {});
   }
@@ -151,6 +156,7 @@ export async function POST(req: NextRequest) {
       timeslot_ids,
       customer_name,
       customer_phone,
+      customer_email,
       discount_code,
       notes,
       guest_count,
@@ -264,9 +270,9 @@ export async function POST(req: NextRequest) {
     await db.query(
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name, stay_date, date_label, time_range,
-        timeslot_ids, channel, quoted_amount, amount, customer_name, customer_phone, discount_code,
+        timeslot_ids, channel, quoted_amount, amount, customer_name, customer_phone, customer_email, discount_code,
         notes, guest_count, has_car, has_decoration, cccd_front, cccd_back
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
       ON CONFLICT (id) DO UPDATE SET
         room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
         room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
@@ -280,6 +286,7 @@ export async function POST(req: NextRequest) {
         guest_name = COALESCE(NULLIF(EXCLUDED.guest_name, ''), bookings.guest_name),
         customer_name = COALESCE(EXCLUDED.customer_name, bookings.customer_name),
         customer_phone = COALESCE(EXCLUDED.customer_phone, bookings.customer_phone),
+        customer_email = COALESCE(EXCLUDED.customer_email, bookings.customer_email),
         notes = COALESCE(EXCLUDED.notes, bookings.notes),
         guest_count = COALESCE(EXCLUDED.guest_count, bookings.guest_count),
         has_car = COALESCE(EXCLUDED.has_car, bookings.has_car),
@@ -306,6 +313,7 @@ export async function POST(req: NextRequest) {
         bookingAmount,
         customer_name ?? null,
         customer_phone ?? null,
+        customer_email ?? null,
         discount_code ?? null,
         notes ?? null,
         guest_count ? Number(guest_count) : 2,
@@ -364,10 +372,12 @@ export async function GET(req: NextRequest) {
          id,
          room_name,
          branch_name,
+         customer_email,
          date_label,
          time_range,
          amount + COALESCE(menu_items_total, 0) AS amount,
          status,
+         door_code,
          guest_count,
          created_at
        FROM bookings WHERE ${whereClauses} ORDER BY created_at DESC LIMIT 10`,

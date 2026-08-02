@@ -2,20 +2,64 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Home, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+
 import { money } from "@/lib/format";
 import type { BankPaymentConfig } from "@/lib/payment-config";
 
-// Booking statuses that mean the payment has been received (mirrors /api/check-payment).
 const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
 
 type CheckoutPaymentBoxProps = {
   price: number;
   transferCode: string;
-  /** Bank account details resolved server-side from env (see payment-config). */
   bankConfig: BankPaymentConfig;
 };
+
+type PaidBookingDetails = {
+  id: string;
+  status: string;
+  customerEmail: string | null;
+  customerName: string | null;
+  roomName: string | null;
+  branchName: string | null;
+  dateLabel: string | null;
+  timeRange: string | null;
+  doorCode: string | null;
+  mapsUrl: string | null;
+};
+
+function maskEmail(email: string | null) {
+  if (!email || !email.includes("@")) return "";
+  const [name, domain] = email.split("@");
+  const visible = name.slice(0, Math.min(3, name.length));
+  return `${visible}${"*".repeat(Math.max(3, name.length - visible.length))}@${domain}`;
+}
+
+function SuccessStep({
+  index,
+  title,
+  children,
+}: {
+  index: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative grid grid-cols-[3.25rem_1fr] gap-4">
+      <div className="relative flex justify-center">
+        {index < 4 && <span className="absolute top-12 h-[calc(100%+1.75rem)] w-0.5 bg-sky-500" />}
+        <span className="relative z-10 flex size-12 items-center justify-center rounded-full bg-sky-500 text-xl font-black text-white">
+          {index}
+        </span>
+      </div>
+      <div className="pb-2 text-lg leading-8 text-white/78">
+        <h4 className="text-xl font-black uppercase tracking-wide text-sky-300">{title}</h4>
+        <div className="mt-1 font-semibold">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export function CheckoutPaymentBox({
   price,
@@ -23,15 +67,12 @@ export function CheckoutPaymentBox({
   bankConfig,
 }: CheckoutPaymentBoxProps) {
   const router = useRouter();
-  // Anchor the countdown to an absolute deadline instead of decrementing a
-  // counter each tick: browsers throttle setInterval in background tabs, so when
-  // the customer switches to their banking app the naive counter drifts and the
-  // "10 phút" window appears to last much longer than it should. Recomputing the
-  // remaining time from the wall clock keeps it accurate and self-corrects the
-  // instant the tab regains focus.
-  const [deadline] = useState(() => Date.now() + 600_000); // 10 minutes
+  const [deadline] = useState(() => Date.now() + 600_000);
   const [timeLeft, setTimeLeft] = useState(600);
   const [isPaid, setIsPaid] = useState(false);
+  const [paidBooking, setPaidBooking] = useState<PaidBookingDetails | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const isExpired = timeLeft <= 0;
 
   const checkPaymentStatus = useCallback(async () => {
@@ -39,13 +80,14 @@ export function CheckoutPaymentBox({
       const res = await fetch(`/api/check-payment?booking_id=${encodeURIComponent(transferCode)}`, {
         cache: "no-store",
       });
-      const data = await res.json();
+      const data = (await res.json()) as { paid?: boolean; booking?: PaidBookingDetails };
       if (data.paid) {
+        if (data.booking) setPaidBooking(data.booking);
         setIsPaid(true);
         return true;
       }
     } catch {
-      // Network hiccups are expected when customers switch back from a banking app.
+      // Mobile often returns from a banking app with a transient network hiccup.
     }
     return false;
   }, [transferCode]);
@@ -54,7 +96,7 @@ export function CheckoutPaymentBox({
     if (isPaid) return;
 
     const tick = () => setTimeLeft(Math.max(0, Math.round((deadline - Date.now()) / 1000)));
-    tick(); // sync immediately on mount
+    tick();
 
     const timer = setInterval(tick, 1000);
     const onVisible = () => {
@@ -68,16 +110,12 @@ export function CheckoutPaymentBox({
     };
   }, [isPaid, deadline]);
 
-  // Format time (MM:SS)
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  // Payment confirmation is push-first, with polling as a mobile fallback.
-  // Mobile browsers often suspend the checkout tab while the customer switches
-  // to a banking app, so an SSE-only flow can miss the webhook event.
   useEffect(() => {
     if (isPaid || isExpired) return;
 
@@ -101,7 +139,6 @@ export function CheckoutPaymentBox({
     document.addEventListener("visibilitychange", checkWhenVisible);
     window.addEventListener("focus", checkOnFocus);
 
-    // Primary signal: webhook-driven push over SSE.
     const source = new EventSource(
       `/api/payment-events?booking_id=${encodeURIComponent(transferCode)}`,
     );
@@ -115,10 +152,11 @@ export function CheckoutPaymentBox({
           payload.status &&
           PAID_STATUSES.includes(payload.status)
         ) {
+          void checkPaymentStatus();
           setIsPaid(true);
         }
       } catch {
-        // heartbeat / non-JSON payloads are ignored
+        // Heartbeats and malformed events are ignored.
       }
     };
 
@@ -132,18 +170,6 @@ export function CheckoutPaymentBox({
   }, [transferCode, isPaid, isExpired, checkPaymentStatus]);
 
   useEffect(() => {
-    if (!isPaid) return;
-
-    const redirectTimer = setTimeout(() => {
-      router.push(`/checking?code=${encodeURIComponent(transferCode)}`);
-    }, 2500);
-
-    return () => clearTimeout(redirectTimer);
-  }, [isPaid, router, transferCode]);
-
-  // When the payment window closes, don't leave the customer staring at a dead
-  // QR code — send them back to the homepage.
-  useEffect(() => {
     if (isPaid || !isExpired) return;
 
     const redirectTimer = setTimeout(() => router.replace("/"), 2500);
@@ -151,44 +177,125 @@ export function CheckoutPaymentBox({
     return () => clearTimeout(redirectTimer);
   }, [isExpired, isPaid, router]);
 
+  async function resendEmail() {
+    setResending(true);
+    setResendMessage(null);
+    try {
+      const res = await fetch("/api/resend-booking-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: transferCode }),
+      });
+      const data = (await res.json()) as { ok?: boolean; sent?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setResendMessage(data.error ?? "Không thể gửi lại email. Vui lòng liên hệ hotline.");
+        return;
+      }
+      setResendMessage(data.sent ? "Đã gửi lại email cho quý khách." : "Đã ghi nhận, nhưng hệ thống email chưa được cấu hình.");
+    } catch {
+      setResendMessage("Không thể gửi lại email. Vui lòng thử lại sau.");
+    } finally {
+      setResending(false);
+    }
+  }
+
   if (isPaid) {
+    const emailText = maskEmail(paidBooking?.customerEmail ?? null);
+
     return (
-      <section className="section-card p-6 md:p-8 text-center animate-fade-in">
+      <section className="section-card p-6 text-center animate-fade-in md:p-8">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-          <CheckCircle2 size={36} className="animate-bounce" />
+          <CheckCircle2 size={36} />
         </div>
-        <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-white">
-          Thanh Toán Thành Công!
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-white/70">
-          Hệ thống đã nhận được khoản thanh toán của bạn cho mã đặt phòng <span className="font-extrabold text-pink-300">{transferCode}</span>.
-        </p>
-        <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-left text-xs font-semibold text-emerald-300">
-          Quá trình đặt phòng đã hoàn tất. Nhân viên Lavie Home sẽ liên hệ với bạn trong giây lát để cung cấp mã mở khóa thông minh. Xin cảm ơn quý khách!
+        <h2 className="mt-4 text-3xl font-black tracking-tight text-white">Đặt phòng thành công</h2>
+        <p className="mt-2 text-base font-bold leading-6 text-white/78">Cảm ơn bạn đã lựa chọn Lavie Home</p>
+
+        <div className="mt-6 overflow-hidden rounded-2xl border border-white/20 text-center">
+          <div className="bg-indigo-950/80 px-4 py-3 text-lg font-semibold text-white">Mã nhận phòng</div>
+          <div className="border-t border-white/15 px-4 py-4 text-2xl font-black text-white">{transferCode}</div>
+          <div className="border-t border-white/15 px-4 py-4 text-lg font-black text-white">
+            {paidBooking?.roomName ?? "Lavie Home"}
+          </div>
+          <div className="border-t border-white/15 px-4 py-4 text-sm font-semibold leading-6 text-white/75">
+            {paidBooking?.dateLabel ?? ""} {paidBooking?.timeRange ? `- ${paidBooking.timeRange}` : ""}
+          </div>
         </div>
-        <p className="mt-4 text-xs font-semibold text-white/60">
-          Đang chuyển bạn đến trang tra cứu để xem chi tiết đặt phòng...
-        </p>
-        <Link
-          className="primary-button mt-6 w-full text-center py-3.5 block"
-          href={`/checking?code=${encodeURIComponent(transferCode)}`}
-        >
-          Tra Cứu Lịch Trình
-        </Link>
+
+        <div className="mt-8 text-left">
+          <h3 className="text-center text-2xl font-black uppercase tracking-wide text-sky-300">
+            Hướng dẫn tự check in
+          </h3>
+          <div className="mt-6 space-y-7">
+            <SuccessStep index={1} title="Địa chỉ">
+              <p>{paidBooking?.branchName ?? "Lavie Home Cần Thơ"}</p>
+              <a className="text-sky-300 underline" href={paidBooking?.mapsUrl || "/contacts"} target="_blank" rel="noreferrer">
+                Xem trên Google Maps
+              </a>
+            </SuccessStep>
+            <SuccessStep index={2} title="Hướng dẫn tự check-in">
+              <p>
+                Quý khách xem kỹ hướng dẫn tự check-in và lưu lại.{" "}
+                <Link className="text-sky-300 underline" href="/guide">Xem hướng dẫn</Link>
+              </p>
+              <p className="mt-2 text-lg font-black text-red-400">
+                Mật khẩu cửa: {paidBooking?.doorCode ?? "Đang tạo..."}
+              </p>
+            </SuccessStep>
+            <SuccessStep index={3} title="Nội quy">
+              <p>
+                Quý khách xem kỹ nội quy và tuân thủ khi ở tại Lavie Home.{" "}
+                <Link className="text-sky-300 underline" href="/rules">Xem nội quy</Link>
+              </p>
+            </SuccessStep>
+            <SuccessStep index={4} title="Mật khẩu Wi-Fi">
+              <p>Tên Wifi: LAVIE HOME</p>
+              <p>Mật khẩu: laviehome</p>
+            </SuccessStep>
+          </div>
+        </div>
+
+        {emailText && (
+          <div className="mt-8 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-5 text-center">
+            <p className="text-base font-bold leading-7 text-red-300">
+              Thông tin đặt phòng cũng đã được gửi qua {emailText} cho quý khách!
+            </p>
+            <button
+              type="button"
+              onClick={() => void resendEmail()}
+              disabled={resending}
+              className="mt-5 inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-indigo-700 px-6 text-base font-extrabold text-white transition hover:bg-indigo-600 disabled:opacity-60"
+            >
+              <Mail size={19} /> {resending ? "Đang gửi..." : "Gửi lại email"}
+            </button>
+            {resendMessage && <p className="mt-3 text-xs font-semibold text-white/60">{resendMessage}</p>}
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Link className="primary-button justify-center py-3.5" href="/">
+            <Home size={17} /> Quay lại trang chủ
+          </Link>
+          <Link
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-white/20 bg-white/5 px-5 text-sm font-extrabold text-white transition hover:border-white hover:bg-white/10"
+            href={`/checking?code=${encodeURIComponent(transferCode)}`}
+          >
+            Tra cứu đặt phòng
+          </Link>
+        </div>
       </section>
     );
   }
 
   if (isExpired) {
     return (
-      <section className="section-card p-6 md:p-8 text-center animate-fade-in">
+      <section className="section-card p-6 text-center animate-fade-in md:p-8">
         <h2 className="text-2xl font-extrabold tracking-tight text-white">Phiên Thanh Toán Đã Hết Hạn</h2>
         <p className="mt-3 text-sm leading-6 text-white/70">
           Mã đặt phòng <span className="font-extrabold text-pink-300">{transferCode}</span> đã quá thời gian giữ chỗ.
           Vui lòng chọn lại khung giờ và đặt phòng mới.
         </p>
         <p className="mt-4 text-xs font-semibold text-white/60">Đang chuyển bạn về trang chủ...</p>
-        <Link className="primary-button mt-6 w-full text-center py-3.5 block" href="/">
+        <Link className="primary-button mt-6 block w-full py-3.5 text-center" href="/">
           Về Trang Chủ
         </Link>
       </section>
@@ -196,23 +303,21 @@ export function CheckoutPaymentBox({
   }
 
   return (
-    <section id="payment" className="section-card p-6 md:p-8 scroll-mt-28">
+    <section id="payment" className="section-card scroll-mt-28 p-6 md:p-8">
       <h2 className="text-lg font-extrabold tracking-[-0.02em] text-white">Thanh Toán Đặt Phòng</h2>
       <p className="mt-2 text-sm font-semibold leading-6 text-white/58">
         Hệ thống sẽ tự động duyệt trong 5 giây sau khi nhận được chuyển khoản.
       </p>
-      
+
       <div className="mt-4 rounded-2xl border-2 border-yellow-200/30 bg-yellow-200/5 p-4 text-center shadow-[3px_3px_0px_rgba(254,240,138,0.1)]">
         <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-yellow-200">Thời gian còn lại</p>
         <p className="mt-1 text-2xl font-extrabold text-white">
           {timeLeft > 0 ? formatTime(timeLeft) : "Đã hết hạn"}
         </p>
       </div>
-      
-      <div className="mt-5 border-2 border-white/20 bg-white p-4 sm:p-5 rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_rgba(255,255,255,0.05)]">
-        {/* No fixed width/height attributes: the VietQR compact2 template is
-            portrait, so forcing a square squished it. Let it keep its natural
-            aspect ratio and cap the width so it scales on mobile/tablet. */}
+
+      <div className="mt-5 flex items-center justify-center rounded-2xl border-2 border-white/20 bg-white p-4 shadow-[4px_4px_0px_rgba(255,255,255,0.05)] sm:p-5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`https://img.vietqr.io/image/${bankConfig.bankCode}-${bankConfig.accountNumber}-compact2.png?amount=${price}&addInfo=${encodeURIComponent(transferCode)}&accountName=${encodeURIComponent(bankConfig.accountName)}`}
           alt="Mã QR Chuyển Khoản VietQR"
@@ -239,19 +344,19 @@ export function CheckoutPaymentBox({
         </div>
         <div className="flex justify-between pb-2">
           <span className="text-white/60">Tổng thanh toán</span>
-          <span className="font-extrabold text-yellow-200 text-base">{money(price)}đ</span>
+          <span className="text-base font-extrabold text-yellow-200">{money(price)}đ</span>
         </div>
       </div>
 
       <Link
-        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-white/20 bg-white/5 px-6 text-sm font-extrabold text-white shadow-[3px_3px_0px_rgba(255,255,255,0.15)] hover:shadow-[5px_5px_0px_white] hover:border-white hover:-translate-y-0.5 transition-all duration-150"
+        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-white/20 bg-white/5 px-6 text-sm font-extrabold text-white shadow-[3px_3px_0px_rgba(255,255,255,0.15)] transition-all duration-150 hover:-translate-y-0.5 hover:border-white hover:shadow-[5px_5px_0px_white]"
         href="/#booking"
       >
         Hủy & Đặt Đơn Khác
       </Link>
 
       <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5">
-        <h3 className="flex items-center gap-2 font-extrabold text-pink-100 text-sm">
+        <h3 className="flex items-center gap-2 text-sm font-extrabold text-pink-100">
           <ShieldCheck size={18} className="text-pink-300" /> Hướng Dẫn Thanh Toán
         </h3>
         <ol className="mt-3 list-decimal space-y-2 pl-4 text-xs font-semibold leading-5 text-white/62">

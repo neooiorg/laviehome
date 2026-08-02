@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IdCard, Tag, Upload, UserRound } from "lucide-react";
+import { IdCard, Mail, Tag, Upload, UserRound } from "lucide-react";
 
 import { money } from "@/lib/format";
 
@@ -34,6 +34,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
   const [conflictError, setConflictError] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [hasCar, setHasCar] = useState(false);
   const [hasDecoration, setHasDecoration] = useState(false);
@@ -113,6 +114,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
       id: bookingId,
       customer_name: customerName.trim() || null,
       customer_phone: customerPhone.trim() || null,
+      customer_email: customerEmail.trim() || null,
       guest_count: guestCount,
       notes: notes.trim() || null,
       has_car: hasCar,
@@ -121,7 +123,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
       cccd_front: cccdFront,
       cccd_back: cccdBack,
     };
-  }, [appliedDiscountCode, bookingId, cccdBack, cccdFront, customerName, customerPhone, guestCount, hasCar, hasDecoration, notes]);
+  }, [appliedDiscountCode, bookingId, cccdBack, cccdFront, customerEmail, customerName, customerPhone, guestCount, hasCar, hasDecoration, notes]);
 
   const syncPricingWithServer = useCallback((amount: number) => {
     onPricingChange?.({
@@ -136,8 +138,9 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
   useEffect(() => {
     const payload = buildBookingPayload();
     const hasDraftContent = Boolean(
-      payload.customer_name ||
+        payload.customer_name ||
         payload.customer_phone ||
+        payload.customer_email ||
         payload.notes ||
         payload.has_car ||
         payload.has_decoration ||
@@ -188,6 +191,7 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
     cccdFront,
     customerName,
     customerPhone,
+    customerEmail,
     discountAmount,
     discountPercent,
     finalAmount,
@@ -283,6 +287,28 @@ export function CheckoutForm({ bookingId, price, roomPrice, onPricingChange, onC
                 setSaved(false);
               }}
             />
+          </label>
+
+          <label className="grid gap-2 text-sm font-bold text-white/72">
+            Email nhận thông tin đặt phòng (*)
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/35" />
+              <input
+                className="field-input !pl-11"
+                type="email"
+                name="customer_email"
+                placeholder="emailcuaban@gmail.com"
+                required
+                value={customerEmail}
+                onChange={(event) => {
+                  setCustomerEmail(event.target.value);
+                  setSaved(false);
+                }}
+              />
+            </div>
+            <span className="text-xs font-semibold text-white/45">
+              Lavie Home sẽ gửi mã nhận phòng, mật khẩu cửa và hướng dẫn check-in qua email này sau khi thanh toán thành công.
+            </span>
           </label>
 
           <div className="grid gap-3">

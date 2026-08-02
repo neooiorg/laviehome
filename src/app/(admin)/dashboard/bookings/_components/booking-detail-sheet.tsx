@@ -51,6 +51,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                 <Field label="Tên khách" value={booking.guestName} />
                 <Field label="Họ tên thực" value={booking.customerName} />
                 <Field label="SĐT" value={booking.customerPhone} />
+                <Field label="Email" value={booking.customerEmail} />
                 <Field label="Số khách" value={booking.guestCount ?? null} />
                 {booking.hasCar && <Field label="Có xe" value="Có" />}
                 {booking.hasDecoration && <Field label="Trang trí" value="Có" />}
@@ -62,6 +63,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                 <Field label="Chi nhánh" value={booking.branch.name} />
                 <Field label="Ngày" value={booking.dateLabel} />
                 <Field label="Giờ" value={booking.timeRange} />
+                <Field label="Mật khẩu cửa" value={booking.doorCode ? <span className="font-mono font-semibold">{booking.doorCode}</span> : null} />
                 <Field label="Kênh" value={booking.channel} />
                 {Number(booking.menuItemsTotal ?? 0) > 0 ? (
                   <>

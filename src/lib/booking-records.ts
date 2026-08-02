@@ -21,6 +21,7 @@ export type RawBookingRecord = {
   guest_name: string | null;
   customer_name: string | null;
   customer_phone: string | null;
+  customer_email: string | null;
   stay_date: string | null;
   date_label: string | null;
   time_range: string | null;
@@ -36,6 +37,7 @@ export type RawBookingRecord = {
   notes: string | null;
   cccd_front: string | null;
   cccd_back: string | null;
+  door_code: string | null;
   created_at: string;
 };
 
@@ -85,6 +87,11 @@ const CANCELLED_STATUSES = new Set(["Đã hủy", "Hủy", "Cancelled", EXPIRED_
 
 export function isCancelledStatus(status: string | null | undefined) {
   return status ? CANCELLED_STATUSES.has(status) : false;
+}
+
+export async function ensureBookingNotificationColumns() {
+  await query(`alter table bookings add column if not exists customer_email varchar(255)`).catch(() => []);
+  await query(`alter table bookings add column if not exists door_code varchar(8)`).catch(() => []);
 }
 
 /** The auto-assigned status for an online booking awaiting a bank transfer. */
@@ -147,6 +154,8 @@ export async function fetchRawBookings(options?: {
   includeImages?: boolean;
 }) {
   const { limit = 1000, id, branchId, status, includeImages = false } = options ?? {};
+  await ensureBookingNotificationColumns();
+
   const where: string[] = [];
   const params: unknown[] = [];
 
@@ -182,6 +191,7 @@ export async function fetchRawBookings(options?: {
       guest_name,
       customer_name,
       customer_phone,
+      customer_email,
       stay_date::text,
       date_label,
       time_range,
@@ -196,6 +206,7 @@ export async function fetchRawBookings(options?: {
       discount_code,
       notes,
       ${cccdColumns}
+      door_code,
       created_at::text
     from bookings
     ${whereClause}
@@ -260,6 +271,8 @@ export async function getActiveBookingsForRoomDate(input: {
   branches: CatalogBranch[];
 }) {
   const dateLabel = formatDateLabelFromIso(input.dateIso);
+  await ensureBookingNotificationColumns();
+
   const matches = await query<RawBookingRecord>(
     `
     select
@@ -271,6 +284,7 @@ export async function getActiveBookingsForRoomDate(input: {
       guest_name,
       customer_name,
       customer_phone,
+      customer_email,
       stay_date::text,
       date_label,
       time_range,
@@ -286,6 +300,7 @@ export async function getActiveBookingsForRoomDate(input: {
       notes,
       null::text as cccd_front,
       null::text as cccd_back,
+      door_code,
       created_at::text
     from bookings
     where status not in ('Đã hủy', 'Hủy', 'Cancelled', 'Đã hết hạn - Không thanh toán')

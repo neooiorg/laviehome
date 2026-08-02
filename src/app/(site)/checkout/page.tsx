@@ -135,6 +135,8 @@ async function checkTimeslotConflict(
 async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<typeof resolveCheckout>>) {
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
     await query(`ALTER TABLE bookings ALTER COLUMN time_range TYPE TEXT`).catch(() => null);
     // Split the quote so discount codes only ever touch the room: quoted_amount /
     // amount hold the room-only price, menu_items_total holds the (never-discounted)

@@ -64,7 +64,7 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
   {
     id: "search",
     accessorFn: (row) =>
-      `${row.guestName} ${row.customerName ?? ""} ${row.customerPhone ?? ""} ${row.room.card_name} ${row.branch.name}`,
+      `${row.guestName} ${row.customerName ?? ""} ${row.customerPhone ?? ""} ${row.customerEmail ?? ""} ${row.doorCode ?? ""} ${row.room.card_name} ${row.branch.name}`,
     filterFn: "includesString",
     enableHiding: true,
   },
@@ -78,6 +78,7 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
           className="max-w-[260px] text-sm font-medium text-foreground"
         />
         {row.original.customerPhone && <div className="text-xs text-muted-foreground">{row.original.customerPhone}</div>}
+        {row.original.customerEmail && <div className="text-xs text-muted-foreground">{row.original.customerEmail}</div>}
       </div>
     ),
   },

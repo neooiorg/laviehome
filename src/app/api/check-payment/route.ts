@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 
-import { expireStalePendingBookings } from "@/lib/booking-records";
+import { ensureBookingNotificationColumns, expireStalePendingBookings } from "@/lib/booking-records";
+import { generateDoorCode } from "@/lib/door-code";
 
 let pool: Pool | null = null;
 function getPool() {
@@ -12,6 +13,11 @@ function getPool() {
     });
   }
   return pool;
+}
+
+async function ensureLocalBookingNotificationColumns(db: Pool) {
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
 }
 
 export async function GET(request: Request) {
@@ -28,14 +34,51 @@ export async function GET(request: Request) {
 
   try {
     const db = getPool();
+    await ensureLocalBookingNotificationColumns(db);
+    await ensureBookingNotificationColumns();
     await expireStalePendingBookings();
     const res = await db.query(
-      "SELECT status FROM bookings WHERE UPPER(id) = $1",
+      `SELECT
+         b.status,
+         b.id,
+         b.customer_email,
+         b.customer_name,
+         b.room_name,
+         b.branch_name,
+         b.date_label,
+         b.time_range,
+         b.door_code,
+         COALESCE(br.google_maps_link, '') AS maps_url
+       FROM bookings b
+       LEFT JOIN branches br ON br.id = b.branch_id
+       WHERE UPPER(b.id) = $1`,
       [bookingId.toUpperCase()]
     );
 
     if (res.rows.length > 0 && ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"].includes(res.rows[0].status)) {
-      return NextResponse.json({ paid: true });
+      const row = res.rows[0];
+      if (!row.door_code) {
+        row.door_code = generateDoorCode();
+        await db.query(`UPDATE bookings SET door_code = $1, updated_at = NOW() WHERE UPPER(id) = $2`, [
+          row.door_code,
+          bookingId.toUpperCase(),
+        ]);
+      }
+      return NextResponse.json({
+        paid: true,
+        booking: {
+          id: row.id,
+          status: row.status,
+          customerEmail: row.customer_email,
+          customerName: row.customer_name,
+          roomName: row.room_name,
+          branchName: row.branch_name,
+          dateLabel: row.date_label,
+          timeRange: row.time_range,
+          doorCode: row.door_code,
+          mapsUrl: row.maps_url,
+        },
+      });
     }
 
     return NextResponse.json({ paid: false });

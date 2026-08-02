@@ -32,6 +32,7 @@ export type BookingSnapshot = {
   guestName: string;
   customerName: string | null;
   customerPhone: string | null;
+  customerEmail: string | null;
   room: RoomSummary['room'];
   branch: BranchSummary['branch'];
   stayDate: string;
@@ -48,6 +49,7 @@ export type BookingSnapshot = {
   notes: string | null;
   cccdFront: string | null;
   cccdBack: string | null;
+  doorCode: string | null;
   createdAt: string;
 };
 
@@ -233,6 +235,7 @@ function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
     menuItemsTotal: Number(booking.raw.menu_items_total) || 0,
     customerName: booking.raw.customer_name,
     customerPhone: booking.raw.customer_phone,
+    customerEmail: booking.raw.customer_email,
     guestCount: booking.raw.guest_count,
     hasCar: booking.raw.has_car ?? false,
     hasDecoration: booking.raw.has_decoration ?? false,
@@ -240,6 +243,7 @@ function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
     notes: booking.raw.notes,
     cccdFront: booking.raw.cccd_front,
     cccdBack: booking.raw.cccd_back,
+    doorCode: booking.raw.door_code,
     createdAt: booking.raw.created_at
   };
 }

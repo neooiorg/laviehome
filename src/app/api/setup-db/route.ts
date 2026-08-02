@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
         guest_name VARCHAR(255) DEFAULT '',
         customer_name VARCHAR(255),
         customer_phone VARCHAR(20),
+        customer_email VARCHAR(255),
         stay_date DATE,
         date_label VARCHAR(100),
         time_range VARCHAR(200),
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
         notes TEXT,
         cccd_front TEXT,
         cccd_back TEXT,
+        door_code VARCHAR(8),
         room_name VARCHAR(255),
         branch_name VARCHAR(255),
         created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -122,6 +124,8 @@ export async function GET(req: NextRequest) {
     await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS time_slots JSONB`);
     // Lazily-added booking column — ensure it exists on databases created before it.
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS menu_items_total BIGINT DEFAULT 0`);
+    await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`);
+    await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`);
 
     // Better Auth tables (for email OTP + user management)
     await pool.query(`

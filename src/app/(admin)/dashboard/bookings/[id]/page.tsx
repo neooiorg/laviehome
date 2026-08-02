@@ -81,6 +81,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               <Field label="Tên hiển thị" value={booking.guestName} />
               <Field label="Họ tên thực" value={booking.customerName} />
               <Field label="Số điện thoại" value={booking.customerPhone} />
+              <Field label="Email" value={booking.customerEmail} />
               <Field label="Số khách" value={booking.guestCount !== null ? `${booking.guestCount} người` : null} />
               <Field label="Có xe" value={booking.hasCar ? "Có" : null} />
               <Field label="Trang trí" value={booking.hasDecoration ? "Có" : null} />
@@ -96,6 +97,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               <Field label="Chi nhánh" value={booking.branch.name} />
               <Field label="Ngày" value={booking.dateLabel} />
               <Field label="Khung giờ" value={booking.timeRange} />
+              <Field label="Mật khẩu cửa" value={booking.doorCode ? <span className="font-mono text-base font-bold">{booking.doorCode}</span> : null} />
               <Field label="Kênh" value={booking.channel} />
               <Field label="Mã giảm giá" value={booking.discountCode} />
               {booking.menuItemsTotal > 0 ? (

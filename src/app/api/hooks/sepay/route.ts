@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 
 import { extractBookingReference } from "@/lib/booking-reference";
+import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
 import { expireStalePendingBookings } from "@/lib/booking-records";
+import { generateDoorCode } from "@/lib/door-code";
 import { broadcastBookingUpdate } from "@/lib/sse-clients";
 
 let pool: Pool | null = null;
@@ -16,6 +18,11 @@ function getPool() {
   }
 
   return pool;
+}
+
+async function ensureBookingNotificationColumns(db: Pool) {
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
 }
 
 export async function POST(req: NextRequest) {
@@ -51,6 +58,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const db = getPool();
+    await ensureBookingNotificationColumns(db);
     await expireStalePendingBookings();
     const bookingRes = await db.query(
       // `amount` is the room-only charge; the customer pays room + menu, so the
@@ -69,13 +77,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    const doorCode = generateDoorCode();
     const res = await db.query(
-      `UPDATE bookings SET status = $1 WHERE UPPER(id) = $2 AND status = 'Chờ thanh toán' RETURNING id`,
-      ["Đã thanh toán", bookingId]
+      `UPDATE bookings
+       SET status = $1, door_code = COALESCE(door_code, $3), updated_at = NOW()
+       WHERE UPPER(id) = $2 AND status = 'Chờ thanh toán'
+       RETURNING id, customer_email, customer_name, room_name, branch_name, date_label, time_range, door_code,
+         (SELECT google_maps_link FROM branches WHERE branches.id = bookings.branch_id) AS maps_url`,
+      ["Đã thanh toán", bookingId, doorCode]
     );
 
     if (res.rowCount && res.rowCount > 0) {
+      const paidBooking = res.rows[0];
       broadcastBookingUpdate(bookingId, "Đã thanh toán");
+      try {
+        await sendBookingConfirmationEmail({
+          bookingId: paidBooking.id,
+          customerEmail: paidBooking.customer_email,
+          customerName: paidBooking.customer_name,
+          roomName: paidBooking.room_name,
+          branchName: paidBooking.branch_name,
+          dateLabel: paidBooking.date_label,
+          timeRange: paidBooking.time_range,
+          doorCode: paidBooking.door_code,
+          mapsUrl: paidBooking.maps_url,
+        });
+      } catch (emailError) {
+        console.error("Booking confirmation email error:", emailError);
+      }
     }
 
     return NextResponse.json({ success: true });

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Calendar, CheckCircle2, Clock, Hash, Home, Phone, Search, XCircle } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, Hash, Home, KeyRound, Mail, Phone, Search, XCircle } from "lucide-react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -17,22 +17,26 @@ type Booking = {
   id: string;
   room_name: string;
   branch_name: string;
+  customer_email: string | null;
   date_label: string;
   time_range: string;
   amount: number;
   status: string;
+  door_code: string | null;
   guest_count: number;
   created_at: string;
 };
 
+const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+
 function statusColor(status: string) {
-  if (status === "Đã xác nhận") return "text-emerald-400 border-emerald-500/30 bg-emerald-500/10";
+  if (PAID_STATUSES.includes(status)) return "text-emerald-400 border-emerald-500/30 bg-emerald-500/10";
   if (status === "Đã huỷ" || status === "Đã hết hạn - Không thanh toán") return "text-red-400 border-red-500/30 bg-red-500/10";
   return "text-yellow-300 border-yellow-400/30 bg-yellow-400/10";
 }
 
 function StatusIcon({ status }: { status: string }) {
-  if (status === "Đã xác nhận") return <CheckCircle2 size={15} className="text-emerald-400" />;
+  if (PAID_STATUSES.includes(status)) return <CheckCircle2 size={15} className="text-emerald-400" />;
   if (status === "Đã huỷ" || status === "Đã hết hạn - Không thanh toán") return <XCircle size={15} className="text-red-400" />;
   return <Clock size={15} className="text-yellow-300" />;
 }
@@ -215,6 +219,18 @@ export default function CheckingPage() {
                       <Clock size={14} className="shrink-0 text-pink-200" />
                       <span className="font-semibold">{booking.time_range}</span>
                     </div>
+                    {PAID_STATUSES.includes(booking.status) && booking.door_code && (
+                      <div className="flex items-center gap-2 text-white/70">
+                        <KeyRound size={14} className="shrink-0 text-red-300" />
+                        <span className="font-semibold text-red-300">Mật khẩu cửa: {booking.door_code}</span>
+                      </div>
+                    )}
+                    {booking.customer_email && (
+                      <div className="flex items-center gap-2 text-white/55">
+                        <Mail size={14} className="shrink-0 text-pink-200" />
+                        <span className="font-semibold">{booking.customer_email}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
