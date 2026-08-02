@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 
-import { ensureBookingNotificationColumns, expireStalePendingBookings } from "@/lib/booking-records";
+import { ensureBookingNotificationColumns } from "@/lib/booking-records";
 import { generateDoorCode } from "@/lib/door-code";
 
 let pool: Pool | null = null;
@@ -36,7 +36,6 @@ export async function GET(request: Request) {
     const db = getPool();
     await ensureLocalBookingNotificationColumns(db);
     await ensureBookingNotificationColumns();
-    await expireStalePendingBookings();
     const res = await db.query(
       `SELECT
          b.status,

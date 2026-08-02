@@ -159,8 +159,15 @@ async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<type
         timeslot_ids = COALESCE(EXCLUDED.timeslot_ids, bookings.timeslot_ids),
         channel = COALESCE(bookings.channel, EXCLUDED.channel),
         quoted_amount = COALESCE(NULLIF(bookings.quoted_amount, 0), EXCLUDED.quoted_amount),
-        amount = CASE WHEN EXCLUDED.amount > 0 THEN EXCLUDED.amount ELSE bookings.amount END,
-        menu_items_total = EXCLUDED.menu_items_total,
+        amount = CASE
+          WHEN bookings.discount_code IS NOT NULL THEN bookings.amount
+          WHEN EXCLUDED.amount > 0 THEN EXCLUDED.amount
+          ELSE bookings.amount
+        END,
+        menu_items_total = CASE
+          WHEN bookings.discount_code IS NOT NULL THEN bookings.menu_items_total
+          ELSE EXCLUDED.menu_items_total
+        END,
         updated_at = NOW()`,
       [
         id,

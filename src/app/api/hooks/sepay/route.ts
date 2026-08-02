@@ -3,7 +3,6 @@ import { Pool } from "pg";
 
 import { extractBookingReference } from "@/lib/booking-reference";
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
-import { expireStalePendingBookings } from "@/lib/booking-records";
 import { generateDoorCode } from "@/lib/door-code";
 import { broadcastBookingUpdate } from "@/lib/sse-clients";
 
@@ -24,6 +23,9 @@ async function ensureBookingNotificationColumns(db: Pool) {
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
 }
+
+const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+const SURCHARGE: Record<number, number> = { 3: 50000, 4: 100000 };
 
 export async function POST(req: NextRequest) {
   // SePay authenticates webhooks with an API key sent as `Authorization: Apikey <key>`.
@@ -59,11 +61,23 @@ export async function POST(req: NextRequest) {
   try {
     const db = getPool();
     await ensureBookingNotificationColumns(db);
-    await expireStalePendingBookings();
     const bookingRes = await db.query(
-      // `amount` is the room-only charge; the customer pays room + menu, so the
-      // expected transfer must add the (never-discounted) menu items total.
-      `SELECT amount + COALESCE(menu_items_total, 0) AS amount FROM bookings WHERE UPPER(id) = $1 AND status = 'Chờ thanh toán'`,
+      `SELECT
+         b.status,
+         COALESCE(NULLIF(b.quoted_amount, 0), b.amount, 0) AS room_base,
+         b.amount,
+         COALESCE(b.menu_items_total, 0) AS menu_items_total,
+         COALESCE(b.guest_count, 2) AS guest_count,
+         b.discount_code,
+         dc.percent AS discount_percent
+       FROM bookings b
+       LEFT JOIN discount_codes dc
+         ON dc.code = b.discount_code
+        AND dc.active = TRUE
+        AND (dc.expires_at IS NULL OR dc.expires_at > NOW())
+        AND (dc.max_uses IS NULL OR dc.used_count <= dc.max_uses)
+       WHERE UPPER(b.id) = $1
+       LIMIT 1`,
       [bookingId]
     );
 
@@ -71,7 +85,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    const expectedAmount = Number(bookingRes.rows[0].amount);
+    const booking = bookingRes.rows[0];
+    if (PAID_STATUSES.includes(booking.status)) {
+      return NextResponse.json({ success: true });
+    }
+
+    const roomBase = Number(booking.room_base ?? 0);
+    const menuTotal = Number(booking.menu_items_total ?? 0);
+    const surcharge = SURCHARGE[Number(booking.guest_count ?? 2)] ?? 0;
+    const discountPercent = Number(booking.discount_percent ?? 0);
+    const discountedExpectedAmount =
+      roomBase + surcharge - Math.round((roomBase * discountPercent) / 100) + menuTotal;
+    const storedExpectedAmount = Number(booking.amount ?? 0) + menuTotal;
+    const expectedAmount = discountPercent > 0 ? discountedExpectedAmount : storedExpectedAmount;
+
     if (amount < expectedAmount) {
       console.warn(`SePay: underpayment for ${bookingId} - got ${amount}, expected ${expectedAmount}`);
       return NextResponse.json({ success: true });
@@ -81,7 +108,8 @@ export async function POST(req: NextRequest) {
     const res = await db.query(
       `UPDATE bookings
        SET status = $1, door_code = COALESCE(door_code, $3), updated_at = NOW()
-       WHERE UPPER(id) = $2 AND status = 'Chờ thanh toán'
+       WHERE UPPER(id) = $2
+         AND status NOT IN ('Đã thanh toán', 'Đã xác nhận', 'Chờ cọc', 'Đang ở', 'Hoàn tất')
        RETURNING id, customer_email, customer_name, room_name, branch_name, date_label, time_range, door_code,
          (SELECT google_maps_link FROM branches WHERE branches.id = bookings.branch_id) AS maps_url`,
       ["Đã thanh toán", bookingId, doorCode]

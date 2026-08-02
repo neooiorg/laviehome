@@ -114,7 +114,7 @@ async function resolveAmount(
   discountCode: string | null
 ): Promise<{ amount: number; total: number }> {
   const { rows } = await db.query(
-    `SELECT COALESCE(quoted_amount, amount) AS room_base, COALESCE(menu_items_total, 0) AS menu_items_total
+    `SELECT COALESCE(NULLIF(quoted_amount, 0), amount, 0) AS room_base, COALESCE(menu_items_total, 0) AS menu_items_total
      FROM bookings WHERE UPPER(id) = $1`,
     [bookingId.toUpperCase()]
   );
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     await ensureTable(db);
 
     const existingResult = await db.query(
-      `SELECT room_id, room_name, branch_id, branch_name, stay_date::text, date_label, time_range, timeslot_ids, channel
+      `SELECT room_id, room_name, branch_id, branch_name, stay_date::text, date_label, time_range, timeslot_ids, channel, discount_code
        FROM bookings
        WHERE UPPER(id) = $1
        LIMIT 1`,
@@ -192,6 +192,7 @@ export async function POST(req: NextRequest) {
           time_range: string | null;
           timeslot_ids: string | null;
           channel: string | null;
+          discount_code: string | null;
         }
       | undefined;
 
@@ -264,7 +265,7 @@ export async function POST(req: NextRequest) {
       db,
       id,
       Number(guest_count ?? 2),
-      discount_code ?? null
+      discount_code ?? existing?.discount_code ?? null
     );
 
     await db.query(
