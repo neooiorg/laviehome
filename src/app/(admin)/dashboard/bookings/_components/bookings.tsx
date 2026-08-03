@@ -140,7 +140,7 @@ export function Bookings({
   const visibleRows = table.getFilteredRowModel().rows.map((row) => row.original);
 
   return (
-    <Card>
+    <Card className="min-w-0 max-w-full overflow-hidden">
       <CardHeader className="border-b has-data-[slot=card-action]:grid-cols-1 md:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
         <div>
           <CardTitle className="text-xl leading-none">Đặt phòng</CardTitle>
@@ -174,8 +174,8 @@ export function Bookings({
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4 px-0">
-        <div className="px-4 pt-4">
+      <CardContent className="flex min-w-0 max-w-full flex-col gap-4 overflow-hidden px-0">
+        <div className="min-w-0 max-w-full px-4 pt-4">
           <DataTableToolbar table={table}>
             <InputGroup className="h-8 w-full md:w-56">
               <InputGroupAddon align="inline-start">

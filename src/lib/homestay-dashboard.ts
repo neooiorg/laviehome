@@ -11,6 +11,7 @@ import {
 import { normalizeDateLabelToIso, type RoomSlot } from '@/lib/booking-slots';
 import { money } from '@/lib/format';
 import { query } from '@/lib/postgres';
+import { ensureRoomGuestContentColumns } from '@/lib/room-guest-content';
 
 export type DashboardMetric = {
   label: string;
@@ -131,6 +132,9 @@ export type RoomRow = {
   slot_prices?: (number | null)[] | null;
   // Custom booking time slots; null/absent → fall back to name-based presets.
   time_slots?: RoomSlot[] | null;
+  wifi_name?: string | null;
+  wifi_password?: string | null;
+  booking_notice?: string | null;
   created_at?: string;
 };
 
@@ -208,6 +212,7 @@ export async function getBranches(): Promise<BranchRow[]> {
 }
 
 async function getActiveCatalogRooms(): Promise<RoomRow[]> {
+  await ensureRoomGuestContentColumns();
   return query<RoomRow>('select * from rooms where is_classic = 0 order by id desc');
 }
 
@@ -231,7 +236,10 @@ function makeFallbackRoom(booking: NormalizedBookingRecord): RoomRow {
     full_day_price: booking.room?.full_day_price ?? booking.raw.amount,
     main_image: booking.room?.main_image ?? '',
     is_classic: booking.room?.is_classic ?? 0,
-    images: booking.room?.images ?? []
+    images: booking.room?.images ?? [],
+    wifi_name: booking.room?.wifi_name ?? null,
+    wifi_password: booking.room?.wifi_password ?? null,
+    booking_notice: booking.room?.booking_notice ?? null
   };
 }
 
@@ -671,16 +679,19 @@ export function moneyRange(room: RoomSummary['room']) {
 }
 
 export async function getPublicRoomById(id: number): Promise<RoomRow | null> {
+  await ensureRoomGuestContentColumns();
   const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
   return results[0] ?? null;
 }
 
 export async function getRoomById(id: number): Promise<RoomRow | null> {
+  await ensureRoomGuestContentColumns();
   const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
   return results[0] ?? null;
 }
 
 export async function getAllRooms(): Promise<RoomRow[]> {
+  await ensureRoomGuestContentColumns();
   return query<RoomRow>('select * from rooms order by id desc');
 }
 

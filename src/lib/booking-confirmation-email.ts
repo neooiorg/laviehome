@@ -16,6 +16,9 @@ export type BookingConfirmationPayload = {
   timeRange?: string | null;
   doorCode: string;
   mapsUrl?: string | null;
+  wifiName?: string | null;
+  wifiPassword?: string | null;
+  bookingNotice?: string | null;
 };
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://laviehomestay.vn";
@@ -38,6 +41,9 @@ export async function sendBookingConfirmationEmail(input: BookingConfirmationPay
       dateLabel: input.dateLabel,
       timeRange: input.timeRange,
       doorCode: input.doorCode,
+      wifiName: input.wifiName,
+      wifiPassword: input.wifiPassword,
+      bookingNotice: input.bookingNotice,
       guideUrl: `${SITE_URL}/guide`,
       rulesUrl: `${SITE_URL}/rules`,
       mapsUrl: input.mapsUrl || `${SITE_URL}/contacts`,

@@ -20,6 +20,7 @@ import { CUSTOMER_LOCATION } from "@/config/customer-info";
 import { ensureBookingNotificationColumns } from "@/lib/booking-records";
 import { generateDoorCode } from "@/lib/door-code";
 import { query, queryOne } from "@/lib/postgres";
+import { ensureRoomGuestContentColumns, resolveRoomWifiName, resolveRoomWifiPassword } from "@/lib/room-guest-content";
 import { SuccessEmailActions } from "./success-email-actions";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,9 @@ type SuccessBookingRow = {
   time_range: string | null;
   door_code: string | null;
   maps_url: string | null;
+  wifi_name: string | null;
+  wifi_password: string | null;
+  booking_notice: string | null;
 };
 
 const PAID_STATUSES = new Set(["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"]);
@@ -54,6 +58,7 @@ async function getPaidBooking(bookingId: string) {
   if (!bookingId) return null;
 
   await ensureBookingNotificationColumns();
+  await ensureRoomGuestContentColumns();
 
   const booking = await queryOne<SuccessBookingRow>(
     `
@@ -67,9 +72,13 @@ async function getPaidBooking(bookingId: string) {
       b.date_label,
       b.time_range,
       b.door_code,
-      coalesce(br.google_maps_link, '') as maps_url
+      coalesce(br.google_maps_link, '') as maps_url,
+      r.wifi_name,
+      r.wifi_password,
+      r.booking_notice
     from bookings b
     left join branches br on br.id = b.branch_id
+    left join rooms r on r.id = b.room_id
     where upper(b.id) = $1 or upper(b.payment_reference) = $1
     `,
     [bookingId.toUpperCase()]
@@ -169,6 +178,9 @@ export default async function CheckoutSuccessPage({
   const branchName = booking.branch_name || CUSTOMER_LOCATION.branchName;
   const roomName = booking.room_name || "Phòng LavieHome";
   const dateLine = [booking.date_label, booking.time_range].filter(Boolean).join(" - ");
+  const wifiName = resolveRoomWifiName(booking.wifi_name);
+  const wifiPassword = resolveRoomWifiPassword(booking.wifi_password);
+  const bookingNotice = booking.booking_notice?.trim();
 
   return (
     <main className="site-shell min-h-dvh text-white">
@@ -246,8 +258,13 @@ export default async function CheckoutSuccessPage({
               </SuccessStep>
 
               <SuccessStep index={4} title="Mật khẩu Wi-Fi" icon={Wifi}>
-                <p>Tên Wifi: LAVIE HOME</p>
-                <p>Mật khẩu: laviehome</p>
+                <p>Tên Wifi: {wifiName}</p>
+                <p>Mật khẩu: {wifiPassword}</p>
+                {bookingNotice && (
+                  <p className="mt-3 rounded-2xl border border-yellow-200/25 bg-yellow-200/10 p-3 text-yellow-50">
+                    {bookingNotice}
+                  </p>
+                )}
               </SuccessStep>
             </div>
 

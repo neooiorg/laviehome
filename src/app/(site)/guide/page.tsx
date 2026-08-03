@@ -3,8 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { CustomerTextContent } from "@/components/customer-text-content";
 import { SiteHeader } from "@/components/site-header";
-import { CUSTOMER_CONTACT } from "@/config/customer-info";
+import { getCustomerContentConfig } from "@/lib/settings-actions";
 
 const guideImages = [
   {
@@ -35,7 +36,9 @@ export const metadata: Metadata = {
   description: "Hướng dẫn tìm phòng, đặt phòng, thanh toán và nhận hỗ trợ khi sử dụng hệ thống LavieHome.",
 };
 
-export default function GuidePage() {
+export default async function GuidePage() {
+  const content = await getCustomerContentConfig();
+
   return (
     <main className="site-shell min-h-dvh text-white">
       <SiteHeader />
@@ -45,60 +48,15 @@ export default function GuidePage() {
           <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-[-0.025em] text-pink-100 md:text-5xl">
             Hướng dẫn sử dụng
           </h1>
-          <p className="mt-5 max-w-[72ch] text-sm font-semibold leading-7 text-white/70 md:text-base">
-            Làm theo các bước bên dưới để chọn phòng, hoàn tất thanh toán và nhận thông tin check-in từ LavieHome.
-          </p>
-
-          <section className="mt-8 grid gap-5 md:grid-cols-3">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-              <h2 className="text-base font-extrabold text-white">1. Dành cho khách hàng</h2>
-              <ul className="mt-4 list-disc space-y-2.5 pl-5 text-sm font-semibold leading-6 text-white/70">
-                <li>Tìm kiếm phòng phù hợp với yêu cầu của quý khách.</li>
-                <li>Chọn khung giờ và nhấn &quot;Xác nhận đặt phòng&quot;.</li>
-                <li>Nhập thông tin người đặt và hoàn tất thanh toán.</li>
-                <li>Chờ xác nhận tự động hoặc từ lễ tân LavieHome qua Zalo.</li>
-              </ul>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-              <h2 className="text-base font-extrabold text-white">2. Hủy đơn & hoàn tiền</h2>
-              <ul className="mt-4 list-disc space-y-2.5 pl-5 text-sm font-semibold leading-6 text-white/70">
-                <li>
-                  Quý khách vui lòng gọi Hotline{" "}
-                  <a href={`tel:${CUSTOMER_CONTACT.telHref}`} className="font-bold text-yellow-200 hover:underline">
-                    {CUSTOMER_CONTACT.phoneDisplay}
-                  </a>{" "}
-                  để yêu cầu hủy.
-                </li>
-                <li>
-                  Hoặc liên hệ{" "}
-                  <a
-                    href={CUSTOMER_CONTACT.zaloUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold text-blue-200 hover:underline"
-                  >
-                    Zalo LavieHome {CUSTOMER_CONTACT.phoneDisplay}
-                  </a>{" "}
-                  để được hỗ trợ.
-                </li>
-              </ul>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-              <h2 className="text-base font-extrabold text-white">3. Hỗ trợ phát sinh</h2>
-              <ul className="mt-4 list-disc space-y-2.5 pl-5 text-sm font-semibold leading-6 text-white/70">
-                <li>LavieHome sẵn sàng hỗ trợ 24/7 mọi vấn đề liên quan dịch vụ.</li>
-                <li>Vui lòng tuân thủ quy định an ninh tại chi nhánh.</li>
-                <li>
-                  Xem thêm{" "}
-                  <Link href="/rules" className="font-bold text-pink-200 hover:underline">
-                    nội quy và quy định
-                  </Link>{" "}
-                  trước khi nhận phòng.
-                </li>
-              </ul>
-            </div>
+          <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
+            <CustomerTextContent content={content.guide} />
+            <p className="mt-5 text-sm font-semibold leading-7 text-white/70">
+              Xem thêm{" "}
+              <Link href="/rules" className="font-bold text-pink-200 hover:underline">
+                nội quy và quy định
+              </Link>{" "}
+              trước khi nhận phòng.
+            </p>
           </section>
 
           <section className="mt-10 space-y-6">

@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { extractBookingReference, extractPaymentReference } from "@/lib/booking-reference";
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
 import { generateDoorCode } from "@/lib/door-code";
+import { ensureRoomGuestContentColumns } from "@/lib/room-guest-content";
 import { broadcastBookingUpdate } from "@/lib/sse-clients";
 
 let pool: Pool | null = null;
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
   try {
     const db = getPool();
     await ensureBookingNotificationColumns(db);
+    await ensureRoomGuestContentColumns(db);
     const bookingRes = await db.query(
       `SELECT
          b.status,
@@ -126,7 +128,10 @@ export async function POST(req: NextRequest) {
        WHERE UPPER(id) = $2
          AND status NOT IN ('Đã thanh toán', 'Đã xác nhận', 'Chờ cọc', 'Đang ở', 'Hoàn tất')
        RETURNING id, customer_email, customer_name, room_name, branch_name, date_label, time_range, door_code,
-         (SELECT google_maps_link FROM branches WHERE branches.id = bookings.branch_id) AS maps_url`,
+         (SELECT google_maps_link FROM branches WHERE branches.id = bookings.branch_id) AS maps_url,
+         (SELECT wifi_name FROM rooms WHERE rooms.id = bookings.room_id) AS wifi_name,
+         (SELECT wifi_password FROM rooms WHERE rooms.id = bookings.room_id) AS wifi_password,
+         (SELECT booking_notice FROM rooms WHERE rooms.id = bookings.room_id) AS booking_notice`,
       ["Đã thanh toán", bookingId, doorCode]
     );
 
@@ -144,6 +149,9 @@ export async function POST(req: NextRequest) {
           timeRange: paidBooking.time_range,
           doorCode: paidBooking.door_code,
           mapsUrl: paidBooking.maps_url,
+          wifiName: paidBooking.wifi_name,
+          wifiPassword: paidBooking.wifi_password,
+          bookingNotice: paidBooking.booking_notice,
         });
       } catch (emailError) {
         console.error("Booking confirmation email error:", emailError);

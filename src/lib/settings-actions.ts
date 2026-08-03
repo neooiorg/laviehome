@@ -8,11 +8,17 @@ import {
   normalizeComboPromoConfig,
   type ComboPromoConfig,
 } from '@/lib/combo-promo';
+import {
+  DEFAULT_CUSTOMER_CONTENT,
+  normalizeCustomerContentConfig,
+  type CustomerContentConfig,
+} from '@/lib/customer-content';
 
 const ONLINE_PAYMENT_KEY = 'online_payment_enabled';
 const MAINTENANCE_KEY = 'maintenance_mode';
 const COMBO_PROMO_KEY = 'combo_promo_config';
 const BOOKING_HOLD_KEY = 'booking_hold_minutes';
+const CUSTOMER_CONTENT_KEY = 'customer_content_config';
 
 /** Default window (minutes) an unpaid "Chờ thanh toán" booking keeps holding its slot. */
 const DEFAULT_BOOKING_HOLD_MINUTES = 10;
@@ -150,4 +156,33 @@ export async function setBookingHoldMinutes(minutes: number): Promise<void> {
     [BOOKING_HOLD_KEY, String(value)]
   );
   revalidatePath('/dashboard/settings');
+}
+
+export async function getCustomerContentConfig(): Promise<CustomerContentConfig> {
+  try {
+    await ensureSettingsTable();
+    const rows = await query<{ value: string }>(
+      `SELECT value FROM app_settings WHERE key = $1`,
+      [CUSTOMER_CONTENT_KEY]
+    );
+    if (!rows.length) return DEFAULT_CUSTOMER_CONTENT;
+    return normalizeCustomerContentConfig(JSON.parse(rows[0].value));
+  } catch {
+    return DEFAULT_CUSTOMER_CONTENT;
+  }
+}
+
+export async function setCustomerContentConfig(config: CustomerContentConfig): Promise<void> {
+  await ensureSettingsTable();
+  const normalized = normalizeCustomerContentConfig(config);
+  await query(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+    [CUSTOMER_CONTENT_KEY, JSON.stringify(normalized)]
+  );
+  revalidatePath('/dashboard/settings');
+  revalidatePath('/guide');
+  revalidatePath('/rules');
+  revalidatePath('/cancellation-policy');
+  revalidatePath('/checkout/success');
 }

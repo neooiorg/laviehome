@@ -19,6 +19,9 @@ type BookingConfirmationEmailProps = {
   dateLabel?: string | null;
   timeRange?: string | null;
   doorCode: string;
+  wifiName?: string | null;
+  wifiPassword?: string | null;
+  bookingNotice?: string | null;
   guideUrl: string;
   rulesUrl: string;
   mapsUrl: string;
@@ -32,11 +35,17 @@ export function BookingConfirmationEmail({
   dateLabel,
   timeRange,
   doorCode,
+  wifiName,
+  wifiPassword,
+  bookingNotice,
   guideUrl,
   rulesUrl,
   mapsUrl,
 }: BookingConfirmationEmailProps) {
   const dateLine = [dateLabel, timeRange].filter(Boolean).join(" - ");
+  const resolvedWifiName = wifiName?.trim() || "LAVIE HOME";
+  const resolvedWifiPassword = wifiPassword?.trim() || "laviehome";
+  const resolvedBookingNotice = bookingNotice?.trim();
 
   return (
     <Html>
@@ -93,8 +102,9 @@ export function BookingConfirmationEmail({
             </Step>
 
             <Step number="4" title="Mật khẩu Wi-Fi">
-              <Text style={stepText}>Tên Wifi: LAVIE HOME</Text>
-              <Text style={stepText}>Mật khẩu: laviehome</Text>
+              <Text style={stepText}>Tên Wifi: {resolvedWifiName}</Text>
+              <Text style={stepText}>Mật khẩu: {resolvedWifiPassword}</Text>
+              {resolvedBookingNotice && <Text style={noticeText}>{resolvedBookingNotice}</Text>}
             </Step>
 
             <Section style={footerPanel}>
@@ -320,6 +330,18 @@ const doorCodeText = {
 const doorCodeValue = {
   color: "#ffb6e5",
   fontFamily: "Consolas, 'SFMono-Regular', monospace",
+};
+
+const noticeText = {
+  backgroundColor: "rgba(246, 215, 111, 0.12)",
+  border: "1px solid rgba(246, 215, 111, 0.35)",
+  borderRadius: "12px",
+  color: "#fff8fb",
+  fontSize: "14px",
+  fontWeight: "750",
+  lineHeight: "1.55",
+  margin: "12px 0 0",
+  padding: "10px 12px",
 };
 
 const footerPanel = {

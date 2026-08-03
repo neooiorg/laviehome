@@ -43,10 +43,10 @@ export function DataTableToolbar<TData>({
     <div
       role="toolbar"
       aria-orientation="horizontal"
-      className={cn("flex w-full items-center justify-between gap-2", className)}
+      className={cn("flex min-w-0 max-w-full flex-wrap items-center justify-between gap-2", className)}
       {...props}
     >
-      <div className="flex flex-1 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         {searchColumn && (
           <Input
             placeholder={searchPlaceholder}

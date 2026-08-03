@@ -3,6 +3,7 @@ import { Pool } from "pg";
 
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
 import { generateDoorCode } from "@/lib/door-code";
+import { ensureRoomGuestContentColumns } from "@/lib/room-guest-content";
 
 const PAID_STATUSES = ["Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
 
@@ -31,12 +32,15 @@ export async function POST(req: NextRequest) {
 
     const db = getPool();
     await ensureBookingNotificationColumns(db);
+    await ensureRoomGuestContentColumns(db);
 
     const { rows } = await db.query(
       `SELECT b.id, b.status, b.customer_email, b.customer_name, b.room_name, b.branch_name,
-              b.date_label, b.time_range, b.door_code, COALESCE(br.google_maps_link, '') AS maps_url
+              b.date_label, b.time_range, b.door_code, COALESCE(br.google_maps_link, '') AS maps_url,
+              r.wifi_name, r.wifi_password, r.booking_notice
        FROM bookings b
        LEFT JOIN branches br ON br.id = b.branch_id
+       LEFT JOIN rooms r ON r.id = b.room_id
        WHERE UPPER(b.id) = $1`,
       [String(booking_id).toUpperCase()]
     );
@@ -73,6 +77,9 @@ export async function POST(req: NextRequest) {
       timeRange: booking.time_range,
       doorCode,
       mapsUrl: booking.maps_url,
+      wifiName: booking.wifi_name,
+      wifiPassword: booking.wifi_password,
+      bookingNotice: booking.booking_notice,
     });
 
     return NextResponse.json({ ok: true, sent: result.sent, reason: result.reason ?? null });

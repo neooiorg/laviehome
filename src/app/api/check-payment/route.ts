@@ -3,6 +3,7 @@ import { Pool } from "pg";
 
 import { ensureBookingNotificationColumns } from "@/lib/booking-records";
 import { generateDoorCode } from "@/lib/door-code";
+import { ensureRoomGuestContentColumns } from "@/lib/room-guest-content";
 
 let pool: Pool | null = null;
 function getPool() {
@@ -37,6 +38,7 @@ export async function GET(request: Request) {
   try {
     const db = getPool();
     await ensureLocalBookingNotificationColumns(db);
+    await ensureRoomGuestContentColumns(db);
     await ensureBookingNotificationColumns();
     const res = await db.query(
       `SELECT
@@ -49,9 +51,13 @@ export async function GET(request: Request) {
          b.date_label,
          b.time_range,
          b.door_code,
-         COALESCE(br.google_maps_link, '') AS maps_url
+         COALESCE(br.google_maps_link, '') AS maps_url,
+         r.wifi_name,
+         r.wifi_password,
+         r.booking_notice
        FROM bookings b
        LEFT JOIN branches br ON br.id = b.branch_id
+       LEFT JOIN rooms r ON r.id = b.room_id
        WHERE UPPER(b.id) = $1 OR UPPER(b.payment_reference) = $1`,
       [bookingId.toUpperCase()]
     );
@@ -78,6 +84,9 @@ export async function GET(request: Request) {
           timeRange: row.time_range,
           doorCode: row.door_code,
           mapsUrl: row.maps_url,
+          wifiName: row.wifi_name,
+          wifiPassword: row.wifi_password,
+          bookingNotice: row.booking_notice,
         },
       });
     }

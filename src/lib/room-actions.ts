@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { query } from '@/lib/postgres';
 import type { RoomSlot } from '@/lib/booking-slots';
+import { ensureRoomGuestContentColumns } from '@/lib/room-guest-content';
 
 export interface RoomInput {
   card_name: string;
@@ -23,6 +24,9 @@ export interface RoomInput {
   // Custom booking time slots for this room. Null/undefined means "use the
   // name-based preset". Indexes here align with slot_prices above.
   time_slots?: RoomSlot[] | null;
+  wifi_name?: string | null;
+  wifi_password?: string | null;
+  booking_notice?: string | null;
 }
 
 async function ensureSlotPricesColumn(): Promise<void> {
@@ -36,9 +40,10 @@ async function ensureTimeSlotsColumn(): Promise<void> {
 export async function createRoom(data: RoomInput): Promise<void> {
   await ensureSlotPricesColumn();
   await ensureTimeSlotsColumn();
+  await ensureRoomGuestContentColumns();
   await query(
-    `INSERT INTO rooms (card_name, branch_id, branch_name, price_from, price_to, full_day_price, main_image, images, room_amenities, is_classic, slot_prices, time_slots)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+    `INSERT INTO rooms (card_name, branch_id, branch_name, price_from, price_to, full_day_price, main_image, images, room_amenities, is_classic, slot_prices, time_slots, wifi_name, wifi_password, booking_notice)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
     [
       data.card_name,
       data.branch_id,
@@ -52,9 +57,13 @@ export async function createRoom(data: RoomInput): Promise<void> {
       data.is_classic ? 1 : 0,
       data.slot_prices ? JSON.stringify(data.slot_prices) : null,
       data.time_slots ? JSON.stringify(data.time_slots) : null,
+      data.wifi_name?.trim() ?? '',
+      data.wifi_password?.trim() ?? '',
+      data.booking_notice?.trim() ?? '',
     ]
   );
   revalidatePath('/dashboard/rooms');
+  revalidatePath('/', 'layout');
 }
 
 export async function updateRoom(id: number, data: Partial<RoomInput>): Promise<void> {
@@ -63,6 +72,9 @@ export async function updateRoom(id: number, data: Partial<RoomInput>): Promise<
 
   if (data.slot_prices !== undefined) await ensureSlotPricesColumn();
   if (data.time_slots !== undefined) await ensureTimeSlotsColumn();
+  if (data.wifi_name !== undefined || data.wifi_password !== undefined || data.booking_notice !== undefined) {
+    await ensureRoomGuestContentColumns();
+  }
 
   if (data.card_name !== undefined) { params.push(data.card_name); fields.push(`card_name = $${params.length}`); }
   if (data.branch_id !== undefined) { params.push(data.branch_id); fields.push(`branch_id = $${params.length}`); }
@@ -76,6 +88,9 @@ export async function updateRoom(id: number, data: Partial<RoomInput>): Promise<
   if (data.is_classic !== undefined) { params.push(data.is_classic ? 1 : 0); fields.push(`is_classic = $${params.length}`); }
   if (data.slot_prices !== undefined) { params.push(data.slot_prices ? JSON.stringify(data.slot_prices) : null); fields.push(`slot_prices = $${params.length}`); }
   if (data.time_slots !== undefined) { params.push(data.time_slots ? JSON.stringify(data.time_slots) : null); fields.push(`time_slots = $${params.length}`); }
+  if (data.wifi_name !== undefined) { params.push(data.wifi_name?.trim() ?? ''); fields.push(`wifi_name = $${params.length}`); }
+  if (data.wifi_password !== undefined) { params.push(data.wifi_password?.trim() ?? ''); fields.push(`wifi_password = $${params.length}`); }
+  if (data.booking_notice !== undefined) { params.push(data.booking_notice?.trim() ?? ''); fields.push(`booking_notice = $${params.length}`); }
 
   if (fields.length === 0) return;
 
@@ -83,6 +98,9 @@ export async function updateRoom(id: number, data: Partial<RoomInput>): Promise<
   await query(`UPDATE rooms SET ${fields.join(', ')} WHERE id = $${params.length}`, params);
   revalidatePath('/dashboard/rooms');
   revalidatePath(`/dashboard/rooms/${id}`);
+  revalidatePath(`/rooms/${id}`);
+  revalidatePath('/checkout/success');
+  revalidatePath('/', 'layout');
 }
 
 export async function deleteRoom(id: number): Promise<void> {

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import type { BranchRow } from "@/lib/homestay-dashboard";
 import { createRoom } from "@/lib/room-actions";
 import { getRoomSlots, timeToMinutes } from "@/lib/booking-slots";
@@ -35,6 +36,9 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
   const [mainImage, setMainImage] = React.useState("");
   const [amenities, setAmenities] = React.useState<string[]>([]);
   const [isClassic, setIsClassic] = React.useState(false);
+  const [wifiName, setWifiName] = React.useState("");
+  const [wifiPassword, setWifiPassword] = React.useState("");
+  const [bookingNotice, setBookingNotice] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
   const [slotRows, setSlotRows] = React.useState<SlotRow[]>(() =>
     getRoomSlots("").map((slot) => ({ start: slot.start ?? "", end: slot.end ?? "", price: "" }))
@@ -94,6 +98,9 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
       is_classic: isClassic,
       time_slots: timeSlots.length > 0 ? timeSlots : null,
       slot_prices: slotPricesArr.some((v) => v !== null) ? slotPricesArr : undefined,
+      wifi_name: wifiName,
+      wifi_password: wifiPassword,
+      booking_notice: bookingNotice,
     });
     router.push("/dashboard/rooms");
   }
@@ -181,6 +188,29 @@ export function CreateRoomForm({ branches }: { branches: BranchRow[] }) {
             <CardHeader className="pb-3"><CardTitle className="text-base">Tiện ích</CardTitle></CardHeader>
             <CardContent>
               <AmenityEditor value={amenities} onChange={setAmenities} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Thông báo khi đặt phòng</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label>Tên Wi-Fi</Label>
+                <Input value={wifiName} onChange={(e) => setWifiName(e.target.value)} placeholder="LAVIE HOME" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Mật khẩu Wi-Fi</Label>
+                <Input value={wifiPassword} onChange={(e) => setWifiPassword(e.target.value)} placeholder="laviehome" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Thông báo riêng</Label>
+                <Textarea
+                  value={bookingNotice}
+                  onChange={(e) => setBookingNotice(e.target.value)}
+                  placeholder="VD: Chìa khóa đặt trong hộp bên trái cửa."
+                  rows={4}
+                />
+              </div>
             </CardContent>
           </Card>
 

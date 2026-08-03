@@ -54,6 +54,9 @@ type CatalogRoom = {
   is_classic: number;
   images: string[];
   time_slots?: RoomSlot[] | null;
+  wifi_name?: string | null;
+  wifi_password?: string | null;
+  booking_notice?: string | null;
 };
 
 type CatalogBranch = {

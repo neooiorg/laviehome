@@ -38,6 +38,9 @@ export async function GET(req: NextRequest) {
         images JSONB DEFAULT '[]',
         room_amenities JSONB DEFAULT '[]',
         is_classic INTEGER DEFAULT 0,
+        wifi_name TEXT DEFAULT '',
+        wifi_password TEXT DEFAULT '',
+        booking_notice TEXT DEFAULT '',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
@@ -122,6 +125,9 @@ export async function GET(req: NextRequest) {
 
     await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS slot_prices JSONB`);
     await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS time_slots JSONB`);
+    await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS wifi_name TEXT DEFAULT ''`);
+    await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS wifi_password TEXT DEFAULT ''`);
+    await pool.query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS booking_notice TEXT DEFAULT ''`);
     // Lazily-added booking column — ensure it exists on databases created before it.
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS menu_items_total BIGINT DEFAULT 0`);
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`);

@@ -85,7 +85,10 @@ async function main() {
         full_day_price integer NOT NULL,
         main_image text NOT NULL,
         is_classic smallint NOT NULL,
-        images jsonb NOT NULL
+        images jsonb NOT NULL,
+        wifi_name text DEFAULT '',
+        wifi_password text DEFAULT '',
+        booking_notice text DEFAULT ''
       );
     `);
 
