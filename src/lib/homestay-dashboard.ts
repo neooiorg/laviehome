@@ -175,6 +175,34 @@ function getBookingDisplayTotal(input: {
   return Number(input.amount ?? 0) + Number(input.menuItemsTotal ?? 0);
 }
 
+const ADMIN_TIME_RANGE_PATTERN = /\b\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}(?:\s*\([^)]*\))?/g;
+
+function formatAdminTimeRange(value: string | null | undefined) {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+
+  const matches = raw.match(ADMIN_TIME_RANGE_PATTERN);
+  if (matches?.length) {
+    return Array.from(
+      new Set(
+        matches.map((match) =>
+          match
+            .replace(/\s+/g, ' ')
+            .replace(/\s*[-–]\s*/, ' - ')
+            .trim()
+        )
+      )
+    ).join(', ');
+  }
+
+  const colonIndex = raw.lastIndexOf(':');
+  if (colonIndex >= 0 && colonIndex < raw.length - 1) {
+    return raw.slice(colonIndex + 1).trim();
+  }
+
+  return raw;
+}
+
 export async function getBranches(): Promise<BranchRow[]> {
   return query<BranchRow>('select * from branches order by id');
 }
@@ -228,7 +256,7 @@ function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
     branch: booking.branch ? ({ ...booking.branch, name: booking.branch.name } as BranchRow) : makeFallbackBranch(booking),
     stayDate,
     dateLabel: booking.dateLabel ?? stayDate,
-    timeRange: booking.raw.time_range ?? '',
+    timeRange: formatAdminTimeRange(booking.raw.time_range),
     channel: booking.channel,
     status: booking.raw.status as BookingStatus,
     amount: Number(booking.raw.amount) || 0,

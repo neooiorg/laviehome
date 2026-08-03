@@ -111,9 +111,9 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
   {
     accessorKey: "timeRange",
     header: "Giờ",
-    size: 390,
+    size: 250,
     cell: ({ row }) => (
-      <TruncatedCell text={row.original.timeRange} className="max-w-[360px] text-sm text-muted-foreground" />
+      <TruncatedCell text={row.original.timeRange} className="max-w-[230px] text-sm text-muted-foreground" />
     ),
   },
   {
