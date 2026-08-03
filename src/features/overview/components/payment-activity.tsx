@@ -38,7 +38,16 @@ function relativeTime(iso: string) {
 }
 
 export async function PaymentActivity() {
-  const summary = await getPaymentSummary(6);
+  const summary = await getPaymentSummary(6).catch((error) => {
+    console.error('Dashboard payment activity error:', error);
+    return {
+      receivedTotal: 0,
+      receivedCount: 0,
+      pendingTotal: 0,
+      pendingCount: 0,
+      activities: []
+    };
+  });
 
   return (
     <Card className="flex h-full flex-col">

@@ -5,6 +5,24 @@ import { money } from '@/lib/format';
 import { Wallet, Clock, BedDouble, Building2 } from 'lucide-react';
 import React from 'react';
 
+async function getOverviewSummary() {
+  try {
+    return await Promise.all([getDashboardMetrics(), getPaymentSummary(6)]);
+  } catch (error) {
+    console.error('Dashboard overview summary error:', error);
+    return [
+      [],
+      {
+        receivedTotal: 0,
+        receivedCount: 0,
+        pendingTotal: 0,
+        pendingCount: 0,
+        activities: []
+      }
+    ] as const;
+  }
+}
+
 export default async function OverViewLayout({
   sales,
   pie_stats,
@@ -14,7 +32,7 @@ export default async function OverViewLayout({
   pie_stats: React.ReactNode;
   bar_stats: React.ReactNode;
 }) {
-  const [metrics, payments] = await Promise.all([getDashboardMetrics(), getPaymentSummary(6)]);
+  const [metrics, payments] = await getOverviewSummary();
 
   const branchMetric = metrics.find((metric) => metric.label === 'Chi nhánh đang mở');
   const roomMetric = metrics.find((metric) => metric.label === 'Phòng đang bán');

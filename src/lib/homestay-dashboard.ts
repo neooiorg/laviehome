@@ -11,7 +11,6 @@ import {
 import { normalizeDateLabelToIso, type RoomSlot } from '@/lib/booking-slots';
 import { money } from '@/lib/format';
 import { query } from '@/lib/postgres';
-import { ensureRoomGuestContentColumns } from '@/lib/room-guest-content';
 
 export type DashboardMetric = {
   label: string;
@@ -212,7 +211,6 @@ export async function getBranches(): Promise<BranchRow[]> {
 }
 
 async function getActiveCatalogRooms(): Promise<RoomRow[]> {
-  await ensureRoomGuestContentColumns();
   return query<RoomRow>('select * from rooms where is_classic = 0 order by id desc');
 }
 
@@ -679,19 +677,16 @@ export function moneyRange(room: RoomSummary['room']) {
 }
 
 export async function getPublicRoomById(id: number): Promise<RoomRow | null> {
-  await ensureRoomGuestContentColumns();
   const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
   return results[0] ?? null;
 }
 
 export async function getRoomById(id: number): Promise<RoomRow | null> {
-  await ensureRoomGuestContentColumns();
   const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
   return results[0] ?? null;
 }
 
 export async function getAllRooms(): Promise<RoomRow[]> {
-  await ensureRoomGuestContentColumns();
   return query<RoomRow>('select * from rooms order by id desc');
 }
 
