@@ -7,8 +7,14 @@ declare global {
   var __laviePgPool: Pool | undefined;
 }
 
+let _pool: Pool | undefined;
+
 function getPool(): Pool {
-  if (globalThis.__laviePgPool) return globalThis.__laviePgPool;
+  if (_pool) return _pool;
+  if (globalThis.__laviePgPool) {
+    _pool = globalThis.__laviePgPool;
+    return _pool;
+  }
 
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -21,6 +27,7 @@ function getPool(): Pool {
     globalThis.__laviePgPool = pool;
   }
 
+  _pool = pool;
   return pool;
 }
 
