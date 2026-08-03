@@ -111,12 +111,18 @@ async function ensureTable(db: Pool) {
 
 const SURCHARGE: Record<number, number> = { 3: 50000, 4: 100000 };
 
+function toSafeAmount(value: unknown) {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) ? Math.max(Math.round(amount), 0) : 0;
+}
+
 async function resolveAmount(
   db: Pool,
   bookingId: string,
   guestCount: number,
-  discountCode: string | null
-): Promise<{ amount: number; total: number }> {
+  discountCode: string | null,
+  fallback?: { roomBase?: number; menuTotal?: number }
+): Promise<{ amount: number; total: number; roomBase: number; menuTotal: number }> {
   const { rows } = await db.query(
     `SELECT COALESCE(NULLIF(quoted_amount, 0), amount, 0) AS room_base, COALESCE(menu_items_total, 0) AS menu_items_total
      FROM bookings WHERE UPPER(id) = $1`,
@@ -124,8 +130,8 @@ async function resolveAmount(
   );
   // quoted_amount holds the room-only price — the discountable base. Menu items
   // (đồ ăn, bao cao su, gel, …) are tracked separately and are never discounted.
-  const roomBase = Number(rows[0]?.room_base ?? 0);
-  const menuTotal = Number(rows[0]?.menu_items_total ?? 0);
+  const roomBase = toSafeAmount(rows[0]?.room_base) || toSafeAmount(fallback?.roomBase);
+  const menuTotal = toSafeAmount(rows[0]?.menu_items_total) || toSafeAmount(fallback?.menuTotal);
   const surcharge = SURCHARGE[guestCount] ?? 0;
 
   let discountPercent = 0;
@@ -142,7 +148,7 @@ async function resolveAmount(
 
   const discountAmount = Math.round((roomBase * discountPercent) / 100);
   const amount = roomBase + surcharge - discountAmount; // room charge only (excl. menu)
-  return { amount, total: amount + menuTotal };
+  return { amount, total: amount + menuTotal, roomBase, menuTotal };
 }
 
 export async function POST(req: NextRequest) {
@@ -170,6 +176,8 @@ export async function POST(req: NextRequest) {
       cccd_back,
       payment_reference,
       clear_payment_reference,
+      quoted_amount,
+      menu_items_total,
     } = body;
     const guest_name: string = customer_name ?? "";
     const normalizedPaymentReference =
@@ -273,19 +281,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { amount: bookingAmount, total: payTotal } = await resolveAmount(
+    const { amount: bookingAmount, total: payTotal, roomBase, menuTotal } = await resolveAmount(
       db,
       id,
       Number(guest_count ?? 2),
-      discount_code ?? existing?.discount_code ?? null
+      discount_code ?? existing?.discount_code ?? null,
+      {
+        roomBase: toSafeAmount(quoted_amount),
+        menuTotal: toSafeAmount(menu_items_total),
+      }
     );
 
     await db.query(
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name, stay_date, date_label, time_range,
-        timeslot_ids, channel, quoted_amount, amount, customer_name, customer_phone, customer_email, discount_code,
+        timeslot_ids, channel, quoted_amount, amount, menu_items_total, customer_name, customer_phone, customer_email, discount_code,
         notes, guest_count, has_car, has_decoration, cccd_front, cccd_back, payment_reference, payment_amount
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
       ON CONFLICT (id) DO UPDATE SET
         room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
         room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
@@ -307,15 +319,16 @@ export async function POST(req: NextRequest) {
         discount_code = COALESCE(EXCLUDED.discount_code, bookings.discount_code),
         quoted_amount = COALESCE(NULLIF(bookings.quoted_amount, 0), EXCLUDED.quoted_amount),
         amount = EXCLUDED.amount,
+        menu_items_total = COALESCE(EXCLUDED.menu_items_total, bookings.menu_items_total),
         cccd_front = COALESCE(EXCLUDED.cccd_front, bookings.cccd_front),
         cccd_back = COALESCE(EXCLUDED.cccd_back, bookings.cccd_back),
         payment_reference = CASE
-          WHEN $26::boolean THEN NULL
+          WHEN $27::boolean THEN NULL
           WHEN EXCLUDED.payment_reference IS NOT NULL THEN EXCLUDED.payment_reference
           ELSE bookings.payment_reference
         END,
         payment_amount = CASE
-          WHEN $26::boolean THEN NULL
+          WHEN $27::boolean THEN NULL
           WHEN EXCLUDED.payment_reference IS NOT NULL THEN EXCLUDED.payment_amount
           ELSE bookings.payment_amount
         END,
@@ -332,8 +345,9 @@ export async function POST(req: NextRequest) {
         resolvedTimeRange,
         resolvedTimeslotIds.length > 0 ? stringifyTimeslotIds(resolvedTimeslotIds) : null,
         existing?.channel ?? "Online",
-        existing ? null : bookingAmount,
+        existing ? null : roomBase,
         bookingAmount,
+        menuTotal,
         customer_name ?? null,
         customer_phone ?? null,
         customer_email ?? null,

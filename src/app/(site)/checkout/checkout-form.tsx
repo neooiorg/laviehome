@@ -15,6 +15,14 @@ export type CheckoutPricing = {
 
 type CheckoutFormProps = {
   bookingId: string;
+  roomId: number | null;
+  roomName: string;
+  branchId: string;
+  branchName: string;
+  date: string;
+  stayDate: string | null;
+  timeRange: string;
+  timeslotIds: string;
   /** Full quote (room + menu) — the total the customer pays. */
   price: number;
   /** Room-only portion — the discount code applies to this, never to menu items. */
@@ -33,6 +41,14 @@ type DiscountResult =
 
 export function CheckoutForm({
   bookingId,
+  roomId,
+  roomName,
+  branchId,
+  branchName,
+  date,
+  stayDate,
+  timeRange,
+  timeslotIds,
   price,
   roomPrice,
   onPricingChange,
@@ -60,7 +76,6 @@ export function CheckoutForm({
   const [cccdFrontName, setCccdFrontName] = useState("");
   const [cccdBackName, setCccdBackName] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const lastDraftFingerprintRef = useRef("");
   const reportedDiscountUseRef = useRef<string | null>(null);
 
   function readFileAsBase64(file: File): Promise<string> {
@@ -94,6 +109,7 @@ export function CheckoutForm({
   const discountAmount = Math.round((roomPrice * discountPercent) / 100);
   const finalAmount = price + surcharge - discountAmount;
   const appliedDiscountCode = discountResult?.valid ? discountCode.trim().toUpperCase() : null;
+  const menuItemsTotal = Math.max(Math.round(price - roomPrice), 0);
 
   useEffect(() => {
     onPricingChange?.({ guestCount, surcharge, discountPercent, discountAmount, finalAmount });
@@ -128,6 +144,16 @@ export function CheckoutForm({
   const buildBookingPayload = useCallback((nextPaymentReference?: string | null, clearPaymentReference = false) => {
     return {
       id: bookingId,
+      room_id: roomId,
+      room_name: roomName,
+      branch_id: branchId || null,
+      branch_name: branchName,
+      stay_date: stayDate,
+      date_label: date,
+      time_range: timeRange,
+      timeslot_ids: timeslotIds,
+      quoted_amount: Math.max(Math.round(roomPrice), 0),
+      menu_items_total: menuItemsTotal,
       customer_name: customerName.trim() || null,
       customer_phone: customerPhone.trim() || null,
       customer_email: customerEmail.trim() || null,
@@ -141,7 +167,29 @@ export function CheckoutForm({
       payment_reference: nextPaymentReference ?? null,
       clear_payment_reference: clearPaymentReference,
     };
-  }, [appliedDiscountCode, bookingId, cccdBack, cccdFront, customerEmail, customerName, customerPhone, guestCount, hasCar, hasDecoration, notes]);
+  }, [
+    appliedDiscountCode,
+    bookingId,
+    branchId,
+    branchName,
+    cccdBack,
+    cccdFront,
+    customerEmail,
+    customerName,
+    customerPhone,
+    date,
+    guestCount,
+    hasCar,
+    hasDecoration,
+    menuItemsTotal,
+    notes,
+    roomId,
+    roomName,
+    roomPrice,
+    stayDate,
+    timeRange,
+    timeslotIds,
+  ]);
 
   const syncPricingWithServer = useCallback((amount: number) => {
     onPricingChange?.({
@@ -152,76 +200,6 @@ export function CheckoutForm({
       finalAmount: amount,
     });
   }, [discountAmount, discountPercent, guestCount, onPricingChange, surcharge]);
-
-  useEffect(() => {
-    const payload = buildBookingPayload(null, paymentNeedsRefresh);
-    const hasDraftContent = Boolean(
-        payload.customer_name ||
-        payload.customer_phone ||
-        payload.customer_email ||
-        payload.notes ||
-        payload.has_car ||
-        payload.has_decoration ||
-        payload.discount_code ||
-        payload.cccd_front ||
-        payload.cccd_back ||
-        payload.guest_count !== 2
-    );
-
-    if (!hasDraftContent) return;
-
-    const fingerprint = JSON.stringify(payload);
-    if (fingerprint === lastDraftFingerprintRef.current) return;
-
-    const timer = window.setTimeout(async () => {
-      try {
-        const res = await fetch("/api/bookings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-
-        if (res.status === 409) {
-          setConflictError(data.error ?? "Khung giờ đã được đặt. Vui lòng chọn khung giờ khác.");
-          return;
-        }
-
-        if (!res.ok) return;
-
-        setConflictError(null);
-        lastDraftFingerprintRef.current = fingerprint;
-
-        if (typeof data.amount === "number") {
-          syncPricingWithServer(data.amount);
-        }
-      } catch {
-        // Keep the draft local; the explicit submit still handles the final save path.
-      }
-    }, 600);
-
-    return () => window.clearTimeout(timer);
-  }, [
-    appliedDiscountCode,
-    bookingId,
-    buildBookingPayload,
-    cccdBack,
-    cccdFront,
-    customerName,
-    customerPhone,
-    customerEmail,
-    discountAmount,
-    discountPercent,
-    finalAmount,
-    guestCount,
-    hasCar,
-    hasDecoration,
-    notes,
-    onPricingChange,
-    paymentNeedsRefresh,
-    surcharge,
-    syncPricingWithServer,
-  ]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -247,7 +225,6 @@ export function CheckoutForm({
       }
 
       setConflictError(null);
-      lastDraftFingerprintRef.current = JSON.stringify(payload);
 
       if (typeof data.amount === "number") {
         syncPricingWithServer(data.amount);

@@ -40,10 +40,14 @@ type CheckoutMenuItem = {
 
 type CheckoutExperienceProps = {
   transferCode: string;
+  roomId: number | null;
   roomName: string;
+  branchId: string;
   branchName: string;
   date: string;
+  stayDate: string | null;
   timeRange: string;
+  timeslotIds: string;
   price: number;
   roomPrice: number;
   menuItems: CheckoutMenuItem[];
@@ -54,10 +58,14 @@ type CheckoutExperienceProps = {
 
 export function CheckoutExperience({
   transferCode,
+  roomId,
   roomName,
+  branchId,
   branchName,
   date,
+  stayDate,
   timeRange,
+  timeslotIds,
   price,
   roomPrice,
   menuItems,
@@ -131,6 +139,14 @@ export function CheckoutExperience({
       <div className="grid min-w-0 gap-6">
         <CheckoutForm
           bookingId={transferCode}
+          roomId={roomId}
+          roomName={roomName}
+          branchId={branchId}
+          branchName={branchName}
+          date={date}
+          stayDate={stayDate}
+          timeRange={timeRange}
+          timeslotIds={timeslotIds}
           price={price}
           roomPrice={roomPrice}
           onPricingChange={handlePricingChange}

@@ -12,9 +12,7 @@ import {
   getRoomIdFromTimeslotIds,
   normalizeDateLabelToIso,
   parseTimeslotIds,
-  stringifyTimeslotIds,
 } from "@/lib/booking-slots";
-import { query } from "@/lib/postgres";
 import { getMenuItemsByIds } from "@/lib/menu-actions";
 import { getBookingHoldMinutes, getOnlinePaymentEnabled } from "@/lib/settings-actions";
 import { getBankPaymentConfig } from "@/lib/payment-config";
@@ -132,66 +130,6 @@ async function checkTimeslotConflict(
     );
 }
 
-async function upsertBookingRecord(id: string, checkout: Awaited<ReturnType<typeof resolveCheckout>>) {
-  try {
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
-    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
-    await query(`ALTER TABLE bookings ALTER COLUMN time_range TYPE TEXT`).catch(() => null);
-    // Split the quote so discount codes only ever touch the room: quoted_amount /
-    // amount hold the room-only price, menu_items_total holds the (never-discounted)
-    // menu portion. Display total is amount + menu_items_total.
-    const roomPrice = checkout.roomPrice ?? 0;
-    const menuTotal = Math.max((checkout.price ?? 0) - roomPrice, 0);
-    await query(
-      `INSERT INTO bookings (
-        id, guest_name, room_id, room_name, branch_id, branch_name,
-        stay_date, date_label, time_range, timeslot_ids, channel, quoted_amount, amount, menu_items_total
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'Online', $11, $12, $13)
-      ON CONFLICT (id) DO UPDATE SET
-        room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
-        room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
-        branch_id = COALESCE(EXCLUDED.branch_id, bookings.branch_id),
-        branch_name = COALESCE(EXCLUDED.branch_name, bookings.branch_name),
-        stay_date = COALESCE(EXCLUDED.stay_date, bookings.stay_date),
-        date_label = COALESCE(EXCLUDED.date_label, bookings.date_label),
-        time_range = COALESCE(EXCLUDED.time_range, bookings.time_range),
-        timeslot_ids = COALESCE(EXCLUDED.timeslot_ids, bookings.timeslot_ids),
-        channel = COALESCE(bookings.channel, EXCLUDED.channel),
-        quoted_amount = COALESCE(NULLIF(bookings.quoted_amount, 0), EXCLUDED.quoted_amount),
-        amount = CASE
-          WHEN bookings.discount_code IS NOT NULL THEN bookings.amount
-          WHEN EXCLUDED.amount > 0 THEN EXCLUDED.amount
-          ELSE bookings.amount
-        END,
-        menu_items_total = CASE
-          WHEN bookings.discount_code IS NOT NULL THEN bookings.menu_items_total
-          ELSE EXCLUDED.menu_items_total
-        END,
-        updated_at = NOW()`,
-      [
-        id,
-        "",
-        checkout.roomId,
-        checkout.roomName ?? null,
-        checkout.branchId ? Number(checkout.branchId) : null,
-        checkout.branchName ?? null,
-        checkout.stayDate ?? null,
-        checkout.date ?? null,
-        checkout.timeRange ?? null,
-        checkout.timeslotIds && checkout.timeslotIds !== "N/A"
-          ? stringifyTimeslotIds(parseTimeslotIds(checkout.timeslotIds))
-          : null,
-        roomPrice,
-        roomPrice,
-        menuTotal,
-      ]
-    );
-  } catch {
-    // non-blocking - booking will be completed on form submit
-  }
-}
-
 export default async function CheckoutPage({
   searchParams,
 }: {
@@ -230,8 +168,6 @@ export default async function CheckoutPage({
     );
   }
 
-  await upsertBookingRecord(transferCode, checkout);
-
   const onlinePaymentEnabled = await getOnlinePaymentEnabled();
   const bankConfig = getBankPaymentConfig();
 
@@ -241,10 +177,14 @@ export default async function CheckoutPage({
       <div className="mx-auto w-[min(100%-2rem,1180px)] pb-16 pt-32">
         <CheckoutExperience
           transferCode={transferCode}
+          roomId={checkout.roomId}
           roomName={checkout.roomName}
+          branchId={checkout.branchId}
           branchName={checkout.branchName}
           date={checkout.date}
+          stayDate={checkout.stayDate}
           timeRange={checkout.timeRange}
+          timeslotIds={checkout.timeslotIds}
           price={checkout.price}
           roomPrice={checkout.roomPrice}
           menuItems={checkout.menuItems}
