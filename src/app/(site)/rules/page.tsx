@@ -22,10 +22,6 @@ export default async function RulesPage() {
           <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-[-0.025em] text-pink-100 md:text-5xl">
             Nội quy và quy định
           </h1>
-          <p className="mt-5 text-sm font-semibold leading-7 text-white/70 md:text-base">
-            Chào mừng quý khách đến với không gian nghỉ dưỡng của LavieHome tại Cần Thơ. Nội dung bên dưới được cập nhật trực tiếp từ admin.
-          </p>
-
           <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
             <CustomerTextContent content={content.rules} />
           </section>
