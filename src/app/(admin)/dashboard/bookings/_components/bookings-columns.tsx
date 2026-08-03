@@ -64,6 +64,30 @@ function money(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
 }
 
+const TIME_RANGE_PATTERN = /\b\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}(?:\s*\([^)]*\))?/g;
+
+function formatTimeRange(value: string) {
+  const raw = value.trim();
+  if (!raw) return raw;
+
+  const matches = raw.match(TIME_RANGE_PATTERN);
+  if (matches?.length) {
+    return Array.from(
+      new Set(
+        matches.map((match) =>
+          match
+            .replace(/\s+/g, " ")
+            .replace(/\s*[-–]\s*/, " - ")
+            .trim()
+        )
+      )
+    ).join(", ");
+  }
+
+  const colonIndex = raw.lastIndexOf(":");
+  return colonIndex >= 0 && colonIndex < raw.length - 1 ? raw.slice(colonIndex + 1).trim() : raw;
+}
+
 export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking: BookingSnapshot) => void }>[] = [
   {
     id: "search",
@@ -113,7 +137,7 @@ export const bookingsColumns: ColumnDef<BookingSnapshot & { onDetail?: (booking:
     header: "Giờ",
     size: 250,
     cell: ({ row }) => (
-      <TruncatedCell text={row.original.timeRange} className="max-w-[230px] text-sm text-muted-foreground" />
+      <TruncatedCell text={formatTimeRange(row.original.timeRange)} className="max-w-[230px] text-sm text-muted-foreground" />
     ),
   },
   {
