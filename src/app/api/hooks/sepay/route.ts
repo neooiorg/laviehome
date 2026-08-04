@@ -3,6 +3,7 @@ import { Pool } from "pg";
 
 import { extractBookingReference, extractPaymentReference } from "@/lib/booking-reference";
 import { sendBookingConfirmationEmail } from "@/lib/booking-confirmation-email";
+import { sendTelegramBookingNotification } from "@/lib/telegram-notify";
 import { generateDoorCode } from "@/lib/door-code";
 import { ensureRoomGuestContentColumns } from "@/lib/room-guest-content";
 import { broadcastBookingUpdate } from "@/lib/sse-clients";
@@ -127,7 +128,7 @@ export async function POST(req: NextRequest) {
        SET status = $1, door_code = COALESCE(door_code, $3), updated_at = NOW()
        WHERE UPPER(id) = $2
          AND status NOT IN ('Đã thanh toán', 'Đã xác nhận', 'Chờ cọc', 'Đang ở', 'Hoàn tất')
-       RETURNING id, customer_email, customer_name, room_name, branch_name, date_label, time_range, door_code,
+       RETURNING id, customer_email, customer_name, customer_phone, amount, room_name, branch_name, date_label, time_range, door_code,
          (SELECT google_maps_link FROM branches WHERE branches.id = bookings.branch_id) AS maps_url,
          (SELECT wifi_name FROM rooms WHERE rooms.id = bookings.room_id) AS wifi_name,
          (SELECT wifi_password FROM rooms WHERE rooms.id = bookings.room_id) AS wifi_password,
@@ -155,6 +156,21 @@ export async function POST(req: NextRequest) {
         });
       } catch (emailError) {
         console.error("Booking confirmation email error:", emailError);
+      }
+      try {
+        await sendTelegramBookingNotification({
+          bookingId: paidBooking.id,
+          customerName: paidBooking.customer_name,
+          customerPhone: paidBooking.customer_phone,
+          roomName: paidBooking.room_name,
+          branchName: paidBooking.branch_name,
+          dateLabel: paidBooking.date_label,
+          timeRange: paidBooking.time_range,
+          amount,
+          doorCode: paidBooking.door_code,
+        });
+      } catch (telegramError) {
+        console.error("Telegram notification error:", telegramError);
       }
     }
 
