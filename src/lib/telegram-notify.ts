@@ -1,3 +1,5 @@
+import https from "node:https";
+
 export interface TelegramBookingPayload {
   bookingId: string;
   customerName: string;
@@ -38,18 +40,44 @@ export async function sendTelegramBookingNotification(payload: TelegramBookingPa
     `🔑 Mã cửa: <code>${escapeHtml(payload.doorCode)}</code>`,
   ];
 
-  const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: lines.join("\n"),
-      parse_mode: "HTML",
-    }),
-  });
+  const body = Buffer.from(
+    JSON.stringify({ chat_id: chatId, text: lines.join("\n"), parse_mode: "HTML" }),
+    "utf8"
+  );
 
-  if (!res.ok) {
-    const err = await res.text().catch(() => "");
-    throw new Error(`Telegram API error ${res.status}: ${err}`);
-  }
+  await new Promise<void>((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: "api.telegram.org",
+        port: 443,
+        path: `/bot${botToken}/sendMessage`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": body.length,
+        },
+        family: 4, // force IPv4 — avoids ConnectTimeoutError on servers without IPv6
+        timeout: 10000,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Telegram API error ${res.statusCode}: ${Buffer.concat(chunks).toString()}`));
+          }
+        });
+      }
+    );
+
+    req.on("timeout", () => {
+      req.destroy(new Error("Telegram request timeout"));
+    });
+    req.on("error", reject);
+
+    req.write(body);
+    req.end();
+  });
 }
