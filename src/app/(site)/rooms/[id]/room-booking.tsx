@@ -297,7 +297,7 @@ export function RoomBooking({
                               booked
                                 ? "bg-rose-500 border-transparent text-white/50 cursor-not-allowed"
                                 : past
-                                  ? "bg-white/5 border-transparent text-white/20 cursor-not-allowed opacity-40"
+                                  ? "bg-rose-500 border-transparent text-white/50 cursor-not-allowed"
                                   : selected
                                     ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)]"
                                     : promo
@@ -306,7 +306,7 @@ export function RoomBooking({
                             }
                           `}
                         >
-                          {booked ? "-" : `${money(price)}đ`}
+                          {booked || past ? "-" : `${money(price)}đ`}
                         </button>
                       </td>
                     );

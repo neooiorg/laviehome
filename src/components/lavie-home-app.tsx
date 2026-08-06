@@ -763,7 +763,7 @@ export function LavieHomeApp({
                                       booked
                                         ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
                                         : past
-                                          ? "bg-white/5 border-transparent cursor-not-allowed opacity-30"
+                                          ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
                                           : selected
                                             ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)] hover:bg-yellow-300"
                                             : promo
@@ -773,7 +773,7 @@ export function LavieHomeApp({
                                   `}
                                   title={booked ? "Đã đặt" : past ? "Đã qua" : `Khung giờ ${slot.label} - Giá: ${money(price)}đ`}
                                 >
-                                  {booked ? (
+                                  {booked || past ? (
                                     <span className="text-[9px] font-bold text-white/50">-</span>
                                   ) : selected ? (
                                     <span className="text-[8px] font-black text-black leading-none">
