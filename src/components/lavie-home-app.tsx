@@ -135,6 +135,7 @@ type Room = {
   is_classic: number;
   images: string[];
   time_slots?: DisplaySlot[] | null;
+  slot_prices?: (number | null)[] | null;
 };
 
 export function LavieHomeApp({
@@ -732,7 +733,13 @@ export function LavieHomeApp({
                             const past = !booked && isSlotLabelStartPast(date.iso, slot.label);
                             const selected = selectedSlots.some((item) => item.id === id);
                             const promo = promoActive && isSlotPromo(dayIndex);
-                            const price = slot.isOvernight ? room.full_day_price : room.price_from;
+                            const slotPrice = room.slot_prices?.[slotIndex];
+                            const price =
+                              typeof slotPrice === "number" && slotPrice > 0
+                                ? slotPrice
+                                : slot.isOvernight
+                                  ? room.full_day_price
+                                  : room.price_from;
 
                             return (
                               <td key={id} className="py-px px-0.5 md:px-1 text-center border-r border-white/5 align-middle min-w-[54px] md:min-w-[82px]">
