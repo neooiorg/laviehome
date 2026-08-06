@@ -39,7 +39,7 @@ function isSlotPromo(dayIndex: number) {
 const MAX_DAYS = 7;
 
 function isFullDaySelection(slots: SelectedSlot[], slotCount: number) {
-  if (slotCount <= 0 || slots.length !== slotCount) return false;
+  if (slotCount <= 1 || slots.length !== slotCount) return false;
   return new Set(slots.map((slot) => slot.position % slotCount)).size === slotCount;
 }
 
