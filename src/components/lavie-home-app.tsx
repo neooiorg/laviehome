@@ -618,7 +618,7 @@ export function LavieHomeApp({
                   Từ <span className="text-yellow-200">{money(room.price_from)}đ</span> đến{" "}
                   <span className="text-pink-200">{money(room.price_to)}đ</span>
                 </p>
-                <p className="mt-1 text-sm font-bold text-white/65">Qua đêm: {money(room.full_day_price)}đ</p>
+                <p className="mt-1 text-sm font-bold text-white/65">Cả ngày: {money(room.full_day_price)}đ</p>
                 <div className="flex-1" />
                 <Link className="primary-button mt-4 w-full text-center" href={`/rooms/${room.id}`}>
                   Xem ảnh & Đặt phòng
@@ -982,7 +982,7 @@ function RoomModal({ room, onClose, onBook }: { room: Room; onClose: () => void;
                 </span>
               </p>
               <p className="flex justify-between">
-                <span className="text-white/60">Qua đêm</span>
+                <span className="text-white/60">Cả ngày</span>
                 <span className="font-extrabold text-pink-200">{money(room.full_day_price)}đ</span>
               </p>
             </div>
