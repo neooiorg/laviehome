@@ -19,8 +19,8 @@ type CheckoutPaymentBoxProps = {
 
 export function CheckoutPaymentBox({ price, transferCode, bookingCode = transferCode, bankConfig }: CheckoutPaymentBoxProps) {
   const router = useRouter();
-  const [deadline] = useState(() => Date.now() + 600_000);
-  const [timeLeft, setTimeLeft] = useState(600);
+  const [deadline] = useState(() => Date.now() + 900_000);
+  const [timeLeft, setTimeLeft] = useState(900);
   const [isPaid, setIsPaid] = useState(false);
   const isExpired = timeLeft <= 0;
 
