@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarDays } from "lucide-react";
 import type { DateRange } from "react-day-picker";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -46,17 +47,32 @@ export function BookingDateRangePicker({
 }: BookingDateRangePickerProps) {
   const isMobile = useIsMobile();
   const today = getTodayIso();
+  const [open, setOpen] = useState(false);
+  const [rangeStart, setRangeStart] = useState<string | null>(null);
   const selected: DateRange = {
-    from: isoToDate(value.from),
-    to: isoToDate(value.to),
+    from: isoToDate(rangeStart ?? value.from),
+    to: rangeStart ? undefined : isoToDate(value.to),
   };
 
-  function handleSelect(range: DateRange | undefined) {
-    if (!range?.from) return;
-    onChange({
-      from: dateToIso(range.from),
-      to: dateToIso(range.to ?? range.from),
-    });
+  function handleDayClick(day: Date, modifiers: { disabled?: boolean }) {
+    if (modifiers.disabled) return;
+    const iso = dateToIso(day);
+
+    if (!rangeStart) {
+      setRangeStart(iso);
+      onChange({ from: iso, to: iso });
+      return;
+    }
+
+    const startDate = isoToDate(rangeStart);
+    const nextRange =
+      day.getTime() >= startDate.getTime()
+        ? { from: rangeStart, to: iso }
+        : { from: iso, to: rangeStart };
+
+    onChange(nextRange);
+    setRangeStart(null);
+    setOpen(false);
   }
 
   return (
@@ -65,7 +81,7 @@ export function BookingDateRangePicker({
         <p className="text-sm font-black text-white">{label}</p>
         <p className="mt-1 text-xs text-white/55">{description}</p>
       </div>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -84,7 +100,7 @@ export function BookingDateRangePicker({
             mode="range"
             locale={vi}
             selected={selected}
-            onSelect={handleSelect}
+            onDayClick={handleDayClick}
             defaultMonth={selected.from}
             disabled={{ before: isoToDate(today) }}
             numberOfMonths={isMobile ? 1 : 2}
