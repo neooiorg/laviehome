@@ -8,11 +8,9 @@ export type RoomSlot = {
   isOvernight?: boolean;
 };
 
-export type BookingPeriodOption = {
-  value: string;
-  label: string;
-  startOffsetDays: number;
-  totalDays: number;
+export type BookingDateRange = {
+  from: string;
+  to: string;
 };
 
 const ROOM_SLOT_PRESETS: Record<string, RoomSlot[]> = {
@@ -160,44 +158,53 @@ export function makeBookingDatesFromOffset(startOffsetDays = 0, total = 9) {
   });
 }
 
-function formatMonthLabel(date: { month: string; year: string }) {
-  return `Tháng ${date.month}/${date.year}`;
+function makeVietnamLocalDate(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
 }
 
-function getMonthYearParts(iso: string) {
-  const [year, month] = iso.split("-");
+function dateToIso(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function getTodayIso() {
+  return makeBookingDatesFromOffset(0, 1)[0].iso;
+}
+
+export function addDaysToIso(iso: string, days: number) {
+  const date = makeVietnamLocalDate(iso);
+  date.setDate(date.getDate() + days);
+  return dateToIso(date);
+}
+
+export function makeDefaultBookingDateRange(totalDays = 7): BookingDateRange {
+  const from = getTodayIso();
   return {
-    month,
-    year,
+    from,
+    to: addDaysToIso(from, Math.max(totalDays - 1, 0)),
   };
 }
 
-export function getBookingPeriodOptions({
-  totalPeriods = 12,
-  daysPerPeriod = 7,
-}: {
-  totalPeriods?: number;
-  daysPerPeriod?: number;
-} = {}): BookingPeriodOption[] {
-  return Array.from({ length: totalPeriods }, (_, index) => {
-    const startOffsetDays = index * daysPerPeriod;
-    const dates = makeBookingDatesFromOffset(startOffsetDays, daysPerPeriod);
-    const first = dates[0];
-    const last = dates[dates.length - 1];
-    const firstParts = getMonthYearParts(first.iso);
-    const lastParts = getMonthYearParts(last.iso);
-    const monthLabel =
-      firstParts.month === lastParts.month && firstParts.year === lastParts.year
-        ? formatMonthLabel(firstParts)
-        : `${formatMonthLabel(firstParts)} - ${formatMonthLabel(lastParts)}`;
+export function makeBookingDatesFromRange(range: BookingDateRange, maxDays = 31) {
+  const from = normalizeDateLabelToIso(range.from) ?? getTodayIso();
+  const to = normalizeDateLabelToIso(range.to) ?? from;
+  const start = makeVietnamLocalDate(from);
+  const end = makeVietnamLocalDate(to);
+  if (end < start) {
+    return makeBookingDatesFromRange({ from: to, to: from }, maxDays);
+  }
 
-    return {
-      value: String(index),
-      label: `Tuần ${index + 1} · ${monthLabel} (${first.dateLabel} - ${last.dateLabel})`,
-      startOffsetDays,
-      totalDays: daysPerPeriod,
-    };
-  });
+  const diffDays = Math.floor((end.getTime() - start.getTime()) / 86_400_000);
+  return makeBookingDatesFromOffset(daysBetween(getTodayIso(), from), Math.min(diffDays + 1, maxDays));
+}
+
+function daysBetween(fromIso: string, toIso: string) {
+  const from = makeVietnamLocalDate(fromIso);
+  const to = makeVietnamLocalDate(toIso);
+  return Math.floor((to.getTime() - from.getTime()) / 86_400_000);
 }
 
 export function isSlotPast(dayIndex: number, slotLabel: string): boolean {

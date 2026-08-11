@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 
-import { BookingPeriodSelect } from "@/components/booking-period-select";
+import { BookingDateRangePicker } from "@/components/booking-date-range-picker";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { money } from "@/lib/format";
 import {
   formatCheckoutDate,
-  getBookingPeriodOptions,
   getRoomSlots,
   isSlotStartPast,
-  makeBookingDatesFromOffset,
+  makeBookingDatesFromRange,
+  makeDefaultBookingDateRange,
   type RoomSlot,
 } from "@/lib/booking-slots";
 import { isStartInComboPromoWindows, tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
@@ -64,19 +64,14 @@ export function RoomBooking({
   const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
   const [menuTotal, setMenuTotal] = useState(0);
   const [bookedSlotIds, setBookedSlotIds] = useState<string[]>([]);
-  const [periodIndex, setPeriodIndex] = useState(0);
-  const periodOptions = useMemo(() => getBookingPeriodOptions({ totalPeriods: 12, daysPerPeriod: 7 }), []);
-  const selectedPeriod = periodOptions[periodIndex] ?? periodOptions[0];
-  const dates = useMemo(
-    () => makeBookingDatesFromOffset(selectedPeriod?.startOffsetDays ?? 0, selectedPeriod?.totalDays ?? 7),
-    [selectedPeriod]
-  );
+  const [dateRange, setDateRange] = useState(() => makeDefaultBookingDateRange(7));
+  const dates = useMemo(() => makeBookingDatesFromRange(dateRange), [dateRange]);
   const slots = useMemo(() => getRoomSlots(room.card_name, room.time_slots), [room.card_name, room.time_slots]);
   const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
 
   useEffect(() => {
     setSelectedSlots([]);
-  }, [periodIndex]);
+  }, [dateRange]);
 
   useEffect(() => {
     let ignore = false;
@@ -232,12 +227,10 @@ export function RoomBooking({
         </p>
       </div>
 
-      <BookingPeriodSelect
-        value={periodIndex}
-        onChange={setPeriodIndex}
+      <BookingDateRangePicker
+        value={dateRange}
+        onChange={setDateRange}
         className="mb-5 mx-auto w-full max-w-3xl"
-        totalPeriods={periodOptions.length}
-        daysPerPeriod={7}
       />
 
       <div className="flex flex-wrap items-center justify-center gap-5 mb-6 text-xs font-bold text-white/85">
