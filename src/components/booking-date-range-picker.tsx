@@ -88,7 +88,7 @@ export function BookingDateRangePicker({
             value={value.from}
             min={today}
             onChange={(event) => handleFromChange(event.target.value)}
-            className="h-12 w-full rounded-xl border border-white/20 bg-white/[0.04] px-3 text-base font-bold text-white outline-none transition [color-scheme:dark] focus:border-pink-200/80 focus:bg-white/[0.08] focus:ring-2 focus:ring-pink-200/20"
+            className="h-12 w-full rounded-xl border border-white/20 bg-white/[0.04] px-3 text-base font-bold text-white outline-none transition [color-scheme:dark] focus:border-pink-200/80 focus:bg-white/[0.08] focus:ring-2 focus:ring-pink-200/20 [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:invert"
           />
         </label>
 
@@ -100,7 +100,7 @@ export function BookingDateRangePicker({
             value={value.to}
             min={value.from}
             onChange={(event) => handleToChange(event.target.value)}
-            className="h-12 w-full rounded-xl border border-white/20 bg-white/[0.04] px-3 text-base font-bold text-white outline-none transition [color-scheme:dark] focus:border-pink-200/80 focus:bg-white/[0.08] focus:ring-2 focus:ring-pink-200/20"
+            className="h-12 w-full rounded-xl border border-white/20 bg-white/[0.04] px-3 text-base font-bold text-white outline-none transition [color-scheme:dark] focus:border-pink-200/80 focus:bg-white/[0.08] focus:ring-2 focus:ring-pink-200/20 [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:invert"
           />
         </label>
       </div>
