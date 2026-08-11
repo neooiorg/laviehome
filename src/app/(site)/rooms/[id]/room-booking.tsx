@@ -3,9 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 
+import { BookingPeriodSelect } from "@/components/booking-period-select";
 import { makeBookingReference } from "@/lib/booking-reference";
 import { money } from "@/lib/format";
-import { formatCheckoutDate, getRoomSlots, isSlotStartPast, makeBookingDates, type RoomSlot } from "@/lib/booking-slots";
+import {
+  formatCheckoutDate,
+  getBookingPeriodOptions,
+  getRoomSlots,
+  isSlotStartPast,
+  makeBookingDatesFromOffset,
+  type RoomSlot,
+} from "@/lib/booking-slots";
 import { isStartInComboPromoWindows, tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
 import type { MenuItem } from "@/lib/menu-actions";
 import { RoomMenuOptions } from "./_components/room-menu-options";
@@ -56,9 +64,19 @@ export function RoomBooking({
   const [selectedMenuItems, setSelectedMenuItems] = useState<MenuItem[]>([]);
   const [menuTotal, setMenuTotal] = useState(0);
   const [bookedSlotIds, setBookedSlotIds] = useState<string[]>([]);
-  const dates = useMemo(() => makeBookingDates(), []);
+  const [periodIndex, setPeriodIndex] = useState(0);
+  const periodOptions = useMemo(() => getBookingPeriodOptions({ totalPeriods: 12, daysPerPeriod: 7 }), []);
+  const selectedPeriod = periodOptions[periodIndex] ?? periodOptions[0];
+  const dates = useMemo(
+    () => makeBookingDatesFromOffset(selectedPeriod?.startOffsetDays ?? 0, selectedPeriod?.totalDays ?? 7),
+    [selectedPeriod]
+  );
   const slots = useMemo(() => getRoomSlots(room.card_name, room.time_slots), [room.card_name, room.time_slots]);
   const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
+
+  useEffect(() => {
+    setSelectedSlots([]);
+  }, [periodIndex]);
 
   useEffect(() => {
     let ignore = false;
@@ -213,6 +231,14 @@ export function RoomBooking({
           {room.card_name} — {room.branch_name}
         </p>
       </div>
+
+      <BookingPeriodSelect
+        value={periodIndex}
+        onChange={setPeriodIndex}
+        className="mb-5 mx-auto w-full max-w-3xl"
+        totalPeriods={periodOptions.length}
+        daysPerPeriod={7}
+      />
 
       <div className="flex flex-wrap items-center justify-center gap-5 mb-6 text-xs font-bold text-white/85">
         <div className="flex items-center gap-2">

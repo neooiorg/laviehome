@@ -8,6 +8,13 @@ export type RoomSlot = {
   isOvernight?: boolean;
 };
 
+export type BookingPeriodOption = {
+  value: string;
+  label: string;
+  startOffsetDays: number;
+  totalDays: number;
+};
+
 const ROOM_SLOT_PRESETS: Record<string, RoomSlot[]> = {
   Honey: [
     { label: "9:00 - 12:00", duration: "3T", start: "09:00", end: "12:00" },
@@ -129,6 +136,10 @@ export function findSlotOverlaps(slots: RoomSlot[]): Array<[number, number]> {
 }
 
 export function makeBookingDates(total = 9) {
+  return makeBookingDatesFromOffset(0, total);
+}
+
+export function makeBookingDatesFromOffset(startOffsetDays = 0, total = 9) {
   const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
   // Base the calendar on Vietnam's local date, not the device/UTC date: shift the
   // epoch by +7h and read it with UTC getters so "Hôm nay" is correct even at 2am
@@ -137,7 +148,7 @@ export function makeBookingDates(total = 9) {
 
   return Array.from({ length: total }, (_, index) => {
     const date = new Date(base);
-    date.setUTCDate(date.getUTCDate() + index);
+    date.setUTCDate(date.getUTCDate() + startOffsetDays + index);
     const day = String(date.getUTCDate()).padStart(2, "0");
     const month = String(date.getUTCMonth() + 1).padStart(2, "0");
 
@@ -145,6 +156,46 @@ export function makeBookingDates(total = 9) {
       iso: `${date.getUTCFullYear()}-${month}-${day}`,
       label: index === 0 ? "Hôm nay" : weekdays[date.getUTCDay()],
       dateLabel: `${day}-${month}`,
+    };
+  });
+}
+
+function formatMonthLabel(date: { month: string; year: string }) {
+  return `Tháng ${date.month}/${date.year}`;
+}
+
+function getMonthYearParts(iso: string) {
+  const [year, month] = iso.split("-");
+  return {
+    month,
+    year,
+  };
+}
+
+export function getBookingPeriodOptions({
+  totalPeriods = 12,
+  daysPerPeriod = 7,
+}: {
+  totalPeriods?: number;
+  daysPerPeriod?: number;
+} = {}): BookingPeriodOption[] {
+  return Array.from({ length: totalPeriods }, (_, index) => {
+    const startOffsetDays = index * daysPerPeriod;
+    const dates = makeBookingDatesFromOffset(startOffsetDays, daysPerPeriod);
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    const firstParts = getMonthYearParts(first.iso);
+    const lastParts = getMonthYearParts(last.iso);
+    const monthLabel =
+      firstParts.month === lastParts.month && firstParts.year === lastParts.year
+        ? formatMonthLabel(firstParts)
+        : `${formatMonthLabel(firstParts)} - ${formatMonthLabel(lastParts)}`;
+
+    return {
+      value: String(index),
+      label: `Tuần ${index + 1} · ${monthLabel} (${first.dateLabel} - ${last.dateLabel})`,
+      startOffsetDays,
+      totalDays: daysPerPeriod,
     };
   });
 }

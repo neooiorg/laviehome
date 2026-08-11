@@ -19,11 +19,12 @@ import type { ElementType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
+import { BookingPeriodSelect } from "@/components/booking-period-select";
 import { CUSTOMER_CONTACT } from "@/config/customer-info";
 import { compactPhone, money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
-import { isSlotLabelStartPast } from "@/lib/booking-slots";
+import { getBookingPeriodOptions, isSlotLabelStartPast, makeBookingDatesFromOffset } from "@/lib/booking-slots";
 import { RoomMenuOptions } from "@/app/(site)/rooms/[id]/_components/room-menu-options";
 import { RoomPhoto } from "@/components/room-photo";
 import { isStartInComboPromoWindows, tierForRun, type ComboPromoConfig } from "@/lib/combo-promo";
@@ -67,26 +68,6 @@ function getRoomSlots(roomName: string, storedSlots?: DisplaySlot[] | null): Dis
   if (roomName.includes("Honey")) return roomSlots["Honey"];
   if (roomName.includes("Squid")) return roomSlots["Squid"];
   return roomSlots["default"];
-}
-
-function makeDates() {
-  const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-  // Vietnam-local calendar (UTC+7) so "Hôm nay" and the slot ids stay correct
-  // even in the early-morning hours when the UTC date is still yesterday.
-  const base = Date.now() + 7 * 60 * 60_000;
-
-  return Array.from({ length: 9 }, (_, index) => {
-    const date = new Date(base);
-    date.setUTCDate(date.getUTCDate() + index);
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const weekday = weekdays[date.getUTCDay()];
-    return {
-      iso: `${date.getUTCFullYear()}-${month}-${day}`,
-      label: index === 0 ? "Hôm nay" : weekday,
-      dateLabel: `${day}-${month}`
-    };
-  });
 }
 
 function isSlotPromo(dayIndex: number) {
@@ -155,6 +136,7 @@ export function LavieHomeApp({
   const [menuTotal, setMenuTotal] = useState(0);
   const [modalRoom, setModalRoom] = useState<Room | null>(null);
   const [bookedSlotIds, setBookedSlotIds] = useState<string[]>([]);
+  const [periodIndex, setPeriodIndex] = useState(0);
   const bookingScrollRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const roomRowRef = useRef<HTMLDivElement | null>(null);
@@ -207,7 +189,12 @@ export function LavieHomeApp({
     () => menuItems.filter((item) => item.branch_id === activeBranchId && item.is_active),
     [activeBranchId, menuItems]
   );
-  const dates = useMemo(() => makeDates(), []);
+  const periodOptions = useMemo(() => getBookingPeriodOptions({ totalPeriods: 12, daysPerPeriod: 7 }), []);
+  const selectedPeriod = periodOptions[periodIndex] ?? periodOptions[0];
+  const dates = useMemo(
+    () => makeBookingDatesFromOffset(selectedPeriod?.startOffsetDays ?? 0, selectedPeriod?.totalDays ?? 7),
+    [selectedPeriod]
+  );
   const bookedSlotIdSet = useMemo(() => new Set(bookedSlotIds), [bookedSlotIds]);
 
   const promoActive = comboPromo.enabled && comboPromo.tiers.length > 0;
@@ -304,6 +291,10 @@ export function LavieHomeApp({
     setSelectedMenuItems([]);
     setMenuTotal(0);
   }
+
+  useEffect(() => {
+    setSelectedSlots([]);
+  }, [periodIndex]);
 
   // Pre-select branch from the URL (?branch=<id>) so links from a room detail
   // page open the booking calendar for the correct branch instead of the first one.
@@ -640,6 +631,15 @@ export function LavieHomeApp({
               {currentBranch?.name.split(" - ").slice(1).join(" - ") || currentBranch?.name || "Chi nhánh"}
             </div>
           </div>
+
+          <BookingPeriodSelect
+            value={periodIndex}
+            onChange={setPeriodIndex}
+            className="mb-6 mx-auto w-full max-w-3xl"
+            totalPeriods={periodOptions.length}
+            daysPerPeriod={7}
+            description="Chọn tuần trong các tháng tiếp theo để xem lịch trống và đặt phòng trước."
+          />
 
           {/* Legends list */}
           <div className="flex flex-wrap items-center justify-center gap-6 mb-8 text-sm font-bold text-white/90">
