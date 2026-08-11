@@ -1,11 +1,14 @@
 "use client";
 
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 import { CalendarDays } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { BookingDateRange } from "@/lib/booking-slots";
 import { getTodayIso } from "@/lib/booking-slots";
 import { cn } from "@/lib/utils";
@@ -31,8 +34,7 @@ function dateToIso(date: Date) {
 }
 
 function formatDate(iso: string) {
-  const [year, month, day] = iso.split("-");
-  return `${day}/${month}/${year}`;
+  return format(isoToDate(iso), "dd/MM/yyyy", { locale: vi });
 }
 
 export function BookingDateRangePicker({
@@ -42,6 +44,7 @@ export function BookingDateRangePicker({
   label = "Chọn khoảng ngày",
   description = "Chọn ngày bắt đầu và ngày kết thúc để xem lịch đặt phòng.",
 }: BookingDateRangePickerProps) {
+  const isMobile = useIsMobile();
   const today = getTodayIso();
   const selected: DateRange = {
     from: isoToDate(value.from),
@@ -73,16 +76,26 @@ export function BookingDateRangePicker({
             {formatDate(value.from)} - {formatDate(value.to)}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto border-white/10 bg-[#1b1023] p-2 text-white" align="center">
+        <PopoverContent
+          className="w-[calc(100vw-1.5rem)] max-w-[680px] border-white/10 bg-[#1b1023] p-2 text-white sm:w-auto"
+          align="center"
+        >
           <Calendar
             mode="range"
+            locale={vi}
             selected={selected}
             onSelect={handleSelect}
             defaultMonth={selected.from}
             disabled={{ before: isoToDate(today) }}
-            numberOfMonths={2}
-            className="text-white"
+            numberOfMonths={isMobile ? 1 : 2}
+            weekStartsOn={1}
+            captionLayout="dropdown"
+            className="w-full text-white [--cell-size:--spacing(9)] sm:[--cell-size:--spacing(8)]"
             classNames={{
+              root: "w-full",
+              months: "flex w-full flex-col gap-3 sm:flex-row sm:gap-4",
+              month: "w-full",
+              month_grid: "w-full border-collapse",
               caption_label: "text-white",
               weekday: "text-white/55",
               day: "text-white",
@@ -94,7 +107,7 @@ export function BookingDateRangePicker({
               range_end: "bg-pink-500",
             }}
           />
-          <p className="px-2 pb-1 text-xs font-semibold text-white/50">Tối đa hiển thị 31 ngày trong một lần xem.</p>
+          <p className="px-2 pb-1 text-xs font-semibold text-white/50">Có thể chọn tối đa 31 ngày trong một lần xem.</p>
         </PopoverContent>
       </Popover>
     </div>
