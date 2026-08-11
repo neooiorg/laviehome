@@ -5,7 +5,7 @@ import { vi } from "date-fns/locale";
 import { CalendarDays } from "lucide-react";
 
 import type { BookingDateRange } from "@/lib/booking-slots";
-import { addDaysToIso, getTodayIso } from "@/lib/booking-slots";
+import { getTodayIso } from "@/lib/booking-slots";
 import { cn } from "@/lib/utils";
 
 type BookingDateRangePickerProps = {
@@ -29,8 +29,8 @@ export function BookingDateRangePicker({
   value,
   onChange,
   className,
-  label = "Chọn khoảng ngày",
-  description = "Nhập hoặc bấm vào từng ô để chọn ngày trên điện thoại.",
+  label = "Chọn ngày lưu trú",
+  description = "Chọn ngày nhận phòng và trả phòng.",
 }: BookingDateRangePickerProps) {
   const today = getTodayIso();
 
@@ -50,14 +50,6 @@ export function BookingDateRangePicker({
     });
   }
 
-  function setPreset(totalDays: number) {
-    const from = getTodayIso();
-    onChange({
-      from,
-      to: addDaysToIso(from, Math.max(totalDays - 1, 0)),
-    });
-  }
-
   return (
     <div className={cn("rounded-2xl border border-white/10 bg-white/5 p-4", className)}>
       <div className="mb-3">
@@ -70,41 +62,30 @@ export function BookingDateRangePicker({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block rounded-xl border border-white/10 bg-[#1b1023] p-3">
-          <span className="mb-2 block text-xs font-black uppercase tracking-wide text-pink-100/80">Từ ngày</span>
+          <span className="mb-2 block text-sm font-bold text-white">Nhận phòng</span>
           <input
             type="date"
+            lang="vi-VN"
             value={value.from}
             min={today}
             onChange={(event) => handleFromChange(event.target.value)}
             className="h-12 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-base font-black text-white outline-none transition [color-scheme:dark] focus:border-pink-200/70 focus:ring-2 focus:ring-pink-200/25"
           />
-          <span className="mt-2 block text-xs font-semibold text-white/50">{formatDate(value.from)}</span>
+          <span className="mt-2 block text-xs font-medium text-white/50">{formatDate(value.from)}</span>
         </label>
 
         <label className="block rounded-xl border border-white/10 bg-[#1b1023] p-3">
-          <span className="mb-2 block text-xs font-black uppercase tracking-wide text-pink-100/80">Đến ngày</span>
+          <span className="mb-2 block text-sm font-bold text-white">Trả phòng</span>
           <input
             type="date"
+            lang="vi-VN"
             value={value.to}
             min={value.from}
             onChange={(event) => handleToChange(event.target.value)}
             className="h-12 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-base font-black text-white outline-none transition [color-scheme:dark] focus:border-pink-200/70 focus:ring-2 focus:ring-pink-200/25"
           />
-          <span className="mt-2 block text-xs font-semibold text-white/50">{formatDate(value.to)}</span>
+          <span className="mt-2 block text-xs font-medium text-white/50">{formatDate(value.to)}</span>
         </label>
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {[7, 14, 30].map((days) => (
-          <button
-            key={days}
-            type="button"
-            onClick={() => setPreset(days)}
-            className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-2 text-xs font-black text-white transition hover:border-pink-200/60 hover:bg-white/10"
-          >
-            {days} ngày
-          </button>
-        ))}
       </div>
     </div>
   );
