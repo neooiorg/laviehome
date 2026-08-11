@@ -47,7 +47,7 @@ export function BookingDateRangePicker({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#282252] px-4 py-3 text-sm font-extrabold text-white transition hover:border-pink-200/35 hover:bg-[#312a68] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-200/70"
+          className="group mx-auto flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#282252] px-4 py-3 text-sm font-extrabold text-white transition hover:border-pink-200/35 hover:bg-[#312a68] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-200/70 sm:w-fit sm:min-w-64"
         >
           <Search className="size-4 text-pink-200 transition group-hover:text-white" aria-hidden="true" />
           Tìm phòng cho ngày khác
