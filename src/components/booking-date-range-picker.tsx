@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { BookingDateRange } from "@/lib/booking-slots";
-import { getTodayIso } from "@/lib/booking-slots";
+import { addDaysToIso, getTodayIso } from "@/lib/booking-slots";
 import { cn } from "@/lib/utils";
 
 type BookingDateRangePickerProps = {
@@ -54,6 +54,23 @@ export function BookingDateRangePicker({
     to: rangeStart ? undefined : isoToDate(value.to),
   };
 
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setRangeStart(null);
+    }
+  }
+
+  function setPreset(totalDays: number) {
+    const from = getTodayIso();
+    onChange({
+      from,
+      to: addDaysToIso(from, Math.max(totalDays - 1, 0)),
+    });
+    setRangeStart(null);
+    setOpen(false);
+  }
+
   function handleDayClick(day: Date, modifiers: { disabled?: boolean }) {
     if (modifiers.disabled) return;
     const iso = dateToIso(day);
@@ -81,21 +98,32 @@ export function BookingDateRangePicker({
         <p className="text-sm font-black text-white">{label}</p>
         <p className="mt-1 text-xs text-white/55">{description}</p>
       </div>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full justify-start border-white/15 bg-white/10 text-left font-bold text-white hover:bg-white/15 hover:text-white"
+            className="h-auto min-h-11 w-full justify-start whitespace-normal border-white/15 bg-white/10 px-3 py-2 text-left font-bold text-white hover:bg-white/15 hover:text-white"
           >
-            <CalendarDays className="mr-2 size-4 text-pink-200" />
-            {formatDate(value.from)} - {formatDate(value.to)}
+            <CalendarDays className="mr-2 size-4 shrink-0 text-pink-200" />
+            <span>{formatDate(value.from)} - {formatDate(value.to)}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[calc(100vw-1.5rem)] max-w-[680px] border-white/10 bg-[#1b1023] p-2 text-white sm:w-auto"
+          className="max-h-[min(82vh,720px)] w-[calc(100vw-1rem)] max-w-[680px] overflow-y-auto border-white/10 bg-[#1b1023] p-3 text-white shadow-[0_18px_50px_rgba(0,0,0,0.42)] sm:w-auto"
           align="center"
+          sideOffset={10}
         >
+          <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2">
+            <p className="text-sm font-black text-white">
+              {rangeStart ? "Chọn ngày kết thúc" : "Chọn ngày bắt đầu"}
+            </p>
+            <p className="mt-0.5 text-xs font-semibold text-white/60">
+              {rangeStart
+                ? `Ngày bắt đầu: ${formatDate(rangeStart)}`
+                : "Bấm một ngày bất kỳ để bắt đầu chọn khoảng lịch."}
+            </p>
+          </div>
           <Calendar
             mode="range"
             locale={vi}
@@ -105,25 +133,47 @@ export function BookingDateRangePicker({
             disabled={{ before: isoToDate(today) }}
             numberOfMonths={isMobile ? 1 : 2}
             weekStartsOn={1}
-            captionLayout="dropdown"
+            fixedWeeks
+            showOutsideDays={false}
             className="w-full text-white [--cell-size:--spacing(9)] sm:[--cell-size:--spacing(8)]"
             classNames={{
               root: "w-full",
               months: "flex w-full flex-col gap-3 sm:flex-row sm:gap-4",
               month: "w-full",
               month_grid: "w-full border-collapse",
-              caption_label: "text-white",
-              weekday: "text-white/55",
-              day: "text-white",
-              today: "bg-white/10 text-pink-200",
-              outside: "text-white/25",
-              disabled: "text-white/20 opacity-40",
-              range_start: "bg-pink-500",
-              range_middle: "bg-pink-500/20 text-white",
-              range_end: "bg-pink-500",
+              nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 text-white",
+              button_previous: "text-white hover:bg-white/10 hover:text-white",
+              button_next: "text-white hover:bg-white/10 hover:text-white",
+              month_caption: "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
+              caption_label: "text-sm font-black capitalize text-white",
+              weekdays: "mb-1 flex",
+              weekday: "flex-1 text-center text-[0.78rem] font-black text-pink-100/80",
+              week: "mt-1 flex w-full",
+              day: "relative aspect-square h-full w-full p-0 text-center text-white",
+              day_button:
+                "min-w-(--cell-size) rounded-lg text-sm font-black text-white hover:bg-white/12 hover:text-white focus-visible:ring-pink-200/70 data-[selected-single=true]:bg-[#f6d76f] data-[selected-single=true]:text-[#170913] data-[range-start=true]:bg-[#f6d76f] data-[range-start=true]:text-[#170913] data-[range-end=true]:bg-[#f6d76f] data-[range-end=true]:text-[#170913] data-[range-middle=true]:bg-[#f35abd]/22 data-[range-middle=true]:text-white",
+              today: "rounded-lg bg-white/10 text-pink-100",
+              outside: "invisible",
+              hidden: "invisible",
+              disabled: "text-white/25 opacity-40",
+              range_start: "rounded-l-lg bg-[#f35abd]/18",
+              range_middle: "rounded-none bg-[#f35abd]/18 text-white",
+              range_end: "rounded-r-lg bg-[#f35abd]/18",
             }}
           />
-          <p className="px-2 pb-1 text-xs font-semibold text-white/50">Có thể chọn tối đa 31 ngày trong một lần xem.</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {[7, 14, 30].map((days) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => setPreset(days)}
+                className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-2 text-xs font-black text-white transition hover:border-pink-200/60 hover:bg-white/10"
+              >
+                {days} ngày
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 px-1 pb-1 text-xs font-semibold text-white/55">Có thể chọn tối đa 31 ngày trong một lần xem.</p>
         </PopoverContent>
       </Popover>
     </div>
