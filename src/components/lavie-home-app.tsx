@@ -635,7 +635,7 @@ export function LavieHomeApp({
             value={dateRange}
             onChange={setDateRange}
             className="mb-6 mx-auto w-full max-w-3xl"
-            description="Chọn ngày nhận phòng và trả phòng."
+            description="Xem lịch trống và chọn thời gian lưu trú."
           />
 
           {/* Legends list */}
