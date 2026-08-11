@@ -1,9 +1,12 @@
 "use client";
 
-import { format } from "date-fns";
+import * as React from "react";
+import { addYears, format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { CalendarDays } from "lucide-react";
+import type { DateRange } from "react-day-picker";
+import { CalendarDays, ChevronRight } from "lucide-react";
 
+import { Calendar } from "@/components/ui/calendar";
 import type { BookingDateRange } from "@/lib/booking-slots";
 import { getTodayIso } from "@/lib/booking-slots";
 import { cn } from "@/lib/utils";
@@ -21,72 +24,118 @@ function isoToDate(iso: string) {
   return new Date(year, month - 1, day);
 }
 
-function formatDate(iso: string) {
-  return format(isoToDate(iso), "dd/MM/yyyy", { locale: vi });
+function dateToIso(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDate(date: Date | undefined) {
+  return date ? format(date, "dd/MM/yyyy", { locale: vi }) : "Chọn ngày";
 }
 
 export function BookingDateRangePicker({
   value,
   onChange,
   className,
-  label = "Chọn ngày lưu trú",
-  description = "Chọn ngày nhận phòng và trả phòng.",
+  label = "Chọn khoảng ngày",
+  description = "Xem lịch trống và chọn thời gian lưu trú.",
 }: BookingDateRangePickerProps) {
-  const today = getTodayIso();
+  const today = isoToDate(getTodayIso());
+  const [draftRange, setDraftRange] = React.useState<DateRange>(() => ({
+    from: isoToDate(value.from),
+    to: isoToDate(value.to),
+  }));
 
-  function handleFromChange(nextFrom: string) {
-    if (!nextFrom) return;
-    onChange({
-      from: nextFrom,
-      to: value.to < nextFrom ? nextFrom : value.to,
+  React.useEffect(() => {
+    setDraftRange({
+      from: isoToDate(value.from),
+      to: isoToDate(value.to),
     });
-  }
+  }, [value.from, value.to]);
 
-  function handleToChange(nextTo: string) {
-    if (!nextTo) return;
-    onChange({
-      from: value.from,
-      to: nextTo < value.from ? value.from : nextTo,
-    });
+  function handleSelect(nextRange: DateRange | undefined) {
+    if (!nextRange?.from) return;
+
+    setDraftRange(nextRange);
+    if (nextRange.to) {
+      onChange({
+        from: dateToIso(nextRange.from),
+        to: dateToIso(nextRange.to),
+      });
+    }
   }
 
   return (
-    <div className={cn("rounded-2xl border border-white/10 bg-white/5 p-4", className)}>
-      <div className="mb-3">
-        <p className="flex items-center gap-2 text-sm font-black text-white">
-          <CalendarDays className="size-4 text-pink-200" />
-          {label}
+    <section
+      className={cn(
+        "overflow-hidden rounded-2xl border border-white/12 bg-[#1b1023]/80",
+        className,
+      )}
+      aria-label={label}
+    >
+      <div className="border-b border-white/10 px-4 py-4 sm:px-5">
+        <div className="flex items-start gap-3">
+          <CalendarDays className="mt-0.5 size-5 shrink-0 text-pink-200" aria-hidden="true" />
+          <div>
+            <h3 className="text-base font-black text-white">{label}</h3>
+            <p className="mt-1 text-sm font-medium text-white/60">{description}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-3" aria-live="polite">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/45">Từ ngày</p>
+            <p className="mt-1 truncate text-base font-black text-white">{formatDate(draftRange.from)}</p>
+          </div>
+          <ChevronRight className="size-4 shrink-0 text-pink-200/70" aria-hidden="true" />
+          <div className="min-w-0 flex-1 text-right">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/45">Đến ngày</p>
+            <p className="mt-1 truncate text-base font-black text-white">{formatDate(draftRange.to)}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-2 py-3 sm:px-4 sm:py-4">
+        <Calendar
+          mode="range"
+          locale={vi}
+          selected={draftRange}
+          onSelect={handleSelect}
+          defaultMonth={draftRange.from ?? today}
+          startMonth={today}
+          endMonth={addYears(today, 2)}
+          disabled={{ before: today }}
+          showOutsideDays={false}
+          className="w-full bg-transparent p-0 [--cell-size:2.5rem] sm:[--cell-size:2.75rem]"
+          classNames={{
+            months: "w-full",
+            month: "w-full gap-3",
+            month_caption: "mb-1 h-10",
+            caption_label: "text-sm font-black capitalize text-white",
+            nav: "top-0",
+            button_previous: "text-white/70 hover:bg-white/10 hover:text-white",
+            button_next: "text-white/70 hover:bg-white/10 hover:text-white",
+            month_grid: "w-full",
+            weekdays: "mb-1 flex",
+            weekday: "flex-1 text-center text-[11px] font-bold text-white/45",
+            week: "mt-1 flex w-full",
+            day: "rounded-lg p-0 text-center",
+            range_start: "rounded-l-lg bg-pink-500/20",
+            range_middle: "rounded-none bg-pink-500/20",
+            range_end: "rounded-r-lg bg-pink-500/20",
+            today: "bg-white/10 text-white",
+            outside: "text-transparent",
+            disabled: "text-white/20 opacity-50",
+            day_button:
+              "h-(--cell-size) w-full rounded-lg text-sm font-bold text-white transition hover:bg-pink-300/20 hover:text-white data-[selected-single=true]:bg-pink-400 data-[selected-single=true]:text-[#1b1023] data-[range-start=true]:rounded-lg data-[range-start=true]:bg-pink-400 data-[range-start=true]:text-[#1b1023] data-[range-end=true]:rounded-lg data-[range-end=true]:bg-pink-400 data-[range-end=true]:text-[#1b1023] data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-transparent data-[range-middle=true]:text-white",
+          }}
+        />
+        <p className="mt-2 text-center text-xs font-medium text-white/45">
+          Chọn ngày bắt đầu, sau đó chọn ngày kết thúc.
         </p>
-        <p className="mt-1 text-xs font-semibold text-white/60">{description}</p>
       </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block rounded-xl border border-white/10 bg-[#1b1023] p-3">
-          <span className="mb-2 block text-sm font-bold text-white">Nhận phòng</span>
-          <input
-            type="date"
-            lang="vi-VN"
-            value={value.from}
-            min={today}
-            onChange={(event) => handleFromChange(event.target.value)}
-            className="h-12 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-base font-black text-white outline-none transition [color-scheme:dark] focus:border-pink-200/70 focus:ring-2 focus:ring-pink-200/25"
-          />
-          <span className="mt-2 block text-xs font-medium text-white/50">{formatDate(value.from)}</span>
-        </label>
-
-        <label className="block rounded-xl border border-white/10 bg-[#1b1023] p-3">
-          <span className="mb-2 block text-sm font-bold text-white">Trả phòng</span>
-          <input
-            type="date"
-            lang="vi-VN"
-            value={value.to}
-            min={value.from}
-            onChange={(event) => handleToChange(event.target.value)}
-            className="h-12 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-base font-black text-white outline-none transition [color-scheme:dark] focus:border-pink-200/70 focus:ring-2 focus:ring-pink-200/25"
-          />
-          <span className="mt-2 block text-xs font-medium text-white/50">{formatDate(value.to)}</span>
-        </label>
-      </div>
-    </div>
+    </section>
   );
 }
