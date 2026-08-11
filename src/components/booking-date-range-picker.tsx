@@ -4,7 +4,7 @@ import * as React from "react";
 import { addYears, format } from "date-fns";
 import { vi } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
-import { CalendarDays, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight, Search, X } from "lucide-react";
 
 import { Calendar } from "@/components/ui/calendar";
 import type { BookingDateRange } from "@/lib/booking-slots";
@@ -43,6 +43,7 @@ export function BookingDateRangePicker({
   description = "Xem lịch trống và chọn thời gian lưu trú.",
 }: BookingDateRangePickerProps) {
   const today = isoToDate(getTodayIso());
+  const [open, setOpen] = React.useState(false);
   const [draftRange, setDraftRange] = React.useState<DateRange>(() => ({
     from: isoToDate(value.from),
     to: isoToDate(value.to),
@@ -64,24 +65,50 @@ export function BookingDateRangePicker({
         from: dateToIso(nextRange.from),
         to: dateToIso(nextRange.to),
       });
+      setOpen(false);
     }
+  }
+
+  if (!open) {
+    return (
+      <div className={cn("w-full", className)}>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#282252] px-4 py-3 text-sm font-extrabold text-white transition hover:border-pink-200/35 hover:bg-[#312a68] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-200/70"
+        >
+          <Search className="size-4 text-pink-200 transition group-hover:text-white" aria-hidden="true" />
+          Tìm phòng cho ngày khác
+        </button>
+      </div>
+    );
   }
 
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-2xl border border-white/12 bg-[#1b1023]/80",
+        "overflow-hidden rounded-2xl border border-white/12 bg-[#1b1023]/90",
         className,
       )}
       aria-label={label}
     >
       <div className="border-b border-white/10 px-4 py-4 sm:px-5">
-        <div className="flex items-start gap-3">
-          <CalendarDays className="mt-0.5 size-5 shrink-0 text-pink-200" aria-hidden="true" />
-          <div>
-            <h3 className="text-base font-black text-white">{label}</h3>
-            <p className="mt-1 text-sm font-medium text-white/60">{description}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <CalendarDays className="mt-0.5 size-5 shrink-0 text-pink-200" aria-hidden="true" />
+            <div>
+              <h3 className="text-base font-black text-white">{label}</h3>
+              <p className="mt-1 text-sm font-medium text-white/60">{description}</p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Đóng chọn ngày"
+            className="-mr-1 -mt-1 rounded-lg p-2 text-white/55 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-200/70"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
         </div>
 
         <div className="mt-4 flex items-center gap-3" aria-live="polite">
