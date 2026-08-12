@@ -160,7 +160,7 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
       id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone,
       stay_date, date_label, time_range, check_in_at, check_out_at, timeslot_ids, channel, status,
       amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)`,
     [
       id,
       data.roomId,
