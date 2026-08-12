@@ -156,6 +156,18 @@ export function BookingTimelineEditor({ roomId, fromDate, toDate }: Props) {
 
   React.useEffect(() => { void load(); }, [load]);
 
+  const freeSlots = timeline?.slots.filter((slot) => slot.status === "available") ?? [];
+  const freeBounds = freeSlots.length > 0
+    ? { earliest: formatTimestamp(freeSlots[0].start_at), latest: formatTimestamp(freeSlots[freeSlots.length - 1].end_at) }
+    : null;
+
+  function applyFreeSlot(slot: RoomAvailabilitySlot) {
+    setNewFromDate(inputDate(slot.start_at));
+    setNewFromTime(inputTime(slot.start_at));
+    setNewToDate(inputDate(slot.end_at));
+    setNewToTime(inputTime(slot.end_at));
+  }
+
   function createSlot() {
     if (!roomId) return;
     setError("");
@@ -203,18 +215,18 @@ export function BookingTimelineEditor({ roomId, fromDate, toDate }: Props) {
         <div className="rounded-lg border bg-muted/20 p-3">
           <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-muted-foreground"><span>{formatDate(fromDate)} · 00:00</span><span>{formatDate(toDate)} · 23:59</span></div>
           <div className="relative h-10 overflow-hidden rounded-md bg-muted">
-            {timeline.bookings.map((booking) => <TimelineBlock key={`booking-${booking.id}`} startAt={booking.start_at} endAt={booking.end_at} fromDate={fromDate} toDate={toDate} label="Booked" className="bg-red-500" />)}
+            {timeline.bookings.map((booking) => <TimelineBlock key={`booking-${booking.id}`} startAt={booking.start_at} endAt={booking.end_at} fromDate={fromDate} toDate={toDate} label="Đã có khách" className="bg-red-500" />)}
             {timeline.slots.map((slot) => <TimelineBlock key={`slot-${slot.id}`} startAt={slot.start_at} endAt={slot.end_at} fromDate={fromDate} toDate={toDate} label={STATUS_LABELS[slot.status]} className={slot.status === "blocked" ? "bg-amber-500" : slot.status === "custom" ? "bg-violet-500" : "bg-emerald-500"} />)}
           </div>
           <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground"><span><i className="mr-1 inline-block size-2 rounded-full bg-red-500" />Đã có khách</span><span><i className="mr-1 inline-block size-2 rounded-full bg-emerald-500" />Còn trống</span><span><i className="mr-1 inline-block size-2 rounded-full bg-amber-500" />Tạm khóa</span><span><i className="mr-1 inline-block size-2 rounded-full bg-violet-500" />Khung linh động</span></div>
         </div>
         {selectedSlotIds.length > 1 && <Button size="sm" variant="outline" onClick={mergeSlots} disabled={busy}><Check className="mr-1 size-3.5" />Gộp {selectedSlotIds.length} slot liền nhau</Button>}
-        {timeline.bookings.map((booking) => <div key={booking.id} className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"><div className="flex flex-wrap items-center justify-between gap-2"><span className="font-bold">Booked · {booking.guest_name || booking.id}</span><span>{formatTimestamp(booking.start_at)} → {formatTimestamp(booking.end_at)}</span></div><p className="mt-1 opacity-75">{booking.status} · {booking.time_range || "Booking legacy theo slot"}</p></div>)}
         {timeline.slots.map((slot) => <EditableSlot key={slot.id} slot={slot} roomId={roomId} selected={selectedSlotIds.includes(slot.id)} onToggle={() => setSelectedSlotIds((current) => current.includes(slot.id) ? current.filter((id) => id !== slot.id) : [...current, slot.id])} onChanged={() => void load()} />)}
         {!timeline.bookings.length && !timeline.slots.length && <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">Chưa có booking hoặc available slot trong khoảng này.</div>}
       </div>}
       <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
         <div className="mb-3"><p className="text-sm font-semibold">Bạn có muốn tạo khung thời gian linh động cho giờ còn sót lại không?</p><p className="mt-1 text-xs text-muted-foreground">Chọn ngày, giờ bắt đầu và giờ kết thúc bên dưới nếu muốn mở phần thời gian này cho khách đặt.</p></div>
+        {freeSlots.length > 0 ? <div className="mb-3 rounded-lg border bg-background p-3"><p className="mb-2 text-xs font-semibold text-muted-foreground">Khoảng còn trống hiện tại, dùng làm mốc nhập:</p><p className="mb-2 text-[11px] text-muted-foreground">Mốc sớm nhất: <strong>{freeBounds?.earliest}</strong> · Mốc muộn nhất: <strong>{freeBounds?.latest}</strong></p><div className="space-y-2">{freeSlots.map((slot) => <button key={slot.id} type="button" onClick={() => applyFreeSlot(slot)} className="flex w-full items-center justify-between rounded-md border border-emerald-200 px-3 py-2 text-left text-xs transition hover:bg-emerald-50 dark:border-emerald-900/60 dark:hover:bg-emerald-950/30"><span><strong>{formatTimestamp(slot.start_at)} → {formatTimestamp(slot.end_at)}</strong><span className="ml-2 text-muted-foreground">{slot.price.toLocaleString("vi-VN")}đ</span></span><span className="font-semibold text-emerald-700 dark:text-emerald-300">Dùng khoảng này</span></button>)}</div></div> : <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">Hiện chưa có khoảng trống được tách tự động trong ngày này. Bạn vẫn có thể nhập khoảng giờ thủ công, hệ thống sẽ kiểm tra trùng lịch.</p>}
         <div className="grid gap-2 sm:grid-cols-2">
           <DatePicker value={newFromDate} onChange={setNewFromDate} className="w-full" />
           <Input type="time" value={newFromTime} onChange={(event) => setNewFromTime(event.target.value)} />
