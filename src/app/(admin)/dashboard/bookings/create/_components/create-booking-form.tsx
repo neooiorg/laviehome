@@ -20,6 +20,7 @@ import { ImageUpload } from "@/components/image-upload";
 
 import { MenuItemsSelector } from "../../_components/menu-items-selector";
 import { BookingTimelineEditor } from "./booking-timeline-editor";
+import { AdminBookingCalendar, type AdminPresetSelection } from "./admin-booking-calendar";
 
 const CHANNELS = ["Admin", "Walk-in", "Phone", "Facebook", "Zalo", "Booking.com", "Agoda", "Khác"];
 const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
@@ -55,6 +56,7 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
   const [customerPhone, setCustomerPhone] = React.useState("");
   const [timeMode, setTimeMode] = React.useState<"preset" | "custom">("preset");
   const [selectedSlotIndex, setSelectedSlotIndex] = React.useState("0");
+  const [presetSelections, setPresetSelections] = React.useState<AdminPresetSelection[]>([]);
   const [checkInDate, setCheckInDate] = React.useState(today);
   const [checkInTime, setCheckInTime] = React.useState("09:00");
   const [checkOutDate, setCheckOutDate] = React.useState(addDaysToIso(today, 1));
@@ -101,6 +103,10 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
+  React.useEffect(() => {
+    setPresetSelections([]);
+  }, [checkInDate, checkOutDate]);
+
   const selectedMenuItemsTotal = selectedMenuItems.reduce((sum, id) => {
     const item = availableMenuItems.find((menuItem) => menuItem.id === id);
     return sum + Number(item?.price ?? 0);
@@ -118,6 +124,38 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
     setCheckOutDate(addDaysToIso(checkInDate, isOvernightRange(slot.start, slot.end) ? 1 : 0));
   }
 
+  async function createPresetBookings() {
+    for (const selection of presetSelections) {
+      const room = rooms.find((item) => item.id === selection.roomId);
+      const slot = room ? getRoomSlots(room.card_name, room.time_slots)[selection.slotIndex] : null;
+      if (!room || !slot?.start || !slot.end) continue;
+      const overnight = isOvernightRange(slot.start, slot.end);
+      await createBookingAdmin({
+        roomId: room.id,
+        branchId: room.branch_id,
+        guestName,
+        customerName,
+        customerPhone,
+        stayDate: selection.dateIso,
+        timeRange: `${slot.start} - ${slot.end}`,
+        checkInDate: selection.dateIso,
+        checkInTime: slot.start,
+        checkOutDate: addDaysToIso(selection.dateIso, overnight ? 1 : 0),
+        checkOutTime: slot.end,
+        channel,
+        status,
+        amount: Number(amount) || 0,
+        guestCount: Number(guestCount) || 1,
+        notes,
+        hasCar,
+        hasDecoration,
+        cccdFront,
+        cccdBack,
+        menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
+      });
+    }
+  }
+
   async function handleCreate() {
     if (!roomId || !guestName || !branchId || !hasValidRange) {
       setError("Vui lòng chọn phòng, nhập tên khách và khoảng thời gian hợp lệ.");
@@ -127,6 +165,11 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
     setSaving(true);
     setError("");
     try {
+      if (timeMode === "preset") {
+        await createPresetBookings();
+        router.push("/dashboard/bookings");
+        return;
+      }
       await createBookingAdmin({
         roomId: Number(roomId),
         branchId,
@@ -178,6 +221,7 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
             {branchName && <p className="text-xs text-muted-foreground">Chi nhánh: {branchName}</p>}
           </div>
 
+          {timeMode === "preset" && <AdminBookingCalendar rooms={rooms} dateRange={{ from: checkInDate, to: checkOutDate }} selected={presetSelections} onChange={(next) => { setPresetSelections(next); if (next[0]) setRoomId(String(next[0].roomId)); }} />}
           <div className="rounded-xl border bg-muted/20 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
