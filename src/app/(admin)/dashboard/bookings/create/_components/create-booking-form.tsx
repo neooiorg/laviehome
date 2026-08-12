@@ -21,7 +21,7 @@ import { ImageUpload } from "@/components/image-upload";
 
 import { MenuItemsSelector } from "../../_components/menu-items-selector";
 import { BookingTimelineEditor } from "./booking-timeline-editor";
-import type { AdminPresetSelection } from "./admin-booking-calendar";
+import { AdminBookingCalendar, type AdminPresetSelection } from "./admin-booking-calendar";
 
 const CHANNELS = ["Admin", "Walk-in", "Phone", "Facebook", "Zalo", "Booking.com", "Agoda", "Khác"];
 const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
@@ -57,8 +57,7 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
   const [customerName, setCustomerName] = React.useState("");
   const [customerPhone, setCustomerPhone] = React.useState("");
   const [timeMode, setTimeMode] = React.useState<"preset" | "custom">("preset");
-  const [selectedSlotIndex, setSelectedSlotIndex] = React.useState("0");
-  const [presetSelections] = React.useState<AdminPresetSelection[]>([]);
+  const [presetSelections, setPresetSelections] = React.useState<AdminPresetSelection[]>([]);
   const [checkInDate, setCheckInDate] = React.useState(today);
   const [checkInTime, setCheckInTime] = React.useState("09:00");
   const [checkOutDate, setCheckOutDate] = React.useState(addDaysToIso(today, 1));
@@ -79,7 +78,6 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
   const [selectedMenuItems, setSelectedMenuItems] = React.useState<number[]>([]);
 
   const selectedRoom = rooms.find((room) => room.id === Number(roomId));
-  const roomSlots = getRoomSlots(selectedRoom?.card_name ?? "", selectedRoom?.time_slots);
   const branchId = selectedRoom?.branch_id;
   const branchName = selectedRoom
     ? branches.find((branch) => branch.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name
@@ -98,17 +96,6 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
     });
   }, [branchId, menuItems]);
 
-  React.useEffect(() => {
-    const slot = roomSlots[Number(selectedSlotIndex)] ?? roomSlots[0];
-    if (timeMode !== "preset" || !slot?.start || !slot.end) return;
-    setCheckInTime(slot.start);
-    setCheckOutTime(slot.end);
-    setCheckOutDate(addDaysToIso(checkInDate, isOvernightRange(slot.start, slot.end) ? 1 : 0));
-  // The preset should be applied only when switching rooms, not while editing
-  // a custom range or the selected date/time values.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId]);
-
   const selectedMenuItemsTotal = selectedMenuItems.reduce((sum, id) => {
     const item = availableMenuItems.find((menuItem) => menuItem.id === id);
     return sum + Number(item?.price ?? 0);
@@ -121,51 +108,11 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
   const hasValidRange = Boolean(checkInDate && checkInTime && checkOutDate && checkOutTime &&
     `${checkOutDate}T${checkOutTime}` > `${checkInDate}T${checkInTime}`);
 
-  function selectPresetSlot(value: string) {
-    setSelectedSlotIndex(value);
-    const slot = roomSlots[Number(value)];
-    if (!slot?.start || !slot.end) return;
-    setCheckInTime(slot.start);
-    setCheckOutTime(slot.end);
-    setCheckOutDate(addDaysToIso(checkInDate, isOvernightRange(slot.start, slot.end) ? 1 : 0));
-  }
-
   async function createPresetBookings() {
-    if (selectedRoom) {
-      const slot = roomSlots[Number(selectedSlotIndex)] ?? roomSlots[0];
-      if (!slot?.start || !slot.end) return;
-      await createBookingAdmin({
-        roomId: selectedRoom.id,
-        branchId: selectedRoom.branch_id,
-        guestName,
-        customerName,
-        customerPhone,
-        stayDate: checkInDate,
-        timeRange: `${slot.start} - ${slot.end}`,
-        checkInDate,
-        checkInTime: slot.start,
-        checkOutDate: addDaysToIso(checkInDate, isOvernightRange(slot.start, slot.end) ? 1 : 0),
-        checkOutTime: slot.end,
-        channel,
-        status,
-        amount: Number(amount) || 0,
-        guestCount: Number(guestCount) || 1,
-        notes,
-        hasCar,
-        hasDecoration,
-        cccdFront,
-        cccdBack,
-        discountCode: discountMode === "voucher" ? voucherCode : null,
-        discountPercent,
-        discountAmount,
-        menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
-      });
-      return;
-    }
     for (const selection of presetSelections) {
       const room = rooms.find((item) => item.id === selection.roomId);
       const slot = room ? getRoomSlots(room.card_name, room.time_slots)[selection.slotIndex] : null;
-      if (!room || !slot?.start || !slot.end) continue;
+      if (!room) continue;
       if (timeMode === "custom") {
         await createBookingAdmin({
           roomId: room.id,
@@ -195,6 +142,7 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
         });
         continue;
       }
+      if (!slot?.start || !slot.end) continue;
       const overnight = isOvernightRange(slot.start, slot.end);
       await createBookingAdmin({
         roomId: room.id,
@@ -226,45 +174,19 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
   }
 
   async function handleCreate() {
-    if (!roomId || !guestName || !branchId || !hasValidRange) {
-      setError("Vui lòng chọn phòng, nhập tên khách và khoảng thời gian hợp lệ.");
+    if (!guestName || presetSelections.length === 0) {
+      setError("Vui lòng nhập tên khách và chọn ít nhất một phòng, ngày và khung giờ.");
+      return;
+    }
+    if (timeMode === "custom" && !hasValidRange) {
+      setError("Vui lòng kiểm tra khoảng thời gian tùy chỉnh.");
       return;
     }
 
     setSaving(true);
     setError("");
     try {
-      if (timeMode === "preset") {
-        await createPresetBookings();
-        router.push("/dashboard/bookings");
-        return;
-      }
-      await createBookingAdmin({
-        roomId: Number(roomId),
-        branchId,
-        guestName,
-        customerName,
-        customerPhone,
-        stayDate: checkInDate,
-        timeRange: `${checkInTime} - ${checkOutTime}`,
-        checkInDate,
-        checkInTime,
-        checkOutDate,
-        checkOutTime,
-        channel,
-        status,
-        amount: Number(amount) || 0,
-        guestCount: Number(guestCount) || 1,
-        notes,
-        hasCar,
-        hasDecoration,
-        cccdFront,
-        cccdBack,
-        discountCode: discountMode === "voucher" ? voucherCode : null,
-        discountPercent,
-        discountAmount,
-        menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
-      });
+      await createPresetBookings();
       router.push("/dashboard/bookings");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể tạo booking.");
@@ -317,7 +239,6 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
               <button type="button" onClick={() => setTimeMode("preset")} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "preset" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khung giờ hiện có</button>
               <button type="button" onClick={() => setTimeMode("custom")} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "custom" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khoảng thời gian tùy chỉnh</button>
             </div>
-            {timeMode === "preset" && <div className="mb-3 space-y-1.5"><Label>Chọn khung giờ</Label><Select value={selectedSlotIndex} onValueChange={selectPresetSlot}><SelectTrigger><SelectValue placeholder="Chọn khung giờ" /></SelectTrigger><SelectContent>{roomSlots.map((slot, index) => <SelectItem key={`${slot.label}-${index}`} value={String(index)}>{slot.label} · {slot.duration}</SelectItem>)}</SelectContent></Select></div>}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Ngày bắt đầu *</Label>
@@ -342,6 +263,30 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
               <span className="font-semibold">{dateLabel(checkOutDate)} {checkOutTime}</span>
             </div>
             {!hasValidRange && <p className="mt-2 text-xs text-destructive">Thời gian kết thúc phải sau thời gian bắt đầu.</p>}
+          </div>
+
+          <div className="space-y-3 rounded-xl border bg-background p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">Chọn nhiều phòng và khung giờ</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Bấm nhiều ô còn trống trong lịch để tạo nhiều booking cho cùng một khách. Ô đã đặt sẽ không thể chọn.
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                {presetSelections.length} lựa chọn
+              </span>
+            </div>
+            <AdminBookingCalendar
+              mode={timeMode}
+              rooms={rooms}
+              dateRange={{ from: checkInDate, to: checkOutDate }}
+              selected={presetSelections}
+              onChange={(next) => {
+                setPresetSelections(next);
+                if (next[0]) setRoomId(String(next[0].roomId));
+              }}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5"><Label>Tên khách *</Label><Input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Nguyễn Văn A" /></div>
@@ -370,7 +315,7 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
           </div>
           <div className="space-y-3 rounded-xl border p-4"><div className="flex items-start gap-2"><IdCard className="mt-0.5 size-5 text-primary" /><div><p className="font-semibold">Xác thực căn cước</p><p className="text-xs text-muted-foreground">Tải mặt trước và mặt sau CCCD của khách nếu cần lưu cùng booking.</p></div></div><div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">CCCD mặt trước</Label><ImageUpload value={cccdFront ? [cccdFront] : []} onChange={(urls) => setCccdFront(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">CCCD mặt sau</Label><ImageUpload value={cccdBack ? [cccdBack] : []} onChange={(urls) => setCccdBack(urls[0] ?? null)} single /></div></div></div>
           {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
-          <div className="flex gap-2 border-t pt-3"><Button variant="outline" asChild><Link href="/dashboard/bookings">Hủy</Link></Button><Button onClick={handleCreate} disabled={saving || !roomId || !guestName || !hasValidRange}>{saving ? "Đang tạo..." : "Tạo booking"}</Button></div>
+          <div className="flex gap-2 border-t pt-3"><Button variant="outline" asChild><Link href="/dashboard/bookings">Hủy</Link></Button><Button onClick={handleCreate} disabled={saving || !guestName || presetSelections.length === 0 || (timeMode === "custom" && !hasValidRange)}>{saving ? "Đang tạo..." : "Tạo booking"}</Button></div>
         </CardContent>
       </Card>
 
