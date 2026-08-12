@@ -182,6 +182,16 @@ function getBookingDisplayTotal(input: {
 
 const ADMIN_TIME_RANGE_PATTERN = /\b\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}(?:\s*\([^)]*\))?/g;
 
+function formatAdminDateLabel(value: string | null | undefined) {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+
+  const isoDate = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+  if (isoDate) return `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
+
+  return raw;
+}
+
 function formatAdminTimeRange(value: string | null | undefined) {
   const raw = (value ?? '').trim();
   if (!raw) return '';
@@ -263,7 +273,7 @@ function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
     room: booking.room ? ({ ...booking.room } as RoomRow) : makeFallbackRoom(booking),
     branch: booking.branch ? ({ ...booking.branch, name: booking.branch.name } as BranchRow) : makeFallbackBranch(booking),
     stayDate,
-    dateLabel: booking.dateLabel ?? stayDate,
+    dateLabel: formatAdminDateLabel(booking.dateLabel ?? stayDate),
     timeRange: formatAdminTimeRange(booking.raw.time_range),
     checkInAt: booking.raw.check_in_at,
     checkOutAt: booking.raw.check_out_at,
