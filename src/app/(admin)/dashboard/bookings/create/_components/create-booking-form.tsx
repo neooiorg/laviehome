@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Clock3, IdCard } from "lucide-react";
 
 import { createBookingAdmin } from "@/lib/booking-actions";
-import { addDaysToIso, getRoomSlots, getTodayIso, isOvernightRange } from "@/lib/booking-slots";
+import { addDaysToIso, getRoomSlots, getTodayIso, isOvernightRange, makeBookingDatesFromRange } from "@/lib/booking-slots";
 import { type BookingStatus, type BranchRow, type DiscountCode, type RoomRow } from "@/lib/homestay-dashboard";
 import type { MenuItem } from "@/lib/menu-actions";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,24 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
   const finalAmount = Math.max(roomBaseAmount - discountAmount, 0) + selectedMenuItemsTotal;
   const hasValidRange = Boolean(checkInDate && checkInTime && checkOutDate && checkOutTime &&
     `${checkOutDate}T${checkOutTime}` > `${checkInDate}T${checkInTime}`);
+
+  function toggleCustomRoom(roomId: number) {
+    const isSelected = presetSelections.some((selection) => selection.roomId === roomId);
+    if (isSelected) {
+      setPresetSelections((current) => current.filter((selection) => selection.roomId !== roomId));
+      return;
+    }
+    const dates = makeBookingDatesFromRange({ from: checkInDate, to: checkOutDate });
+    setPresetSelections((current) => [
+      ...current,
+      ...dates.map((date) => ({
+        key: `${roomId}-${date.iso}-custom`,
+        roomId,
+        dateIso: date.iso,
+        slotIndex: 0,
+      })),
+    ]);
+  }
 
   async function createPresetBookings() {
     for (const selection of presetSelections) {
@@ -235,8 +253,8 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
               <Clock3 className="size-5 text-primary" />
             </div>
             <div className="mb-3 grid grid-cols-2 rounded-lg border bg-background p-1">
-              <button type="button" onClick={() => setTimeMode("preset")} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "preset" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khung giờ hiện có</button>
-              <button type="button" onClick={() => setTimeMode("custom")} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "custom" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khoảng thời gian tùy chỉnh</button>
+              <button type="button" onClick={() => { setTimeMode("preset"); setPresetSelections([]); }} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "preset" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khung giờ hiện có</button>
+              <button type="button" onClick={() => { setTimeMode("custom"); setPresetSelections([]); }} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "custom" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khoảng thời gian tùy chỉnh</button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -264,12 +282,12 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
             {!hasValidRange && <p className="mt-2 text-xs text-destructive">Thời gian kết thúc phải sau thời gian bắt đầu.</p>}
           </div>
 
-          <div className="space-y-3 rounded-xl border bg-background p-4">
+          {timeMode === "preset" ? <div className="space-y-3 rounded-xl border bg-background p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-semibold">{timeMode === "preset" ? "Chọn nhiều phòng và khung giờ" : "Chọn phòng áp dụng giờ tùy chỉnh"}</p>
+                <p className="font-semibold">Chọn nhiều phòng và khung giờ</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {timeMode === "preset" ? "Bấm nhiều ô còn trống để tạo nhiều booking cho cùng một khách. Ô đã đặt sẽ không thể chọn." : "Bấm một ô còn trống trong mỗi phòng/ngày muốn áp dụng khoảng giờ tùy chỉnh."}
+                  Bấm nhiều ô còn trống để tạo nhiều booking cho cùng một khách. Ô đã đặt sẽ không thể chọn.
                 </p>
               </div>
               <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
@@ -285,7 +303,21 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
                 setPresetSelections(next);
               }}
             />
-          </div>
+          </div> : <div className="space-y-3 rounded-xl border bg-background p-4">
+            <div>
+              <p className="font-semibold">Phòng áp dụng</p>
+              <p className="mt-1 text-xs text-muted-foreground">Chọn một hoặc nhiều phòng. Khoảng ngày và giờ tùy chỉnh bên trên sẽ được áp dụng cho các phòng này.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {rooms.map((room) => {
+                const selected = presetSelections.some((selection) => selection.roomId === room.id);
+                return <button key={room.id} type="button" onClick={() => toggleCustomRoom(room.id)} className={`rounded-lg border px-3 py-2 text-left text-sm transition ${selected ? "border-primary bg-primary/10 font-semibold text-primary" : "hover:border-primary/50"}`}>
+                  <span className="block truncate">{room.card_name}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{room.branch_name}</span>
+                </button>;
+              })}
+            </div>
+          </div>}
 
           <div className="flex flex-col gap-1.5"><Label>Tên khách *</Label><Input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Nguyễn Văn A" /></div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
