@@ -61,8 +61,10 @@ export function AdminBookingCalendar({ rooms, dateRange, selected, onChange, mod
 
   function toggle(roomId: number, dateIso: string, slotIndex: number) {
     const key = `${roomId}-${dateIso}-${slotIndex}`;
-    const selectedInDay = selected.some((item) => item.roomId === roomId && item.dateIso === dateIso);
-    onChange(selectedInDay
+    const isSelected = mode === "custom"
+      ? selected.some((item) => item.roomId === roomId && item.dateIso === dateIso)
+      : selected.some((item) => item.key === key);
+    onChange(isSelected
       ? selected.filter((item) => mode === "custom" ? !(item.roomId === roomId && item.dateIso === dateIso) : item.key !== key)
       : [...selected, { key, roomId, dateIso, slotIndex }]);
   }

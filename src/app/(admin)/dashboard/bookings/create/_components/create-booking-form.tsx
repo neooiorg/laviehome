@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock3, IdCard, Info } from "lucide-react";
+import { ArrowRight, Clock3, IdCard } from "lucide-react";
 
 import { createBookingAdmin } from "@/lib/booking-actions";
 import { addDaysToIso, getRoomSlots, getTodayIso, isOvernightRange } from "@/lib/booking-slots";
@@ -20,7 +20,6 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { ImageUpload } from "@/components/image-upload";
 
 import { MenuItemsSelector } from "../../_components/menu-items-selector";
-import { BookingTimelineEditor } from "./booking-timeline-editor";
 import { AdminBookingCalendar, type AdminPresetSelection } from "./admin-booking-calendar";
 
 const CHANNELS = ["Admin", "Walk-in", "Phone", "Facebook", "Zalo", "Booking.com", "Agoda", "Khác"];
@@ -47,12 +46,11 @@ interface CreateBookingFormProps {
   discountCodes: DiscountCode[];
 }
 
-export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }: CreateBookingFormProps) {
+export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBookingFormProps) {
   const router = useRouter();
   const today = getTodayIso();
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
-  const [roomId, setRoomId] = React.useState("");
   const [guestName, setGuestName] = React.useState("");
   const [customerName, setCustomerName] = React.useState("");
   const [customerPhone, setCustomerPhone] = React.useState("");
@@ -77,11 +75,8 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
   const [cccdBack, setCccdBack] = React.useState<string | null>(null);
   const [selectedMenuItems, setSelectedMenuItems] = React.useState<number[]>([]);
 
-  const selectedRoom = rooms.find((room) => room.id === Number(roomId));
+  const selectedRoom = rooms.find((room) => room.id === presetSelections[0]?.roomId);
   const branchId = selectedRoom?.branch_id;
-  const branchName = selectedRoom
-    ? branches.find((branch) => branch.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name
-    : "";
   const availableMenuItems = menuItems.filter((item) => item.branch_id === branchId);
 
   React.useEffect(() => {
@@ -202,19 +197,6 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
           <CardTitle className="text-base">Thông tin booking</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label>Phòng *</Label>
-            <Select value={roomId} onValueChange={setRoomId}>
-              <SelectTrigger><SelectValue placeholder="Chọn phòng..." /></SelectTrigger>
-              <SelectContent>
-                {rooms.map((room) => (
-                  <SelectItem key={room.id} value={String(room.id)}>{room.card_name} - {room.branch_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {branchName && <p className="text-xs text-muted-foreground">Chi nhánh: {branchName}</p>}
-          </div>
-
           <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
             <div><p className="font-semibold">Voucher / giảm giá</p><p className="mt-1 text-xs text-muted-foreground">Chọn mã có sẵn hoặc nhập mức giảm riêng cho booking này.</p></div>
             <div className="grid grid-cols-3 rounded-lg border bg-background p-1">
@@ -284,7 +266,6 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
               selected={presetSelections}
               onChange={(next) => {
                 setPresetSelections(next);
-                if (next[0]) setRoomId(String(next[0].roomId));
               }}
             />
           </div>
@@ -319,9 +300,6 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
         </CardContent>
       </Card>
 
-      <div className="xl:col-span-2">
-        {selectedRoom ? <BookingTimelineEditor roomId={selectedRoom.id} fromDate={checkInDate} toDate={checkOutDate} /> : <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-100"><div className="flex items-start gap-3"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">1</div><div><h2 className="text-base font-bold">Xem lịch phòng và giờ trống</h2><p className="mt-1 text-sm leading-6 text-blue-900/75 dark:text-blue-100/75">Hãy chọn một phòng ở ô <strong>Phòng</strong> phía trên. Sau đó, hệ thống sẽ hiển thị booking hiện có và các khoảng giờ còn trống trong khoảng ngày bạn đã chọn.</p><div className="mt-3 flex items-center gap-2 text-xs font-semibold"><Info className="size-4" /> Chọn phòng để bắt đầu xem lịch.</div></div></div></div>}
-      </div>
     </div>
   );
 }
