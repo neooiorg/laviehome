@@ -84,10 +84,7 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
   const branchName = selectedRoom
     ? branches.find((branch) => branch.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name
     : "";
-  const availableMenuItems = React.useMemo(
-    () => menuItems.filter((item) => item.branch_id === branchId),
-    [branchId, menuItems]
-  );
+  const availableMenuItems = menuItems.filter((item) => item.branch_id === branchId);
 
   React.useEffect(() => {
     if (!branchId) {
