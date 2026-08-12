@@ -247,15 +247,6 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
         </CardContent>
       </Card>
 
-      <Card className="h-fit">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Timeline</CardTitle></CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div className="flex items-center justify-between text-muted-foreground"><span>Bắt đầu</span><span className="font-medium text-foreground">{checkInTime}</span></div>
-          <div className="h-2 rounded-full bg-muted"><div className="h-full w-1/3 rounded-full bg-primary" /></div>
-          <div className="flex items-center justify-between text-muted-foreground"><span>Kết thúc</span><span className="font-medium text-foreground">{checkOutTime}</span></div>
-          <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">Khoảng này sẽ được kiểm tra với toàn bộ booking hiện có, bao gồm booking qua đêm và booking theo slot mặc định.</p>
-        </CardContent>
-      </Card>
       <div className="xl:col-span-2">
         {selectedRoom ? <BookingTimelineEditor roomId={selectedRoom.id} fromDate={checkInDate} toDate={checkOutDate} /> : <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-100"><div className="flex items-start gap-3"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">1</div><div><h2 className="text-base font-bold">Xem lịch phòng và giờ trống</h2><p className="mt-1 text-sm leading-6 text-blue-900/75 dark:text-blue-100/75">Hãy chọn một phòng ở ô <strong>Phòng</strong> phía trên. Sau đó, hệ thống sẽ hiển thị booking hiện có và các khoảng giờ còn trống trong khoảng ngày bạn đã chọn.</p><div className="mt-3 flex items-center gap-2 text-xs font-semibold"><Info className="size-4" /> Chọn phòng để bắt đầu xem lịch.</div></div></div></div>}
       </div>
