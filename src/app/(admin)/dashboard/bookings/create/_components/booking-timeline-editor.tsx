@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Props = {
   roomId?: number;
@@ -97,9 +98,9 @@ function EditableSlot({ slot, roomId, selected, onToggle, onChanged }: { slot: R
     <div className={`rounded-lg border p-3 text-xs ${statusClass(status)}`}>
       {editing ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+          <DatePicker value={fromDate} onChange={setFromDate} className="w-full" />
           <Input type="time" value={fromTime} onChange={(event) => setFromTime(event.target.value)} />
-          <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+          <DatePicker value={toDate} onChange={setToDate} className="w-full" />
           <Input type="time" value={toTime} onChange={(event) => setToTime(event.target.value)} />
           <Select value={status} onValueChange={(value) => setStatus(value as AvailabilitySlotStatus)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -215,9 +216,9 @@ export function BookingTimelineEditor({ roomId, fromDate, toDate }: Props) {
       <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
         <div className="mb-3"><p className="text-sm font-semibold">Bạn có muốn tạo khung thời gian linh động cho giờ còn sót lại không?</p><p className="mt-1 text-xs text-muted-foreground">Chọn ngày, giờ bắt đầu và giờ kết thúc bên dưới nếu muốn mở phần thời gian này cho khách đặt.</p></div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Input type="date" value={newFromDate} onChange={(event) => setNewFromDate(event.target.value)} />
+          <DatePicker value={newFromDate} onChange={setNewFromDate} className="w-full" />
           <Input type="time" value={newFromTime} onChange={(event) => setNewFromTime(event.target.value)} />
-          <Input type="date" value={newToDate} onChange={(event) => setNewToDate(event.target.value)} />
+          <DatePicker value={newToDate} onChange={setNewToDate} className="w-full" />
           <Input type="time" value={newToTime} onChange={(event) => setNewToTime(event.target.value)} />
           <Select value={newStatus} onValueChange={(value) => setNewStatus(value as AvailabilitySlotStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS_LABELS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent></Select>
           <Input type="number" min={0} value={newPrice} onChange={(event) => setNewPrice(event.target.value)} placeholder="Giá riêng" />

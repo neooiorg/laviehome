@@ -16,9 +16,10 @@ interface DatePickerProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  minDate?: string;
 }
 
-export function DatePicker({ value, onChange, placeholder = "Chọn ngày", className, disabled }: DatePickerProps) {
+export function DatePicker({ value, onChange, placeholder = "Chọn ngày", className, disabled, minDate }: DatePickerProps) {
   const date = value ? new Date(value + "T00:00:00") : undefined;
 
   function handleSelect(selected: Date | undefined) {
@@ -50,6 +51,7 @@ export function DatePicker({ value, onChange, placeholder = "Chọn ngày", clas
           mode="single"
           selected={date}
           onSelect={handleSelect}
+          disabled={minDate ? { before: new Date(`${minDate}T00:00:00`) } : undefined}
           initialFocus
           locale={vi}
         />

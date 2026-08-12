@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ImageUpload } from "@/components/image-upload";
 
 import { MenuItemsSelector } from "../../_components/menu-items-selector";
@@ -294,7 +295,7 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Ngày bắt đầu *</Label>
-                <Input type="date" value={checkInDate} min={today} onChange={(event) => setCheckInDate(event.target.value)} />
+                <DatePicker value={checkInDate} minDate={today} onChange={setCheckInDate} className="w-full" />
               </div>
               <div className="space-y-1.5">
                 <Label>Giờ bắt đầu *</Label>
@@ -302,7 +303,7 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
               </div>
               <div className="space-y-1.5">
                 <Label>Ngày kết thúc *</Label>
-                <Input type="date" value={checkOutDate} min={checkInDate || today} onChange={(event) => setCheckOutDate(event.target.value)} />
+                <DatePicker value={checkOutDate} minDate={checkInDate || today} onChange={setCheckOutDate} className="w-full" />
               </div>
               <div className="space-y-1.5">
                 <Label>Giờ kết thúc *</Label>
