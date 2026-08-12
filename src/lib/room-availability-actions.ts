@@ -9,7 +9,7 @@ import {
   parseLocalDateTime,
   type RoomSlot,
 } from '@/lib/booking-slots';
-import { fetchRawBookings, holdsSlot, normalizeBookingRecord } from '@/lib/booking-records';
+import { ensureBookingNotificationColumns, fetchRawBookings, holdsSlot, normalizeBookingRecord } from '@/lib/booking-records';
 import { getBookingHoldMinutes } from '@/lib/settings-actions';
 import { query } from '@/lib/postgres';
 
@@ -40,6 +40,11 @@ export type RoomTimeline = {
 };
 
 async function ensureAvailabilityTable() {
+  // Production databases created before Advanced Booking may not have these
+  // columns yet. Ensure the legacy booking table is upgraded before timeline
+  // queries run, otherwise Next renders a generic Server Components error.
+  await ensureBookingNotificationColumns();
+  await query(`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS time_slots JSONB`).catch(() => null);
   await query(`
     CREATE TABLE IF NOT EXISTS room_availability_slots (
       id SERIAL PRIMARY KEY,
