@@ -19,9 +19,29 @@ import { getBookingHoldMinutes } from '@/lib/settings-actions';
 import { type BookingStatus, type BranchRow, type RoomRow } from '@/lib/homestay-dashboard';
 import { query } from '@/lib/postgres';
 import { generateResidualAvailabilitySlots } from '@/lib/room-availability-actions';
+import { generateDoorCode } from '@/lib/door-code';
+
+const BOOKING_ACCESS_STATUSES = new Set<BookingStatus>([
+  'Đã thanh toán',
+  'Đã xác nhận',
+  'Chờ cọc',
+  'Đang ở',
+  'Hoàn tất',
+]);
 
 export async function updateBookingStatus(id: string, status: BookingStatus) {
-  await query('UPDATE bookings SET status = $1, updated_at = NOW() WHERE id = $2', [status, id]);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
+  await query(
+    `UPDATE bookings
+     SET status = $1,
+         door_code = CASE
+           WHEN $3::boolean THEN COALESCE(door_code, $4)
+           ELSE door_code
+         END,
+         updated_at = NOW()
+     WHERE id = $2`,
+    [status, id, BOOKING_ACCESS_STATUSES.has(status), generateDoorCode()]
+  );
   revalidatePath('/dashboard/bookings');
   revalidatePath(`/dashboard/bookings/${id}`);
 }
@@ -84,6 +104,7 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
 
   const range = resolveRange(data);
   const id = `ADM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -159,8 +180,8 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
     `INSERT INTO bookings (
       id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone,
       stay_date, date_label, time_range, check_in_at, check_out_at, timeslot_ids, channel, status,
-      amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)`,
+      amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back, door_code
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
     [
       id,
       data.roomId,
@@ -188,6 +209,7 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
       noteWithManualDiscount,
       data.cccdFront ?? null,
       data.cccdBack ?? null,
+      BOOKING_ACCESS_STATUSES.has(data.status) ? generateDoorCode() : null,
     ]
   );
 
