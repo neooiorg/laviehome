@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock3, IdCard } from "lucide-react";
+import { ArrowRight, Clock3, IdCard, Info } from "lucide-react";
 
 import { createBookingAdmin } from "@/lib/booking-actions";
 import { addDaysToIso, getRoomSlots, getTodayIso, isOvernightRange } from "@/lib/booking-slots";
@@ -257,7 +257,7 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
         </CardContent>
       </Card>
       <div className="xl:col-span-2">
-        <BookingTimelineEditor roomId={selectedRoom?.id} fromDate={checkInDate} toDate={checkOutDate} />
+        {selectedRoom ? <BookingTimelineEditor roomId={selectedRoom.id} fromDate={checkInDate} toDate={checkOutDate} /> : <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-100"><div className="flex items-start gap-3"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">1</div><div><h2 className="text-base font-bold">Xem lịch phòng và giờ trống</h2><p className="mt-1 text-sm leading-6 text-blue-900/75 dark:text-blue-100/75">Hãy chọn một phòng ở ô <strong>Phòng</strong> phía trên. Sau đó, hệ thống sẽ hiển thị booking hiện có và các khoảng giờ còn trống trong khoảng ngày bạn đã chọn.</p><div className="mt-3 flex items-center gap-2 text-xs font-semibold"><Info className="size-4" /> Chọn phòng để bắt đầu xem lịch.</div></div></div></div>}
       </div>
     </div>
   );

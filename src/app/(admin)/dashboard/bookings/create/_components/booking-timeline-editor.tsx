@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { CalendarDays, Check, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
 
 import {
   createRoomAvailabilitySlot,
@@ -44,6 +44,11 @@ function timestamp(date: string, time: string) {
 function formatTimestamp(value: string | null) {
   if (!value) return "Chưa cấu hình";
   return `${value.slice(8, 10)}/${value.slice(5, 7)} ${value.slice(11, 16)}`;
+}
+
+function formatDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
 }
 
 function statusClass(status: AvailabilitySlotStatus) {
@@ -187,11 +192,15 @@ export function BookingTimelineEditor({ roomId, fromDate, toDate }: Props) {
   if (!roomId) return <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">Chọn phòng để xem timeline và available slot.</div>;
 
   return (
-    <CardSection title="Timeline & available slots" loading={loading} onRefresh={() => void load()}>
+    <CardSection title="Lịch phòng và giờ trống" loading={loading} onRefresh={() => void load()}>
+      <div className="mb-4 flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
+        <CalendarDays className="mt-0.5 size-5 shrink-0 text-primary" />
+        <div><p className="text-sm font-semibold">Đang xem từ {formatDate(fromDate)} đến {formatDate(toDate)}</p><p className="mt-0.5 text-xs text-muted-foreground">Màu đỏ là đã có khách. Màu xanh là giờ có thể bán. Bấm biểu tượng bút để chỉnh giờ hoặc giá.</p></div>
+      </div>
       {error && <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>}
       {timeline && <div className="space-y-2">
         <div className="rounded-lg border bg-muted/20 p-3">
-          <div className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground"><span>{fromDate}</span><span>{toDate}</span></div>
+          <div className="mb-2 flex items-center justify-between text-[11px] font-medium text-muted-foreground"><span>{formatDate(fromDate)} · 00:00</span><span>{formatDate(toDate)} · 23:59</span></div>
           <div className="relative h-10 overflow-hidden rounded-md bg-muted">
             {timeline.bookings.map((booking) => <TimelineBlock key={`booking-${booking.id}`} startAt={booking.start_at} endAt={booking.end_at} fromDate={fromDate} toDate={toDate} label="Booked" className="bg-red-500" />)}
             {timeline.slots.map((slot) => <TimelineBlock key={`slot-${slot.id}`} startAt={slot.start_at} endAt={slot.end_at} fromDate={fromDate} toDate={toDate} label={STATUS_LABELS[slot.status]} className={slot.status === "blocked" ? "bg-amber-500" : slot.status === "custom" ? "bg-violet-500" : "bg-emerald-500"} />)}
