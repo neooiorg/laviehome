@@ -273,8 +273,8 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
   }
 
   return (
-    <div className="grid max-w-5xl gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-      <Card>
+    <div className="w-full min-w-0">
+      <Card className="w-full">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Thông tin booking</CardTitle>
         </CardHeader>
