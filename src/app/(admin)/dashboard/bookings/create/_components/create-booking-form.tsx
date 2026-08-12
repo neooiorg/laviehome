@@ -3,10 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock3 } from "lucide-react";
+import { ArrowRight, Clock3, IdCard } from "lucide-react";
 
 import { createBookingAdmin } from "@/lib/booking-actions";
-import { addDaysToIso, getTodayIso } from "@/lib/booking-slots";
+import { addDaysToIso, getRoomSlots, getTodayIso, isOvernightRange } from "@/lib/booking-slots";
 import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
 import type { MenuItem } from "@/lib/menu-actions";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/image-upload";
 
 import { MenuItemsSelector } from "../../_components/menu-items-selector";
 import { BookingTimelineEditor } from "./booking-timeline-editor";
@@ -52,6 +53,8 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
   const [guestName, setGuestName] = React.useState("");
   const [customerName, setCustomerName] = React.useState("");
   const [customerPhone, setCustomerPhone] = React.useState("");
+  const [timeMode, setTimeMode] = React.useState<"preset" | "custom">("preset");
+  const [selectedSlotIndex, setSelectedSlotIndex] = React.useState("0");
   const [checkInDate, setCheckInDate] = React.useState(today);
   const [checkInTime, setCheckInTime] = React.useState("09:00");
   const [checkOutDate, setCheckOutDate] = React.useState(addDaysToIso(today, 1));
@@ -61,9 +64,14 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
   const [amount, setAmount] = React.useState("");
   const [guestCount, setGuestCount] = React.useState("2");
   const [notes, setNotes] = React.useState("");
+  const [hasCar, setHasCar] = React.useState(false);
+  const [hasDecoration, setHasDecoration] = React.useState(false);
+  const [cccdFront, setCccdFront] = React.useState<string | null>(null);
+  const [cccdBack, setCccdBack] = React.useState<string | null>(null);
   const [selectedMenuItems, setSelectedMenuItems] = React.useState<number[]>([]);
 
   const selectedRoom = rooms.find((room) => room.id === Number(roomId));
+  const roomSlots = getRoomSlots(selectedRoom?.card_name ?? "", selectedRoom?.time_slots);
   const branchId = selectedRoom?.branch_id;
   const branchName = selectedRoom
     ? branches.find((branch) => branch.id === selectedRoom.branch_id)?.name ?? selectedRoom.branch_name
@@ -82,6 +90,17 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
     setSelectedMenuItems((current) => current.filter((id) => availableIds.has(id)));
   }, [availableMenuItems, branchId]);
 
+  React.useEffect(() => {
+    const slot = roomSlots[Number(selectedSlotIndex)] ?? roomSlots[0];
+    if (timeMode !== "preset" || !slot?.start || !slot.end) return;
+    setCheckInTime(slot.start);
+    setCheckOutTime(slot.end);
+    setCheckOutDate(addDaysToIso(checkInDate, isOvernightRange(slot.start, slot.end) ? 1 : 0));
+  // The preset should be applied only when switching rooms, not while editing
+  // a custom range or the selected date/time values.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
+
   const selectedMenuItemsTotal = selectedMenuItems.reduce((sum, id) => {
     const item = availableMenuItems.find((menuItem) => menuItem.id === id);
     return sum + Number(item?.price ?? 0);
@@ -89,6 +108,15 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
   const totalAmount = (Number(amount) || 0) + selectedMenuItemsTotal;
   const hasValidRange = Boolean(checkInDate && checkInTime && checkOutDate && checkOutTime &&
     `${checkOutDate}T${checkOutTime}` > `${checkInDate}T${checkInTime}`);
+
+  function selectPresetSlot(value: string) {
+    setSelectedSlotIndex(value);
+    const slot = roomSlots[Number(value)];
+    if (!slot?.start || !slot.end) return;
+    setCheckInTime(slot.start);
+    setCheckOutTime(slot.end);
+    setCheckOutDate(addDaysToIso(checkInDate, isOvernightRange(slot.start, slot.end) ? 1 : 0));
+  }
 
   async function handleCreate() {
     if (!roomId || !guestName || !branchId || !hasValidRange) {
@@ -116,6 +144,10 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
         amount: Number(amount) || 0,
         guestCount: Number(guestCount) || 1,
         notes,
+        hasCar,
+        hasDecoration,
+        cccdFront,
+        cccdBack,
         menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
       });
       router.push("/dashboard/bookings");
@@ -154,6 +186,11 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
               </div>
               <Clock3 className="size-5 text-primary" />
             </div>
+            <div className="mb-3 grid grid-cols-2 rounded-lg border bg-background p-1">
+              <button type="button" onClick={() => setTimeMode("preset")} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "preset" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khung giờ hiện có</button>
+              <button type="button" onClick={() => setTimeMode("custom")} className={`rounded-md px-3 py-2 text-sm font-semibold ${timeMode === "custom" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Khoảng thời gian tùy chỉnh</button>
+            </div>
+            {timeMode === "preset" && <div className="mb-3 space-y-1.5"><Label>Chọn khung giờ</Label><Select value={selectedSlotIndex} onValueChange={selectPresetSlot}><SelectTrigger><SelectValue placeholder="Chọn khung giờ" /></SelectTrigger><SelectContent>{roomSlots.map((slot, index) => <SelectItem key={`${slot.label}-${index}`} value={String(index)}>{slot.label} · {slot.duration}</SelectItem>)}</SelectContent></Select></div>}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Ngày bắt đầu *</Label>
@@ -161,7 +198,7 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
               </div>
               <div className="space-y-1.5">
                 <Label>Giờ bắt đầu *</Label>
-                <Input type="time" value={checkInTime} onChange={(event) => setCheckInTime(event.target.value)} />
+                <Input type="time" value={checkInTime} disabled={timeMode === "preset"} onChange={(event) => setCheckInTime(event.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label>Ngày kết thúc *</Label>
@@ -169,7 +206,7 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
               </div>
               <div className="space-y-1.5">
                 <Label>Giờ kết thúc *</Label>
-                <Input type="time" value={checkOutTime} onChange={(event) => setCheckOutTime(event.target.value)} />
+                <Input type="time" value={checkOutTime} disabled={timeMode === "preset"} onChange={(event) => setCheckOutTime(event.target.value)} />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
@@ -200,6 +237,11 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
 
           {branchId && <><Separator /><div className="flex flex-col gap-2"><Label className="text-base font-semibold">Menu Items (Tùy chọn)</Label><MenuItemsSelector items={availableMenuItems} selectedIds={selectedMenuItems} onSelectionChange={setSelectedMenuItems} /><div className="rounded-md border bg-muted/40 px-3 py-2 text-sm"><div className="flex items-center justify-between"><span className="text-muted-foreground">Menu items</span><span className="font-medium">{money(selectedMenuItemsTotal)}đ</span></div><div className="mt-1 flex items-center justify-between"><span className="text-muted-foreground">Tổng tạm tính</span><span className="font-semibold">{money(totalAmount)}đ</span></div></div></div></>}
           <div className="flex flex-col gap-1.5"><Label>Ghi chú</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm"><input className="mt-1 accent-primary" type="checkbox" checked={hasCar} onChange={(event) => setHasCar(event.target.checked)} /><span><strong>Đến bằng xe hơi</strong><span className="mt-0.5 block text-xs text-muted-foreground">Để nhân viên hỗ trợ chỗ đỗ xe.</span></span></label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm"><input className="mt-1 accent-primary" type="checkbox" checked={hasDecoration} onChange={(event) => setHasDecoration(event.target.checked)} /><span><strong>Gói trang trí</strong><span className="mt-0.5 block text-xs text-muted-foreground">Nhân viên sẽ liên hệ tư vấn thêm.</span></span></label>
+          </div>
+          <div className="space-y-3 rounded-xl border p-4"><div className="flex items-start gap-2"><IdCard className="mt-0.5 size-5 text-primary" /><div><p className="font-semibold">Xác thực căn cước</p><p className="text-xs text-muted-foreground">Tải mặt trước và mặt sau CCCD của khách nếu cần lưu cùng booking.</p></div></div><div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">CCCD mặt trước</Label><ImageUpload value={cccdFront ? [cccdFront] : []} onChange={(urls) => setCccdFront(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">CCCD mặt sau</Label><ImageUpload value={cccdBack ? [cccdBack] : []} onChange={(urls) => setCccdBack(urls[0] ?? null)} single /></div></div></div>
           {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
           <div className="flex gap-2 border-t pt-3"><Button variant="outline" asChild><Link href="/dashboard/bookings">Hủy</Link></Button><Button onClick={handleCreate} disabled={saving || !roomId || !guestName || !hasValidRange}>{saving ? "Đang tạo..." : "Tạo booking"}</Button></div>
         </CardContent>

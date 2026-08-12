@@ -43,6 +43,10 @@ export interface AdminBookingInput {
   amount: number;
   guestCount: number;
   notes: string;
+  hasCar?: boolean;
+  hasDecoration?: boolean;
+  cccdFront?: string | null;
+  cccdBack?: string | null;
   menuItemIds?: number[];
 }
 
@@ -73,6 +77,8 @@ function resolveRange(data: AdminBookingInput) {
 export async function createBookingAdmin(data: AdminBookingInput): Promise<void> {
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_at TIMESTAMP`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMP`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`).catch(() => null);
 
   const range = resolveRange(data);
   const id = `ADM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -140,7 +146,7 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
       id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone,
       stay_date, date_label, time_range, check_in_at, check_out_at, timeslot_ids, channel, status,
       amount, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, false, false, $20, null, null)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
     [
       id,
       data.roomId,
@@ -161,7 +167,11 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
       data.amount,
       data.guestCount,
       menuItemsTotal,
+      Boolean(data.hasCar),
+      Boolean(data.hasDecoration),
       data.notes,
+      data.cccdFront ?? null,
+      data.cccdBack ?? null,
     ]
   );
 
