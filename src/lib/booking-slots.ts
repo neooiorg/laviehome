@@ -188,17 +188,17 @@ export function makeDefaultBookingDateRange(totalDays = 7): BookingDateRange {
   };
 }
 
-export function makeBookingDatesFromRange(range: BookingDateRange, maxDays = 31) {
+export function makeBookingDatesFromRange(range: BookingDateRange) {
   const from = normalizeDateLabelToIso(range.from) ?? getTodayIso();
   const to = normalizeDateLabelToIso(range.to) ?? from;
   const start = makeVietnamLocalDate(from);
   const end = makeVietnamLocalDate(to);
   if (end < start) {
-    return makeBookingDatesFromRange({ from: to, to: from }, maxDays);
+    return makeBookingDatesFromRange({ from: to, to: from });
   }
 
   const diffDays = Math.floor((end.getTime() - start.getTime()) / 86_400_000);
-  return makeBookingDatesFromOffset(daysBetween(getTodayIso(), from), Math.min(diffDays + 1, maxDays));
+  return makeBookingDatesFromOffset(daysBetween(getTodayIso(), from), diffDays + 1);
 }
 
 function daysBetween(fromIso: string, toIso: string) {
