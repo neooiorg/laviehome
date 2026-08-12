@@ -24,7 +24,7 @@ import { BookingTimelineEditor } from "./booking-timeline-editor";
 import type { AdminPresetSelection } from "./admin-booking-calendar";
 
 const CHANNELS = ["Admin", "Walk-in", "Phone", "Facebook", "Zalo", "Booking.com", "Agoda", "Khác"];
-const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
+const STATUSES: BookingStatus[] = ["Chờ thanh toán", "Đã thanh toán", "Đã xác nhận", "Chờ cọc", "Đang ở", "Hoàn tất"];
 
 function money(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
