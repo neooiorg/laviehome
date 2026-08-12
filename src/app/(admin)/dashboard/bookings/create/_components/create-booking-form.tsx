@@ -96,9 +96,24 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
     return sum + Number(item?.price ?? 0);
   }, 0);
   const selectedVoucher = discountCodes.find((item) => item.code === voucherCode);
-  const roomBaseAmount = Math.max(Number(amount) || 0, 0);
   const discountPercent = discountMode === "voucher" ? Number(selectedVoucher?.percent ?? 0) : manualDiscountType === "percent" ? Math.min(Math.max(Number(manualDiscount) || 0, 0), 100) : 0;
-  const discountAmount = discountMode === "manual" && manualDiscountType === "amount" ? Math.min(Math.max(Number(manualDiscount) || 0, 0), roomBaseAmount) : Math.round(roomBaseAmount * discountPercent / 100);
+  function getSlotPrice(room: RoomRow, slotIndex: number) {
+    const slot = getRoomSlots(room.card_name, room.time_slots)[slotIndex];
+    const customPrice = room.slot_prices?.[slotIndex];
+    return typeof customPrice === "number" && customPrice > 0 ? customPrice : slot?.isOvernight ? room.full_day_price : room.price_from;
+  }
+
+  const presetRoomAmount = presetSelections.reduce((sum, selection) => {
+    const room = rooms.find((item) => item.id === selection.roomId);
+    return sum + (room ? getSlotPrice(room, selection.slotIndex) : 0);
+  }, 0);
+  const roomBaseAmount = timeMode === "preset" ? presetRoomAmount : Math.max(Number(amount) || 0, 0);
+  function getDiscountAmountFor(baseAmount: number) {
+    return discountMode === "manual" && manualDiscountType === "amount"
+      ? Math.min(Math.max(Number(manualDiscount) || 0, 0), baseAmount)
+      : Math.round(baseAmount * discountPercent / 100);
+  }
+  const discountAmount = getDiscountAmountFor(roomBaseAmount);
   const finalAmount = Math.max(roomBaseAmount - discountAmount, 0) + selectedMenuItemsTotal;
   const hasValidRange = Boolean(checkInDate && checkInTime && checkOutDate && checkOutTime &&
     `${checkOutDate}T${checkOutTime}` > `${checkInDate}T${checkInTime}`);
@@ -108,6 +123,8 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
       const room = rooms.find((item) => item.id === selection.roomId);
       const slot = room ? getRoomSlots(room.card_name, room.time_slots)[selection.slotIndex] : null;
       if (!room) continue;
+      const bookingAmount = timeMode === "preset" ? getSlotPrice(room, selection.slotIndex) : Math.max(Number(amount) || 0, 0);
+      const bookingDiscountAmount = getDiscountAmountFor(bookingAmount);
       if (timeMode === "custom") {
         await createBookingAdmin({
           roomId: room.id,
@@ -123,7 +140,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           checkOutTime,
           channel,
           status,
-          amount: Number(amount) || 0,
+          amount: bookingAmount,
           guestCount: Number(guestCount) || 1,
           notes,
           hasCar,
@@ -132,7 +149,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           cccdBack,
           discountCode: discountMode === "voucher" ? voucherCode : null,
           discountPercent,
-          discountAmount,
+          discountAmount: bookingDiscountAmount,
           menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
         });
         continue;
@@ -153,7 +170,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
         checkOutTime: slot.end,
         channel,
         status,
-        amount: Number(amount) || 0,
+        amount: bookingAmount,
         guestCount: Number(guestCount) || 1,
         notes,
         hasCar,
@@ -162,7 +179,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
         cccdBack,
         discountCode: discountMode === "voucher" ? voucherCode : null,
         discountPercent,
-        discountAmount,
+        discountAmount: bookingDiscountAmount,
         menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
       });
     }
@@ -224,7 +241,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Ngày bắt đầu *</Label>
-                <DatePicker value={checkInDate} minDate={today} onChange={setCheckInDate} className="w-full" />
+              <DatePicker value={checkInDate} minDate={today} onChange={(value) => { setCheckInDate(value); setPresetSelections([]); }} className="w-full" />
               </div>
               <div className="space-y-1.5">
                 <Label>Giờ bắt đầu *</Label>
@@ -232,7 +249,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
               </div>
               <div className="space-y-1.5">
                 <Label>Ngày kết thúc *</Label>
-                <DatePicker value={checkOutDate} minDate={checkInDate || today} onChange={setCheckOutDate} className="w-full" />
+              <DatePicker value={checkOutDate} minDate={checkInDate || today} onChange={(value) => { setCheckOutDate(value); setPresetSelections([]); }} className="w-full" />
               </div>
               <div className="space-y-1.5">
                 <Label>Giờ kết thúc *</Label>
@@ -250,9 +267,9 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           <div className="space-y-3 rounded-xl border bg-background p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-semibold">Chọn nhiều phòng và khung giờ</p>
+                <p className="font-semibold">{timeMode === "preset" ? "Chọn nhiều phòng và khung giờ" : "Chọn phòng áp dụng giờ tùy chỉnh"}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Bấm nhiều ô còn trống trong lịch để tạo nhiều booking cho cùng một khách. Ô đã đặt sẽ không thể chọn.
+                  {timeMode === "preset" ? "Bấm nhiều ô còn trống để tạo nhiều booking cho cùng một khách. Ô đã đặt sẽ không thể chọn." : "Bấm một ô còn trống trong mỗi phòng/ngày muốn áp dụng khoảng giờ tùy chỉnh."}
                 </p>
               </div>
               <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
@@ -279,8 +296,15 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
             <div className="flex flex-col gap-1.5"><Label>Số khách</Label><Input type="number" min={1} value={guestCount} onChange={(e) => setGuestCount(e.target.value)} /></div>
             <div className="flex flex-col gap-1.5">
               <Label>Tiền phòng (đ)</Label>
-              <Input type="text" inputMode="numeric" pattern="[0-9]*" value={amount} onChange={(e) => setAmount(normalizeWholeNumberInput(e.target.value))} placeholder="VD: 200000" />
-              <p className="text-xs text-muted-foreground">Nhập tiền phòng; menu được cộng riêng.</p>
+              {timeMode === "preset" ? (
+                <div className="flex h-10 items-center justify-between rounded-md border bg-muted/40 px-3 text-sm font-semibold">
+                  <span>{money(presetRoomAmount)}đ</span>
+                  <span className="text-xs font-normal text-muted-foreground">Tự tính theo khung giờ</span>
+                </div>
+              ) : (
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" value={amount} onChange={(e) => setAmount(normalizeWholeNumberInput(e.target.value))} placeholder="VD: 200000" />
+              )}
+              <p className="text-xs text-muted-foreground">{timeMode === "preset" ? "Giá được lấy theo từng phòng và khung giờ đã chọn." : "Admin tự nhập tiền phòng cho khoảng thời gian tùy chỉnh."}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
