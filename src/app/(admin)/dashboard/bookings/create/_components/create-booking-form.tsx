@@ -232,18 +232,6 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           <CardTitle className="text-base">Thông tin booking</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-            <div><p className="font-semibold">Voucher / giảm giá</p><p className="mt-1 text-xs text-muted-foreground">Chọn mã có sẵn hoặc nhập mức giảm riêng cho booking này.</p></div>
-            <div className="grid grid-cols-3 rounded-lg border bg-background p-1">
-              <button type="button" onClick={() => setDiscountMode("none")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "none" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Không giảm</button>
-              <button type="button" onClick={() => setDiscountMode("voucher")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "voucher" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Chọn voucher</button>
-              <button type="button" onClick={() => setDiscountMode("manual")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Giảm tùy thích</button>
-            </div>
-            {discountMode === "voucher" && <Select value={voucherCode} onValueChange={setVoucherCode}><SelectTrigger><SelectValue placeholder="Chọn voucher đang hoạt động" /></SelectTrigger><SelectContent>{discountCodes.filter((item) => item.active).map((item) => <SelectItem key={item.code} value={item.code}>{item.code} · Giảm {item.percent}%{item.description ? ` · ${item.description}` : ""}</SelectItem>)}</SelectContent></Select>}
-            {discountMode === "manual" && <div className="grid gap-2 sm:grid-cols-[150px_1fr]"><Select value={manualDiscountType} onValueChange={(value) => setManualDiscountType(value as "percent" | "amount")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">Theo phần trăm (%)</SelectItem><SelectItem value="amount">Theo số tiền (đ)</SelectItem></SelectContent></Select><Input type="number" min={0} max={manualDiscountType === "percent" ? 100 : undefined} value={manualDiscount} onChange={(event) => setManualDiscount(event.target.value)} placeholder={manualDiscountType === "percent" ? "Ví dụ: 10" : "Ví dụ: 50000"} /></div>}
-            {discountAmount > 0 && <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-background px-3 py-2 text-sm"><span className="text-muted-foreground">Giảm {discountMode === "voucher" ? voucherCode : "thủ công"}</span><span className="font-bold text-emerald-600">-{money(discountAmount)}đ</span></div>}
-          </div>
-
           <div className="rounded-xl border bg-muted/20 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
@@ -321,6 +309,17 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5"><Label>Tên trên CCCD</Label><Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} /></div>
             <div className="flex flex-col gap-1.5"><Label>Số điện thoại</Label><Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="0901..." /></div>
+          </div>
+          <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+            <div><p className="font-semibold">Voucher / giảm giá</p><p className="mt-1 text-xs text-muted-foreground">Chọn mã có sẵn hoặc nhập mức giảm riêng cho booking này.</p></div>
+            <div className="grid grid-cols-3 rounded-lg border bg-background p-1">
+              <button type="button" onClick={() => setDiscountMode("none")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "none" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Không giảm</button>
+              <button type="button" onClick={() => setDiscountMode("voucher")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "voucher" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Chọn voucher</button>
+              <button type="button" onClick={() => setDiscountMode("manual")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Giảm tùy thích</button>
+            </div>
+            {discountMode === "voucher" && <Select value={voucherCode} onValueChange={setVoucherCode}><SelectTrigger><SelectValue placeholder="Chọn voucher đang hoạt động" /></SelectTrigger><SelectContent>{discountCodes.filter((item) => item.active).map((item) => <SelectItem key={item.code} value={item.code}>{item.code} · Giảm {item.percent}%{item.description ? ` · ${item.description}` : ""}</SelectItem>)}</SelectContent></Select>}
+            {discountMode === "manual" && <div className="grid gap-2 sm:grid-cols-[150px_1fr]"><Select value={manualDiscountType} onValueChange={(value) => setManualDiscountType(value as "percent" | "amount")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">Theo phần trăm (%)</SelectItem><SelectItem value="amount">Theo số tiền (đ)</SelectItem></SelectContent></Select><Input type="number" min={0} max={manualDiscountType === "percent" ? 100 : undefined} value={manualDiscount} onChange={(event) => setManualDiscount(event.target.value)} placeholder={manualDiscountType === "percent" ? "Ví dụ: 10" : "Ví dụ: 50000"} /></div>}
+            {discountAmount > 0 && <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-background px-3 py-2 text-sm"><span className="text-muted-foreground">Giảm {discountMode === "voucher" ? voucherCode : "thủ công"}</span><span className="font-bold text-emerald-600">-{money(discountAmount)}đ</span></div>}
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5"><Label>Số khách</Label><Input type="number" min={1} value={guestCount} onChange={(e) => setGuestCount(e.target.value)} /></div>
