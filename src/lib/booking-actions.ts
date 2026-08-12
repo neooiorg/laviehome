@@ -43,6 +43,9 @@ export interface AdminBookingInput {
   amount: number;
   guestCount: number;
   notes: string;
+  discountCode?: string | null;
+  discountPercent?: number;
+  discountAmount?: number;
   hasCar?: boolean;
   hasDecoration?: boolean;
   cccdFront?: string | null;
@@ -79,6 +82,8 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMP`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`).catch(() => null);
 
   const range = resolveRange(data);
   const id = `ADM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -141,12 +146,21 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
     menuItemsTotal = Number(menuItemsResult[0]?.total) || 0;
   }
 
+  const quotedAmount = Math.max(0, Math.round(Number(data.amount) || 0));
+  const calculatedDiscount = data.discountAmount !== undefined
+    ? Math.max(0, Math.round(data.discountAmount))
+    : Math.round(quotedAmount * Math.min(Math.max(Number(data.discountPercent) || 0, 0), 100) / 100);
+  const finalRoomAmount = Math.max(quotedAmount - Math.min(calculatedDiscount, quotedAmount), 0);
+  const noteWithManualDiscount = data.discountCode || calculatedDiscount <= 0
+    ? data.notes
+    : `${data.notes ? `${data.notes}\n` : ""}Giảm thủ công: -${calculatedDiscount.toLocaleString("vi-VN")}đ`;
+
   await query(
     `INSERT INTO bookings (
       id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone,
       stay_date, date_label, time_range, check_in_at, check_out_at, timeslot_ids, channel, status,
-      amount, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+      amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
     [
       id,
       data.roomId,
@@ -164,12 +178,14 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
       requestedTimeslotIds.length ? stringifyTimeslotIds(requestedTimeslotIds) : null,
       data.channel,
       data.status,
-      data.amount,
+      finalRoomAmount,
+      quotedAmount,
+      data.discountCode?.trim().toUpperCase() || null,
       data.guestCount,
       menuItemsTotal,
       Boolean(data.hasCar),
       Boolean(data.hasDecoration),
-      data.notes,
+      noteWithManualDiscount,
       data.cccdFront ?? null,
       data.cccdBack ?? null,
     ]
@@ -192,7 +208,7 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
     sourceBookingId: id,
     startAt: range.checkInAt,
     endAt: range.checkOutAt,
-    price: data.amount,
+    price: finalRoomAmount,
   });
 
   revalidatePath('/dashboard/bookings');

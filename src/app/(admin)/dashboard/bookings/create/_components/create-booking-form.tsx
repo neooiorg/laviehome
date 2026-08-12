@@ -7,7 +7,7 @@ import { ArrowRight, Clock3, IdCard, Info } from "lucide-react";
 
 import { createBookingAdmin } from "@/lib/booking-actions";
 import { addDaysToIso, getRoomSlots, getTodayIso, isOvernightRange } from "@/lib/booking-slots";
-import { type BookingStatus, type BranchRow, type RoomRow } from "@/lib/homestay-dashboard";
+import { type BookingStatus, type BranchRow, type DiscountCode, type RoomRow } from "@/lib/homestay-dashboard";
 import type { MenuItem } from "@/lib/menu-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,9 +43,10 @@ interface CreateBookingFormProps {
   rooms: RoomRow[];
   branches: BranchRow[];
   menuItems: MenuItem[];
+  discountCodes: DiscountCode[];
 }
 
-export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingFormProps) {
+export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }: CreateBookingFormProps) {
   const router = useRouter();
   const today = getTodayIso();
   const [saving, setSaving] = React.useState(false);
@@ -64,6 +65,10 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
   const [channel, setChannel] = React.useState("Admin");
   const [status, setStatus] = React.useState<BookingStatus>("Đã xác nhận");
   const [amount, setAmount] = React.useState("");
+  const [discountMode, setDiscountMode] = React.useState<"none" | "voucher" | "manual">("none");
+  const [voucherCode, setVoucherCode] = React.useState("");
+  const [manualDiscountType, setManualDiscountType] = React.useState<"percent" | "amount">("percent");
+  const [manualDiscount, setManualDiscount] = React.useState("");
   const [guestCount, setGuestCount] = React.useState("2");
   const [notes, setNotes] = React.useState("");
   const [hasCar, setHasCar] = React.useState(false);
@@ -111,7 +116,11 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
     const item = availableMenuItems.find((menuItem) => menuItem.id === id);
     return sum + Number(item?.price ?? 0);
   }, 0);
-  const totalAmount = (Number(amount) || 0) + selectedMenuItemsTotal;
+  const selectedVoucher = discountCodes.find((item) => item.code === voucherCode);
+  const roomBaseAmount = Math.max(Number(amount) || 0, 0);
+  const discountPercent = discountMode === "voucher" ? Number(selectedVoucher?.percent ?? 0) : manualDiscountType === "percent" ? Math.min(Math.max(Number(manualDiscount) || 0, 0), 100) : 0;
+  const discountAmount = discountMode === "manual" && manualDiscountType === "amount" ? Math.min(Math.max(Number(manualDiscount) || 0, 0), roomBaseAmount) : Math.round(roomBaseAmount * discountPercent / 100);
+  const finalAmount = Math.max(roomBaseAmount - discountAmount, 0) + selectedMenuItemsTotal;
   const hasValidRange = Boolean(checkInDate && checkInTime && checkOutDate && checkOutTime &&
     `${checkOutDate}T${checkOutTime}` > `${checkInDate}T${checkInTime}`);
 
@@ -151,6 +160,9 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
         hasDecoration,
         cccdFront,
         cccdBack,
+        discountCode: discountMode === "voucher" ? voucherCode : null,
+        discountPercent,
+        discountAmount,
         menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
       });
     }
@@ -191,6 +203,9 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
         hasDecoration,
         cccdFront,
         cccdBack,
+        discountCode: discountMode === "voucher" ? voucherCode : null,
+        discountPercent,
+        discountAmount,
         menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
       });
       router.push("/dashboard/bookings");
@@ -222,6 +237,18 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
           </div>
 
           {timeMode === "preset" && <AdminBookingCalendar rooms={rooms} dateRange={{ from: checkInDate, to: checkOutDate }} selected={presetSelections} onChange={(next) => { setPresetSelections(next); if (next[0]) setRoomId(String(next[0].roomId)); }} />}
+          <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+            <div><p className="font-semibold">Voucher / giảm giá</p><p className="mt-1 text-xs text-muted-foreground">Chọn mã có sẵn hoặc nhập mức giảm riêng cho booking này.</p></div>
+            <div className="grid grid-cols-3 rounded-lg border bg-background p-1">
+              <button type="button" onClick={() => setDiscountMode("none")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "none" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Không giảm</button>
+              <button type="button" onClick={() => setDiscountMode("voucher")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "voucher" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Chọn voucher</button>
+              <button type="button" onClick={() => setDiscountMode("manual")} className={`rounded-md px-2 py-2 text-xs font-semibold ${discountMode === "manual" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Giảm tùy thích</button>
+            </div>
+            {discountMode === "voucher" && <Select value={voucherCode} onValueChange={setVoucherCode}><SelectTrigger><SelectValue placeholder="Chọn voucher đang hoạt động" /></SelectTrigger><SelectContent>{discountCodes.filter((item) => item.active).map((item) => <SelectItem key={item.code} value={item.code}>{item.code} · Giảm {item.percent}%{item.description ? ` · ${item.description}` : ""}</SelectItem>)}</SelectContent></Select>}
+            {discountMode === "manual" && <div className="grid gap-2 sm:grid-cols-[150px_1fr]"><Select value={manualDiscountType} onValueChange={(value) => setManualDiscountType(value as "percent" | "amount")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">Theo phần trăm (%)</SelectItem><SelectItem value="amount">Theo số tiền (đ)</SelectItem></SelectContent></Select><Input type="number" min={0} max={manualDiscountType === "percent" ? 100 : undefined} value={manualDiscount} onChange={(event) => setManualDiscount(event.target.value)} placeholder={manualDiscountType === "percent" ? "Ví dụ: 10" : "Ví dụ: 50000"} /></div>}
+            {discountAmount > 0 && <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-background px-3 py-2 text-sm"><span className="text-muted-foreground">Giảm {discountMode === "voucher" ? voucherCode : "thủ công"}</span><span className="font-bold text-emerald-600">-{money(discountAmount)}đ</span></div>}
+          </div>
+
           <div className="rounded-xl border bg-muted/20 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
@@ -279,7 +306,7 @@ export function CreateBookingForm({ rooms, branches, menuItems }: CreateBookingF
             <div className="flex flex-col gap-1.5"><Label>Trạng thái</Label><Select value={status} onValueChange={(value) => setStatus(value as BookingStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUSES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
           </div>
 
-          {branchId && <><Separator /><div className="flex flex-col gap-2"><Label className="text-base font-semibold">Menu Items (Tùy chọn)</Label><MenuItemsSelector items={availableMenuItems} selectedIds={selectedMenuItems} onSelectionChange={setSelectedMenuItems} /><div className="rounded-md border bg-muted/40 px-3 py-2 text-sm"><div className="flex items-center justify-between"><span className="text-muted-foreground">Menu items</span><span className="font-medium">{money(selectedMenuItemsTotal)}đ</span></div><div className="mt-1 flex items-center justify-between"><span className="text-muted-foreground">Tổng tạm tính</span><span className="font-semibold">{money(totalAmount)}đ</span></div></div></div></>}
+          {branchId && <><Separator /><div className="flex flex-col gap-2"><Label className="text-base font-semibold">Menu Items (Tùy chọn)</Label><MenuItemsSelector items={availableMenuItems} selectedIds={selectedMenuItems} onSelectionChange={setSelectedMenuItems} /><div className="rounded-md border bg-muted/40 px-3 py-2 text-sm"><div className="flex items-center justify-between"><span className="text-muted-foreground">Menu items</span><span className="font-medium">{money(selectedMenuItemsTotal)}đ</span></div>{discountAmount > 0 && <div className="mt-1 flex items-center justify-between"><span className="text-muted-foreground">Giảm giá</span><span className="font-medium text-emerald-600">-{money(discountAmount)}đ</span></div>}<div className="mt-1 flex items-center justify-between"><span className="text-muted-foreground">Tổng thanh toán</span><span className="font-semibold">{money(finalAmount)}đ</span></div></div></div></>}
           <div className="flex flex-col gap-1.5"><Label>Ghi chú</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} /></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm"><input className="mt-1 accent-primary" type="checkbox" checked={hasCar} onChange={(event) => setHasCar(event.target.checked)} /><span><strong>Đến bằng xe hơi</strong><span className="mt-0.5 block text-xs text-muted-foreground">Để nhân viên hỗ trợ chỗ đỗ xe.</span></span></label>
