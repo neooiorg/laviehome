@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Clock3, IdCard } from "lucide-react";
 
 import { createBookingAdmin } from "@/lib/booking-actions";
-import { addDaysToIso, getRoomSlots, getTodayIso, isOvernightRange, makeBookingDatesFromRange } from "@/lib/booking-slots";
+import { addDaysToIso, getRoomSlots, getTodayIso, getTimeslotIdsOverlappingRange, isOvernightRange, makeBookingDatesFromRange, makeLocalDateTime } from "@/lib/booking-slots";
 import { type BookingStatus, type BranchRow, type DiscountCode, type RoomRow } from "@/lib/homestay-dashboard";
 import type { MenuItem } from "@/lib/menu-actions";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,8 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
   const [cccdFront, setCccdFront] = React.useState<string | null>(null);
   const [cccdBack, setCccdBack] = React.useState<string | null>(null);
   const [selectedMenuItems, setSelectedMenuItems] = React.useState<number[]>([]);
+  const [customBlockedRoomIds, setCustomBlockedRoomIds] = React.useState<Set<number>>(new Set());
+  const [customAvailabilityLoading, setCustomAvailabilityLoading] = React.useState(false);
 
   const selectedRoom = rooms.find((room) => room.id === presetSelections[0]?.roomId);
   const branchId = selectedRoom?.branch_id;
@@ -90,6 +92,50 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
       return next.length === current.length ? current : next;
     });
   }, [branchId, menuItems]);
+
+  React.useEffect(() => {
+    if (timeMode !== "custom" || !checkInDate || !checkInTime || !checkOutTime) {
+      setCustomBlockedRoomIds(new Set());
+      setCustomAvailabilityLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadCustomAvailability() {
+      setCustomAvailabilityLoading(true);
+      const dates = makeBookingDatesFromRange({ from: checkInDate, to: checkOutDate });
+      const results = await Promise.all(rooms.map(async (room) => {
+        try {
+          const response = await fetch(`/api/booking-availability?room_id=${room.id}`);
+          if (!response.ok) return { roomId: room.id, blocked: false };
+          const data = (await response.json()) as { bookedSlotIds?: string[] };
+          const booked = new Set(data.bookedSlotIds ?? []);
+          const blocked = dates.some((date) => {
+            const checkOutDateForDay = addDaysToIso(date.iso, checkOutTime <= checkInTime ? 1 : 0);
+            const touchedSlots = getTimeslotIdsOverlappingRange({
+              roomId: room.id,
+              roomName: room.card_name,
+              startAt: makeLocalDateTime(date.iso, checkInTime),
+              endAt: makeLocalDateTime(checkOutDateForDay, checkOutTime),
+              timeSlots: room.time_slots,
+            });
+            return touchedSlots.some((slotId) => booked.has(slotId));
+          });
+          return { roomId: room.id, blocked };
+        } catch {
+          return { roomId: room.id, blocked: false };
+        }
+      }));
+      if (!cancelled) {
+        const blockedIds = new Set(results.filter((result) => result.blocked).map((result) => result.roomId));
+        setCustomBlockedRoomIds(blockedIds);
+        setPresetSelections((current) => current.filter((selection) => !blockedIds.has(selection.roomId)));
+        setCustomAvailabilityLoading(false);
+      }
+    }
+    void loadCustomAvailability();
+    return () => { cancelled = true; };
+  }, [checkInDate, checkInTime, checkOutDate, checkOutTime, rooms, timeMode]);
 
   const selectedMenuItemsTotal = selectedMenuItems.reduce((sum, id) => {
     const item = availableMenuItems.find((menuItem) => menuItem.id === id);
@@ -119,6 +165,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
     `${checkOutDate}T${checkOutTime}` > `${checkInDate}T${checkInTime}`);
 
   function toggleCustomRoom(roomId: number) {
+    if (customBlockedRoomIds.has(roomId)) return;
     const isSelected = presetSelections.some((selection) => selection.roomId === roomId);
     if (isSelected) {
       setPresetSelections((current) => current.filter((selection) => selection.roomId !== roomId));
@@ -267,12 +314,14 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
               <div className="flex flex-wrap gap-2">
                 {rooms.map((room) => {
                   const selected = presetSelections.some((selection) => selection.roomId === room.id);
-                  return <button key={room.id} type="button" onClick={() => toggleCustomRoom(room.id)} className={`rounded-md border px-3 py-2 text-left text-xs transition ${selected ? "border-primary bg-primary/10 font-semibold text-primary" : "hover:border-primary/50"}`}>
-                    {room.card_name}
+                  const blocked = customBlockedRoomIds.has(room.id);
+                  return <button key={room.id} type="button" disabled={blocked || customAvailabilityLoading} onClick={() => toggleCustomRoom(room.id)} title={blocked ? "Khoảng giờ này đã chạm vào khung giờ đang được đặt của phòng" : undefined} className={`rounded-md border px-3 py-2 text-left text-xs transition ${blocked ? "cursor-not-allowed border-rose-200 bg-rose-50 text-rose-600 opacity-75" : selected ? "border-primary bg-primary/10 font-semibold text-primary" : "hover:border-primary/50"}`}>
+                    <span className="block">{room.card_name}</span>
+                    {blocked && <span className="mt-0.5 block text-[10px] font-normal">Đã bận trong khoảng này</span>}
                   </button>;
                 })}
               </div>
-              <p className="text-xs text-muted-foreground">Chọn một hoặc nhiều phòng để áp dụng khoảng giờ và mức giá tùy chỉnh.</p>
+              <p className="text-xs text-muted-foreground">{customAvailabilityLoading ? "Đang kiểm tra các khung giờ đã đặt..." : "Phòng có slot mặc định bị chồng giờ sẽ được khóa để tránh đặt trùng."}</p>
             </div>}
             <div className="mt-4 flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
               <span className="font-semibold">{dateLabel(checkInDate)} {checkInTime}</span>
