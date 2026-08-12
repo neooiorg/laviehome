@@ -53,7 +53,7 @@ export function AdminBookingCalendar({ rooms, dateRange, selected, onChange }: P
     <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
       <div className="flex items-start gap-3">
         <CalendarDays className="mt-0.5 size-5 shrink-0 text-primary" />
-        <div><p className="font-semibold">Chọn nhiều phòng và nhiều ngày</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Bấm vào các ô còn trống để chọn. Có thể chọn nhiều ô ở nhiều phòng và ngày khác nhau trong cùng một booking.</p></div>
+        <div><p className="font-semibold">Chọn khung giờ còn trống</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Bấm vào ô màu xanh để chọn khung giờ cho booking.</p></div>
       </div>
       <div className="flex flex-wrap gap-3 text-xs font-medium text-muted-foreground"><span><i className="mr-1 inline-block size-3 rounded bg-emerald-500" />Còn trống</span><span><i className="mr-1 inline-block size-3 rounded bg-rose-500" />Đã đặt</span><span><i className="mr-1 inline-block size-3 rounded bg-primary" />Đang chọn</span></div>
       <div className="space-y-4">
