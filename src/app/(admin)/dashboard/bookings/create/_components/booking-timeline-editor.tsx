@@ -24,9 +24,9 @@ type Props = {
 };
 
 const STATUS_LABELS: Record<AvailabilitySlotStatus, string> = {
-  available: "Available",
-  blocked: "Blocked",
-  custom: "Custom slot",
+  available: "Còn trống",
+  blocked: "Tạm khóa",
+  custom: "Khung linh động",
 };
 
 function inputDate(value: string) {
@@ -192,7 +192,7 @@ export function BookingTimelineEditor({ roomId, fromDate, toDate }: Props) {
   if (!roomId) return <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">Chọn phòng để xem timeline và available slot.</div>;
 
   return (
-    <CardSection title="Lịch phòng và giờ trống" loading={loading} onRefresh={() => void load()}>
+    <CardSection title="Khoảng thời gian còn trống trong ngày hoặc các ngày" loading={loading} onRefresh={() => void load()}>
       <div className="mb-4 flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
         <CalendarDays className="mt-0.5 size-5 shrink-0 text-primary" />
         <div><p className="text-sm font-semibold">Đang xem từ {formatDate(fromDate)} đến {formatDate(toDate)}</p><p className="mt-0.5 text-xs text-muted-foreground">Màu đỏ là đã có khách. Màu xanh là giờ có thể bán. Bấm biểu tượng bút để chỉnh giờ hoặc giá.</p></div>
@@ -205,15 +205,15 @@ export function BookingTimelineEditor({ roomId, fromDate, toDate }: Props) {
             {timeline.bookings.map((booking) => <TimelineBlock key={`booking-${booking.id}`} startAt={booking.start_at} endAt={booking.end_at} fromDate={fromDate} toDate={toDate} label="Booked" className="bg-red-500" />)}
             {timeline.slots.map((slot) => <TimelineBlock key={`slot-${slot.id}`} startAt={slot.start_at} endAt={slot.end_at} fromDate={fromDate} toDate={toDate} label={STATUS_LABELS[slot.status]} className={slot.status === "blocked" ? "bg-amber-500" : slot.status === "custom" ? "bg-violet-500" : "bg-emerald-500"} />)}
           </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground"><span><i className="mr-1 inline-block size-2 rounded-full bg-red-500" />Booked</span><span><i className="mr-1 inline-block size-2 rounded-full bg-emerald-500" />Available</span><span><i className="mr-1 inline-block size-2 rounded-full bg-amber-500" />Blocked</span><span><i className="mr-1 inline-block size-2 rounded-full bg-violet-500" />Custom</span></div>
+          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground"><span><i className="mr-1 inline-block size-2 rounded-full bg-red-500" />Đã có khách</span><span><i className="mr-1 inline-block size-2 rounded-full bg-emerald-500" />Còn trống</span><span><i className="mr-1 inline-block size-2 rounded-full bg-amber-500" />Tạm khóa</span><span><i className="mr-1 inline-block size-2 rounded-full bg-violet-500" />Khung linh động</span></div>
         </div>
         {selectedSlotIds.length > 1 && <Button size="sm" variant="outline" onClick={mergeSlots} disabled={busy}><Check className="mr-1 size-3.5" />Gộp {selectedSlotIds.length} slot liền nhau</Button>}
         {timeline.bookings.map((booking) => <div key={booking.id} className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"><div className="flex flex-wrap items-center justify-between gap-2"><span className="font-bold">Booked · {booking.guest_name || booking.id}</span><span>{formatTimestamp(booking.start_at)} → {formatTimestamp(booking.end_at)}</span></div><p className="mt-1 opacity-75">{booking.status} · {booking.time_range || "Booking legacy theo slot"}</p></div>)}
         {timeline.slots.map((slot) => <EditableSlot key={slot.id} slot={slot} roomId={roomId} selected={selectedSlotIds.includes(slot.id)} onToggle={() => setSelectedSlotIds((current) => current.includes(slot.id) ? current.filter((id) => id !== slot.id) : [...current, slot.id])} onChanged={() => void load()} />)}
         {!timeline.bookings.length && !timeline.slots.length && <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">Chưa có booking hoặc available slot trong khoảng này.</div>}
       </div>}
-      <div className="mt-4 rounded-lg border bg-muted/20 p-3">
-        <div className="mb-2 flex items-center justify-between"><p className="text-sm font-semibold">Tạo khoảng mới</p><span className="text-xs text-muted-foreground">Available / Blocked / Custom</span></div>
+      <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
+        <div className="mb-3"><p className="text-sm font-semibold">Bạn có muốn tạo khung thời gian linh động cho giờ còn sót lại không?</p><p className="mt-1 text-xs text-muted-foreground">Chọn ngày, giờ bắt đầu và giờ kết thúc bên dưới nếu muốn mở phần thời gian này cho khách đặt.</p></div>
         <div className="grid gap-2 sm:grid-cols-2">
           <Input type="date" value={newFromDate} onChange={(event) => setNewFromDate(event.target.value)} />
           <Input type="time" value={newFromTime} onChange={(event) => setNewFromTime(event.target.value)} />
@@ -222,7 +222,7 @@ export function BookingTimelineEditor({ roomId, fromDate, toDate }: Props) {
           <Select value={newStatus} onValueChange={(value) => setNewStatus(value as AvailabilitySlotStatus)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS_LABELS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent></Select>
           <Input type="number" min={0} value={newPrice} onChange={(event) => setNewPrice(event.target.value)} placeholder="Giá riêng" />
           <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={newVisible} onChange={(event) => setNewVisible(event.target.checked)} /> Cho khách đặt</label>
-          <Button size="sm" onClick={createSlot} disabled={busy}><Plus className="mr-1 size-3.5" />Tạo slot</Button>
+          <Button size="sm" onClick={createSlot} disabled={busy}><Plus className="mr-1 size-3.5" />Tạo khung giờ linh động</Button>
         </div>
       </div>
     </CardSection>
