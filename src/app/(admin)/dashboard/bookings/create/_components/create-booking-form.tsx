@@ -91,9 +91,12 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
       setSelectedMenuItems([]);
       return;
     }
-    const availableIds = new Set(availableMenuItems.map((item) => item.id));
-    setSelectedMenuItems((current) => current.filter((id) => availableIds.has(id)));
-  }, [availableMenuItems, branchId]);
+    const availableIds = new Set(menuItems.filter((item) => item.branch_id === branchId).map((item) => item.id));
+    setSelectedMenuItems((current) => {
+      const next = current.filter((id) => availableIds.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [branchId, menuItems]);
 
   React.useEffect(() => {
     const slot = roomSlots[Number(selectedSlotIndex)] ?? roomSlots[0];
