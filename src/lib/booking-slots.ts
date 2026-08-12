@@ -170,6 +170,121 @@ function dateToIso(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+/** Build a Vietnam-local wall-clock timestamp for database comparisons. */
+export function makeLocalDateTime(dateIso: string, time: string) {
+  const normalizedTime = /^\d{2}:\d{2}$/.test(time) ? time : "00:00";
+  return `${dateIso} ${normalizedTime}:00`;
+}
+
+/** Format a Date as a local wall-clock timestamp for PostgreSQL timestamp fields. */
+export function formatLocalDateTime(date: Date) {
+  const dateIso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  return makeLocalDateTime(dateIso, time);
+}
+
+/** Parse an ISO-like local timestamp without applying the server timezone. */
+export function parseLocalDateTime(value: string | null | undefined) {
+  if (!value) return null;
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second = "0"] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function localDateTimeToIso(date: Date) {
+  const dateIso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return makeLocalDateTime(dateIso, `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`);
+}
+
+export type TimeRangeBounds = {
+  roomId: number;
+  dateIso: string;
+  startAt: string;
+  endAt: string;
+};
+
+/** Resolve a configured slot to its actual local start/end, including overnight slots. */
+export function getTimeslotBounds(timeslotId: string, slots: RoomSlot[]): TimeRangeBounds | null {
+  const parsed = parseTimeslotId(timeslotId);
+  if (parsed.roomId === null || parsed.dateIso === null || parsed.slotIndex === null) return null;
+  const slot = slots[parsed.slotIndex];
+  if (!slot?.start || !slot.end) return null;
+
+  const startMinutes = timeToMinutes(slot.start);
+  const endMinutes = timeToMinutes(slot.end);
+  if (startMinutes === null || endMinutes === null) return null;
+
+  const start = makeVietnamLocalDate(parsed.dateIso);
+  start.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+  const end = makeVietnamLocalDate(parsed.dateIso);
+  end.setHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
+  if (end <= start) end.setDate(end.getDate() + 1);
+
+  return {
+    roomId: parsed.roomId,
+    dateIso: parsed.dateIso,
+    startAt: localDateTimeToIso(start),
+    endAt: localDateTimeToIso(end),
+  };
+}
+
+/** Find default customer slots touched by an arbitrary Admin time range. */
+export function getTimeslotIdsOverlappingRange(input: {
+  roomId: number;
+  roomName: string;
+  startAt: string;
+  endAt: string;
+  timeSlots?: RoomSlot[] | null;
+}) {
+  const start = parseLocalDateTime(input.startAt);
+  const end = parseLocalDateTime(input.endAt);
+  if (!start || !end || end <= start) return [];
+
+  const firstDate = new Date(start);
+  firstDate.setDate(firstDate.getDate() - 1);
+  const lastDate = new Date(end);
+  lastDate.setDate(lastDate.getDate() + 1);
+  const slots = getRoomSlots(input.roomName, input.timeSlots);
+  const result: string[] = [];
+
+  for (const date = new Date(firstDate); date <= lastDate; date.setDate(date.getDate() + 1)) {
+    const dateIso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    for (let slotIndex = 0; slotIndex < slots.length; slotIndex++) {
+      const bounds = getTimeslotBounds(buildTimeslotId(input.roomId, dateIso, slotIndex), slots);
+      if (!bounds) continue;
+      const slotStart = parseLocalDateTime(bounds.startAt)?.getTime() ?? 0;
+      const slotEnd = parseLocalDateTime(bounds.endAt)?.getTime() ?? 0;
+      if (slotStart < end.getTime() && start.getTime() < slotEnd) {
+        result.push(buildTimeslotId(input.roomId, dateIso, slotIndex));
+      }
+    }
+  }
+
+  return result;
+}
+
+/** The broad operating window covered by the room's configured customer slots. */
+export function getDefaultOperatingWindow(input: {
+  roomId: number;
+  roomName: string;
+  dateIso: string;
+  timeSlots?: RoomSlot[] | null;
+}) {
+  const slots = getRoomSlots(input.roomName, input.timeSlots);
+  const bounds = slots
+    .map((_, index) => getTimeslotBounds(buildTimeslotId(input.roomId, input.dateIso, index), slots))
+    .filter((value): value is TimeRangeBounds => Boolean(value));
+  if (bounds.length === 0) return null;
+
+  const starts = bounds.map((value) => parseLocalDateTime(value.startAt)).filter(Boolean) as Date[];
+  const ends = bounds.map((value) => parseLocalDateTime(value.endAt)).filter(Boolean) as Date[];
+  const start = new Date(Math.min(...starts.map((value) => value.getTime())));
+  const end = new Date(Math.max(...ends.map((value) => value.getTime())));
+  return { startAt: localDateTimeToIso(start), endAt: localDateTimeToIso(end) };
+}
+
 export function getTodayIso() {
   return makeBookingDatesFromOffset(0, 1)[0].iso;
 }

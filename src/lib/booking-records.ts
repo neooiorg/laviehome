@@ -25,6 +25,8 @@ export type RawBookingRecord = {
   stay_date: string | null;
   date_label: string | null;
   time_range: string | null;
+  check_in_at: string | null;
+  check_out_at: string | null;
   timeslot_ids: string | null;
   channel: string | null;
   status: string;
@@ -97,6 +99,8 @@ export async function ensureBookingNotificationColumns() {
   await query(`alter table bookings add column if not exists door_code varchar(8)`).catch(() => []);
   await query(`alter table bookings add column if not exists payment_reference varchar(80)`).catch(() => []);
   await query(`alter table bookings add column if not exists payment_amount bigint`).catch(() => []);
+  await query(`alter table bookings add column if not exists check_in_at timestamp`).catch(() => []);
+  await query(`alter table bookings add column if not exists check_out_at timestamp`).catch(() => []);
 }
 
 /** The auto-assigned status for an online booking awaiting a bank transfer. */
@@ -200,6 +204,8 @@ export async function fetchRawBookings(options?: {
       stay_date::text,
       date_label,
       time_range,
+      check_in_at::text,
+      check_out_at::text,
       timeslot_ids,
       channel,
       status,
@@ -293,6 +299,8 @@ export async function getActiveBookingsForRoomDate(input: {
       stay_date::text,
       date_label,
       time_range,
+      check_in_at::text,
+      check_out_at::text,
       timeslot_ids,
       channel,
       status,

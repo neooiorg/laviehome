@@ -16,6 +16,11 @@ function money(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
 }
 
+function formatBookingTimestamp(value: string | null) {
+  if (!value) return null;
+  return `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)} ${value.slice(11, 16)}`;
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null;
   return (
@@ -97,6 +102,8 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               <Field label="Chi nhánh" value={booking.branch.name} />
               <Field label="Ngày" value={booking.dateLabel} />
               <Field label="Khung giờ" value={booking.timeRange} />
+              <Field label="Bắt đầu" value={formatBookingTimestamp(booking.checkInAt)} />
+              <Field label="Kết thúc" value={formatBookingTimestamp(booking.checkOutAt)} />
               <Field label="Mật khẩu cửa" value={booking.doorCode ? <span className="font-mono text-base font-bold">{booking.doorCode}</span> : null} />
               <Field label="Kênh" value={booking.channel} />
               <Field label="Mã giảm giá" value={booking.discountCode} />

@@ -38,6 +38,8 @@ export type BookingSnapshot = {
   stayDate: string;
   dateLabel: string;
   timeRange: string;
+  checkInAt: string | null;
+  checkOutAt: string | null;
   channel: string;
   status: BookingStatus;
   amount: number;
@@ -263,6 +265,8 @@ function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
     stayDate,
     dateLabel: booking.dateLabel ?? stayDate,
     timeRange: formatAdminTimeRange(booking.raw.time_range),
+    checkInAt: booking.raw.check_in_at,
+    checkOutAt: booking.raw.check_out_at,
     channel: booking.channel,
     status: booking.raw.status as BookingStatus,
     amount: Number(booking.raw.amount) || 0,
