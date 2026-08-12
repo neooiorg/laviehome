@@ -32,7 +32,7 @@ export function MenuItemsSelector({ items, selectedIds, onSelectionChange }: Men
   }
 
   return (
-    <div className="rounded-lg border divide-y overflow-hidden">
+    <div className="max-h-64 overflow-y-auto rounded-lg border divide-y overscroll-contain">
       {activeItems.map((item) => {
         const selected = selectedIds.includes(item.id);
         return (
