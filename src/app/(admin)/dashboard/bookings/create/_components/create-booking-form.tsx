@@ -138,6 +138,35 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
       const room = rooms.find((item) => item.id === selection.roomId);
       const slot = room ? getRoomSlots(room.card_name, room.time_slots)[selection.slotIndex] : null;
       if (!room || !slot?.start || !slot.end) continue;
+      if (timeMode === "custom") {
+        await createBookingAdmin({
+          roomId: room.id,
+          branchId: room.branch_id,
+          guestName,
+          customerName,
+          customerPhone,
+          stayDate: selection.dateIso,
+          timeRange: `${checkInTime} - ${checkOutTime}`,
+          checkInDate: selection.dateIso,
+          checkInTime,
+          checkOutDate: addDaysToIso(selection.dateIso, checkOutTime <= checkInTime ? 1 : 0),
+          checkOutTime,
+          channel,
+          status,
+          amount: Number(amount) || 0,
+          guestCount: Number(guestCount) || 1,
+          notes,
+          hasCar,
+          hasDecoration,
+          cccdFront,
+          cccdBack,
+          discountCode: discountMode === "voucher" ? voucherCode : null,
+          discountPercent,
+          discountAmount,
+          menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
+        });
+        continue;
+      }
       const overnight = isOvernightRange(slot.start, slot.end);
       await createBookingAdmin({
         roomId: room.id,
@@ -236,7 +265,7 @@ export function CreateBookingForm({ rooms, branches, menuItems, discountCodes }:
             {branchName && <p className="text-xs text-muted-foreground">Chi nhánh: {branchName}</p>}
           </div>
 
-          {timeMode === "preset" && <AdminBookingCalendar rooms={rooms} dateRange={{ from: checkInDate, to: checkOutDate }} selected={presetSelections} onChange={(next) => { setPresetSelections(next); if (next[0]) setRoomId(String(next[0].roomId)); }} />}
+          <AdminBookingCalendar mode={timeMode} rooms={rooms} dateRange={{ from: checkInDate, to: checkOutDate }} selected={presetSelections} onChange={(next) => { setPresetSelections(next); if (next[0]) setRoomId(String(next[0].roomId)); }} />
           <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
             <div><p className="font-semibold">Voucher / giảm giá</p><p className="mt-1 text-xs text-muted-foreground">Chọn mã có sẵn hoặc nhập mức giảm riêng cho booking này.</p></div>
             <div className="grid grid-cols-3 rounded-lg border bg-background p-1">
