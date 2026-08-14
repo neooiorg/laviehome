@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Clock3, IdCard } from "lucide-react";
 
 import { createBookingAdmin } from "@/lib/booking-actions";
-import { addDaysToIso, getRoomSlots, getTodayIso, getTimeslotIdsOverlappingRange, isOvernightRange, makeBookingDatesFromRange, makeLocalDateTime } from "@/lib/booking-slots";
+import { addDaysToIso, getRoomSlots, getTodayIso, getTimeslotIdsOverlappingRange, isOvernightRange, makeLocalDateTime } from "@/lib/booking-slots";
 import { type BookingStatus, type BranchRow, type DiscountCode, type RoomRow } from "@/lib/homestay-dashboard";
 import type { MenuItem } from "@/lib/menu-actions";
 import { Button } from "@/components/ui/button";
@@ -103,24 +103,20 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
     let cancelled = false;
     async function loadCustomAvailability() {
       setCustomAvailabilityLoading(true);
-      const dates = makeBookingDatesFromRange({ from: checkInDate, to: checkOutDate });
       const results = await Promise.all(rooms.map(async (room) => {
         try {
           const response = await fetch(`/api/booking-availability?room_id=${room.id}`);
           if (!response.ok) return { roomId: room.id, blocked: false };
           const data = (await response.json()) as { bookedSlotIds?: string[] };
           const booked = new Set(data.bookedSlotIds ?? []);
-          const blocked = dates.some((date) => {
-            const checkOutDateForDay = addDaysToIso(date.iso, checkOutTime <= checkInTime ? 1 : 0);
-            const touchedSlots = getTimeslotIdsOverlappingRange({
-              roomId: room.id,
-              roomName: room.card_name,
-              startAt: makeLocalDateTime(date.iso, checkInTime),
-              endAt: makeLocalDateTime(checkOutDateForDay, checkOutTime),
-              timeSlots: room.time_slots,
-            });
-            return touchedSlots.some((slotId) => booked.has(slotId));
+          const touchedSlots = getTimeslotIdsOverlappingRange({
+            roomId: room.id,
+            roomName: room.card_name,
+            startAt: makeLocalDateTime(checkInDate, checkInTime),
+            endAt: makeLocalDateTime(checkOutDate, checkOutTime),
+            timeSlots: room.time_slots,
           });
+          const blocked = touchedSlots.some((slotId) => booked.has(slotId));
           return { roomId: room.id, blocked };
         } catch {
           return { roomId: room.id, blocked: false };
@@ -171,37 +167,38 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
       setPresetSelections((current) => current.filter((selection) => selection.roomId !== roomId));
       return;
     }
-    const dates = makeBookingDatesFromRange({ from: checkInDate, to: checkOutDate });
     setPresetSelections((current) => [
       ...current,
-      ...dates.map((date) => ({
-        key: `${roomId}-${date.iso}-custom`,
+      {
+        key: `${roomId}-${checkInDate}-custom`,
         roomId,
-        dateIso: date.iso,
+        dateIso: checkInDate,
         slotIndex: 0,
-      })),
+      },
     ]);
   }
 
   async function createPresetBookings() {
-    for (const selection of presetSelections) {
-      const room = rooms.find((item) => item.id === selection.roomId);
-      const slot = room ? getRoomSlots(room.card_name, room.time_slots)[selection.slotIndex] : null;
-      if (!room) continue;
-      const bookingAmount = timeMode === "preset" ? getSlotPrice(room, selection.slotIndex) : Math.max(Number(amount) || 0, 0);
-      const bookingDiscountAmount = getDiscountAmountFor(bookingAmount);
-      if (timeMode === "custom") {
+    if (timeMode === "custom") {
+      const selectedRoomIds = [...new Set(presetSelections.map((selection) => selection.roomId))];
+
+      for (const roomId of selectedRoomIds) {
+        const room = rooms.find((item) => item.id === roomId);
+        if (!room) continue;
+
+        const bookingAmount = Math.max(Number(amount) || 0, 0);
+        const bookingDiscountAmount = getDiscountAmountFor(bookingAmount);
         await createBookingAdmin({
           roomId: room.id,
           branchId: room.branch_id,
           guestName,
           customerName,
           customerPhone,
-          stayDate: selection.dateIso,
+          stayDate: checkInDate,
           timeRange: `${checkInTime} - ${checkOutTime}`,
-          checkInDate: selection.dateIso,
+          checkInDate,
           checkInTime,
-          checkOutDate: addDaysToIso(selection.dateIso, checkOutTime <= checkInTime ? 1 : 0),
+          checkOutDate,
           checkOutTime,
           channel,
           status,
@@ -217,8 +214,17 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           discountAmount: bookingDiscountAmount,
           menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
         });
-        continue;
       }
+
+      return;
+    }
+
+    for (const selection of presetSelections) {
+      const room = rooms.find((item) => item.id === selection.roomId);
+      const slot = room ? getRoomSlots(room.card_name, room.time_slots)[selection.slotIndex] : null;
+      if (!room) continue;
+      const bookingAmount = getSlotPrice(room, selection.slotIndex);
+      const bookingDiscountAmount = getDiscountAmountFor(bookingAmount);
       if (!slot?.start || !slot.end) continue;
       const overnight = isOvernightRange(slot.start, slot.end);
       await createBookingAdmin({
