@@ -15,7 +15,7 @@ const META_THEME_COLORS = {
   dark: '#09090b'
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://laviehome.vn';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hilaviehome.vn';
 const SITE_NAME = 'Lavie Home';
 const SITE_TITLE = 'Lavie Home - Đặt Phòng Tự Check-in Tự Động 24/7';
 const SITE_DESCRIPTION =

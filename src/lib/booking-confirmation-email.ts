@@ -21,7 +21,7 @@ export type BookingConfirmationPayload = {
   bookingNotice?: string | null;
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://laviehomestay.vn";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://hilaviehome.vn";
 
 export async function sendBookingConfirmationEmail(input: BookingConfirmationPayload) {
   if (!input.customerEmail || !process.env.RESEND_API_KEY) {
