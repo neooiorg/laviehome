@@ -1,5 +1,5 @@
 import PageContainer from '@/components/layout/page-container';
-import { getPaymentSummary, getRevenueDashboardSummary } from '@/lib/homestay-dashboard';
+import { getPaymentSummary, getRevenueDashboardSummary, type RevenueDashboardSummary } from '@/lib/homestay-dashboard';
 import React from 'react';
 import { RevenueOverview } from './_components/revenue-overview';
 
@@ -9,7 +9,7 @@ async function getOverviewSummary() {
   } catch (error) {
     console.error('Dashboard overview summary error:', error);
     return [
-      { today: 0, week: 0, month: 0, year: 0, paidBookings: 0, topRoom: null, topRooms: [] },
+      { today: 0, week: 0, month: 0, year: 0, paidBookings: 0, topRoom: null, topRooms: [] as RevenueDashboardSummary['topRooms'] },
       {
         receivedTotal: 0,
         receivedCount: 0,
