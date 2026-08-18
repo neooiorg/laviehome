@@ -593,6 +593,15 @@ export type RevenuePoint = {
   bookings: number;
 };
 
+export type RevenueDashboardSummary = {
+  today: number;
+  week: number;
+  month: number;
+  year: number;
+  paidBookings: number;
+  topRoom: { name: string; bookings: number; revenue: number } | null;
+};
+
 // Chuyển khoản VietQR: tiền đã thực nhận khi khách đã thanh toán / đang ở / hoàn tất.
 const RECEIVED_STATUSES = new Set<BookingStatus>(['Đã thanh toán', 'Đang ở', 'Hoàn tất']);
 // Đang chờ khách chuyển khoản (thanh toán hoặc đặt cọc).
@@ -693,6 +702,56 @@ export function moneyRange(room: RoomSummary['room']) {
 export async function getPublicRoomById(id: number): Promise<RoomRow | null> {
   const results = await query<RoomRow>('select * from rooms where id = $1', [id]);
   return results[0] ?? null;
+}
+
+const RECEIVED_REVENUE_STATUSES = new Set<BookingStatus>(['Đã thanh toán', 'Đang ở', 'Hoàn tất']);
+
+function localIsoDate(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(date);
+}
+
+function paymentDateForReport(booking: NormalizedBookingRecord) {
+  if (booking.raw.paid_at) return booking.raw.paid_at.slice(0, 10);
+  // Historical records predate paid_at; their last update is the closest usable receipt timestamp.
+  return RECEIVED_REVENUE_STATUSES.has(booking.raw.status as BookingStatus)
+    ? booking.raw.updated_at.slice(0, 10)
+    : null;
+}
+
+export async function getRevenueDashboardSummary(): Promise<RevenueDashboardSummary> {
+  const today = localIsoDate();
+  const todayDate = new Date(`${today}T00:00:00+07:00`);
+  const weekStart = new Date(todayDate);
+  weekStart.setDate(todayDate.getDate() - ((todayDate.getDay() + 6) % 7));
+  const weekStartIso = localIsoDate(weekStart);
+  const monthPrefix = today.slice(0, 7);
+  const yearPrefix = today.slice(0, 4);
+  const paid = (await getBookings(1500)).filter((booking) => paymentDateForReport(booking));
+  const totals = { today: 0, week: 0, month: 0, year: 0 };
+  const rooms = new Map<string, { bookings: number; revenue: number }>();
+
+  for (const booking of paid) {
+    const paymentDate = paymentDateForReport(booking)!;
+    const amount = getBookingDisplayTotal({ amount: booking.raw.amount, menuItemsTotal: booking.raw.menu_items_total });
+    if (paymentDate === today) totals.today += amount;
+    if (paymentDate >= weekStartIso && paymentDate <= today) totals.week += amount;
+    if (paymentDate.startsWith(monthPrefix)) totals.month += amount;
+    if (paymentDate.startsWith(yearPrefix)) totals.year += amount;
+    const name = booking.roomName || 'Chưa rõ phòng';
+    const current = rooms.get(name) ?? { bookings: 0, revenue: 0 };
+    current.bookings += 1;
+    current.revenue += amount;
+    rooms.set(name, current);
+  }
+
+  const top = [...rooms.entries()].sort((a, b) => b[1].bookings - a[1].bookings || b[1].revenue - a[1].revenue)[0];
+  return {
+    ...totals,
+    paidBookings: paid.length,
+    topRoom: top ? { name: top[0], ...top[1] } : null,
+  };
 }
 
 export async function getRoomById(id: number): Promise<RoomRow | null> {

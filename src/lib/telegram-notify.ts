@@ -10,6 +10,7 @@ export interface TelegramBookingPayload {
   timeRange: string;
   amount: number;
   doorCode: string;
+  source?: 'admin' | 'sepay';
 }
 
 function escapeHtml(text: string): string {
@@ -28,7 +29,7 @@ export async function sendTelegramBookingNotification(payload: TelegramBookingPa
   const formattedAmount = new Intl.NumberFormat("vi-VN").format(payload.amount) + "đ";
 
   const lines = [
-    "🏠 <b>Đặt phòng mới đã thanh toán!</b>",
+    payload.source === 'admin' ? "🏠 <b>Đơn admin mới đã thanh toán!</b>" : "🏠 <b>Đặt phòng mới đã thanh toán!</b>",
     "",
     `📋 Mã: <code>${escapeHtml(payload.bookingId)}</code>`,
     `👤 Khách: ${escapeHtml(payload.customerName)}`,
@@ -37,7 +38,7 @@ export async function sendTelegramBookingNotification(payload: TelegramBookingPa
     `📅 Ngày: ${escapeHtml(payload.dateLabel)}`,
     `⏰ Giờ: ${escapeHtml(payload.timeRange)}`,
     `💰 Đã thanh toán: <b>${formattedAmount}</b>`,
-    `🔑 Mã cửa: <code>${escapeHtml(payload.doorCode)}</code>`,
+    ...(payload.doorCode ? [`🔑 Mã cửa: <code>${escapeHtml(payload.doorCode)}</code>`] : []),
   ];
 
   const body = Buffer.from(

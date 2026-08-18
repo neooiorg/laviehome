@@ -1,17 +1,17 @@
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getDashboardMetrics, getPaymentSummary } from '@/lib/homestay-dashboard';
+import { getPaymentSummary, getRevenueDashboardSummary } from '@/lib/homestay-dashboard';
 import { money } from '@/lib/format';
-import { Wallet, Clock, BedDouble, Building2 } from 'lucide-react';
+import { Wallet, CalendarDays, Trophy, Clock } from 'lucide-react';
 import React from 'react';
 
 async function getOverviewSummary() {
   try {
-    return await Promise.all([getDashboardMetrics(), getPaymentSummary(6)]);
+    return await Promise.all([getRevenueDashboardSummary(), getPaymentSummary(6)]);
   } catch (error) {
     console.error('Dashboard overview summary error:', error);
     return [
-      [],
+      { today: 0, week: 0, month: 0, year: 0, paidBookings: 0, topRoom: null },
       {
         receivedTotal: 0,
         receivedCount: 0,
@@ -34,36 +34,33 @@ export default async function OverViewLayout({
 }) {
   const [metrics, payments] = await getOverviewSummary();
 
-  const branchMetric = metrics.find((metric) => metric.label === 'Chi nhánh đang mở');
-  const roomMetric = metrics.find((metric) => metric.label === 'Phòng đang bán');
-
   const kpiCards = [
     {
-      label: 'Doanh thu đã nhận',
-      value: `${money(payments.receivedTotal)}đ`,
-      note: `${payments.receivedCount} giao dịch gần đây`,
+      label: 'Doanh thu hôm nay',
+      value: `${money(metrics.today)}đ`,
+      note: 'Theo thời điểm thanh toán',
       icon: Wallet,
       accent: 'text-emerald-600 dark:text-emerald-400'
     },
     {
-      label: 'Chờ chuyển khoản',
-      value: String(payments.pendingCount),
-      note: `${money(payments.pendingTotal)}đ đang chờ khách chuyển`,
-      icon: Clock,
-      accent: 'text-amber-600 dark:text-amber-400'
+      label: 'Doanh thu tuần này',
+      value: `${money(metrics.week)}đ`,
+      note: `${metrics.paidBookings} thanh toán đã ghi nhận`,
+      icon: CalendarDays,
+      accent: 'text-emerald-600 dark:text-emerald-400'
     },
     {
-      label: roomMetric?.label ?? 'Phòng đang bán',
-      value: roomMetric?.value ?? '—',
-      note: roomMetric?.note ?? '',
-      icon: BedDouble,
+      label: 'Doanh thu tháng này',
+      value: `${money(metrics.month)}đ`,
+      note: `Năm ${new Date().getFullYear()}: ${money(metrics.year)}đ`,
+      icon: Wallet,
       accent: 'text-foreground'
     },
     {
-      label: branchMetric?.label ?? 'Chi nhánh đang mở',
-      value: branchMetric?.value ?? '—',
-      note: branchMetric?.note ?? '',
-      icon: Building2,
+      label: 'Phòng được đặt nhiều',
+      value: metrics.topRoom?.name ?? 'Chưa có',
+      note: metrics.topRoom ? `${metrics.topRoom.bookings} lượt · ${money(metrics.topRoom.revenue)}đ` : 'Chưa có thanh toán',
+      icon: Trophy,
       accent: 'text-foreground'
     }
   ];

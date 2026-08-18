@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     const doorCode = generateDoorCode();
     const res = await db.query(
       `UPDATE bookings
-       SET status = $1, door_code = COALESCE(door_code, $3), updated_at = NOW()
+       SET status = $1, door_code = COALESCE(door_code, $3), paid_at = COALESCE(paid_at, NOW()), updated_at = NOW()
        WHERE UPPER(id) = $2
          AND status NOT IN ('Đã thanh toán', 'Đã xác nhận', 'Chờ cọc', 'Đang ở', 'Hoàn tất')
        RETURNING id, customer_email, customer_name, customer_phone, amount, room_name, branch_name, date_label, time_range, door_code,

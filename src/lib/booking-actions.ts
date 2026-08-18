@@ -20,6 +20,7 @@ import { type BookingStatus, type BranchRow, type RoomRow } from '@/lib/homestay
 import { query } from '@/lib/postgres';
 import { generateResidualAvailabilitySlots } from '@/lib/room-availability-actions';
 import { generateDoorCode } from '@/lib/door-code';
+import { sendTelegramBookingNotification } from '@/lib/telegram-notify';
 
 const BOOKING_ACCESS_STATUSES = new Set<BookingStatus>([
   'Đã thanh toán',
@@ -31,9 +32,11 @@ const BOOKING_ACCESS_STATUSES = new Set<BookingStatus>([
 
 export async function updateBookingStatus(id: string, status: BookingStatus) {
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`).catch(() => null);
   await query(
     `UPDATE bookings
      SET status = $1,
+         paid_at = CASE WHEN $1 = 'Đã thanh toán' THEN COALESCE(paid_at, NOW()) ELSE paid_at END,
          door_code = CASE
            WHEN $3::boolean THEN COALESCE(door_code, $4)
            ELSE door_code
@@ -105,6 +108,7 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`).catch(() => null);
 
   const range = resolveRange(data);
   const id = `ADM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -175,13 +179,14 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
   const noteWithManualDiscount = data.discountCode || calculatedDiscount <= 0
     ? data.notes
     : `${data.notes ? `${data.notes}\n` : ""}Giảm thủ công: -${calculatedDiscount.toLocaleString("vi-VN")}đ`;
+  const doorCode = BOOKING_ACCESS_STATUSES.has(data.status) ? generateDoorCode() : null;
 
   await query(
     `INSERT INTO bookings (
       id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone,
       stay_date, date_label, time_range, check_in_at, check_out_at, timeslot_ids, channel, status,
-      amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back, door_code
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
+      amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back, door_code, paid_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
     [
       id,
       data.roomId,
@@ -209,7 +214,8 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
       noteWithManualDiscount,
       data.cccdFront ?? null,
       data.cccdBack ?? null,
-      BOOKING_ACCESS_STATUSES.has(data.status) ? generateDoorCode() : null,
+      doorCode,
+      data.status === 'Đã thanh toán' ? new Date().toISOString() : null,
     ]
   );
 
@@ -232,6 +238,25 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
     endAt: range.checkOutAt,
     price: finalRoomAmount,
   });
+
+  if (data.status === 'Đã thanh toán') {
+    try {
+      await sendTelegramBookingNotification({
+        bookingId: id,
+        customerName: data.customerName || data.guestName,
+        customerPhone: data.customerPhone,
+        roomName: room.card_name,
+        branchName: branch?.name ?? room.branch_name,
+        dateLabel: range.checkInDate,
+        timeRange: `${range.checkInTime} - ${range.checkOutTime}`,
+        amount: finalRoomAmount + menuItemsTotal,
+        doorCode: doorCode ?? '',
+        source: 'admin',
+      });
+    } catch (error) {
+      console.error('Admin booking Telegram notification error:', error);
+    }
+  }
 
   revalidatePath('/dashboard/bookings');
 }

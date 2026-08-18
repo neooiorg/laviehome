@@ -40,7 +40,9 @@ export type RawBookingRecord = {
   cccd_front: string | null;
   cccd_back: string | null;
   door_code: string | null;
+  paid_at: string | null;
   created_at: string;
+  updated_at: string;
 };
 
 type CatalogRoom = {
@@ -101,6 +103,7 @@ export async function ensureBookingNotificationColumns() {
   await query(`alter table bookings add column if not exists payment_amount bigint`).catch(() => []);
   await query(`alter table bookings add column if not exists check_in_at timestamp`).catch(() => []);
   await query(`alter table bookings add column if not exists check_out_at timestamp`).catch(() => []);
+  await query(`alter table bookings add column if not exists paid_at timestamp`).catch(() => []);
 }
 
 /** The auto-assigned status for an online booking awaiting a bank transfer. */
@@ -218,7 +221,9 @@ export async function fetchRawBookings(options?: {
       notes,
       ${cccdColumns}
       door_code,
-      created_at::text
+      paid_at::text,
+      created_at::text,
+      updated_at::text
     from bookings
     ${whereClause}
     order by created_at desc
@@ -314,7 +319,9 @@ export async function getActiveBookingsForRoomDate(input: {
       null::text as cccd_front,
       null::text as cccd_back,
       door_code,
-      created_at::text
+      paid_at::text,
+      created_at::text,
+      updated_at::text
     from bookings
     where status not in ('Đã hủy', 'Hủy', 'Cancelled', 'Đã hết hạn - Không thanh toán')
       and (
