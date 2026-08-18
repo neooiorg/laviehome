@@ -241,6 +241,9 @@ export function RoomBooking({
           <span className="w-4 h-4 rounded-md border-2 border-rose-500 bg-white/5" /> Còn trống
         </div>
         <div className="flex items-center gap-2">
+          <span className="booking-slot-past w-4 h-4 rounded-md border-2" /> Đã qua
+        </div>
+        <div className="flex items-center gap-2">
           <span className="w-4 h-4 rounded-md bg-yellow-400" /> Đang chọn
         </div>
         {promoActive && (
@@ -316,7 +319,7 @@ export function RoomBooking({
                               booked
                                 ? "bg-rose-500 border-transparent text-white/50 cursor-not-allowed"
                                 : past
-                                  ? "bg-rose-500 border-transparent text-white/50 cursor-not-allowed"
+                                  ? "booking-slot-past text-white/50 cursor-not-allowed"
                                   : selected
                                     ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)]"
                                     : promo

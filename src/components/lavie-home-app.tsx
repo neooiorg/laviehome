@@ -649,6 +649,10 @@ export function LavieHomeApp({
               <span>Còn Trống</span>
             </div>
             <div className="flex items-center gap-2">
+              <span className="booking-slot-past w-5 h-5 rounded-lg border-2" />
+              <span>Đã qua</span>
+            </div>
+            <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-lg bg-yellow-400 text-black border border-yellow-300" />
               <span>Đang chọn</span>
             </div>
@@ -760,7 +764,7 @@ export function LavieHomeApp({
                                       booked
                                         ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
                                         : past
-                                          ? "bg-rose-500 border-transparent cursor-not-allowed shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]"
+                                          ? "booking-slot-past cursor-not-allowed"
                                           : selected
                                             ? "bg-yellow-400 border-yellow-300 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.4)] hover:bg-yellow-300"
                                             : promo

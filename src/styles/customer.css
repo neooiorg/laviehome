@@ -741,6 +741,17 @@ input {
   background: rgba(25, 14, 30, 0.96);
 }
 
+/* Past slots stay unavailable, but the offer-inspired edge distinguishes them from booked slots. */
+.booking-slot-past {
+  border-color: transparent;
+  background:
+    linear-gradient(#2a1730, #2a1730) padding-box,
+    linear-gradient(135deg, #fb923c 0%, #f35abd 52%, #f6d76f 100%) border-box;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.08),
+    0 0 10px rgba(243, 90, 189, 0.22);
+}
+
 .booking-table {
   width: max(100%, 1120px);
   min-width: 1120px;
