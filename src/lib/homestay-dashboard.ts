@@ -601,6 +601,7 @@ export type RevenueDashboardSummary = {
   paidBookings: number;
   topRoom: { name: string; bookings: number; revenue: number } | null;
   topRooms: { name: string; bookings: number; revenue: number }[];
+  custom?: number;
 };
 
 // Chuyển khoản VietQR: tiền đã thực nhận khi khách đã thanh toán / đang ở / hoàn tất.
@@ -721,7 +722,7 @@ function paymentDateForReport(booking: NormalizedBookingRecord) {
     : null;
 }
 
-export async function getRevenueDashboardSummary(): Promise<RevenueDashboardSummary> {
+export async function getRevenueDashboardSummary(options?: { dateFrom?: string; dateTo?: string }): Promise<RevenueDashboardSummary> {
   const today = localIsoDate();
   const todayDate = new Date(`${today}T00:00:00+07:00`);
   const weekStart = new Date(todayDate);
@@ -729,7 +730,11 @@ export async function getRevenueDashboardSummary(): Promise<RevenueDashboardSumm
   const weekStartIso = localIsoDate(weekStart);
   const monthPrefix = today.slice(0, 7);
   const yearPrefix = today.slice(0, 4);
-  const paid = (await getBookings(1500)).filter((booking) => paymentDateForReport(booking));
+  const allPaid = (await getBookings(1500)).filter((booking) => paymentDateForReport(booking));
+  const paid = allPaid.filter((booking) => {
+    const date = paymentDateForReport(booking)!;
+    return (!options?.dateFrom || date >= options.dateFrom) && (!options?.dateTo || date <= options.dateTo);
+  });
   const totals = { today: 0, week: 0, month: 0, year: 0 };
   const rooms = new Map<string, { bookings: number; revenue: number }>();
 
@@ -756,6 +761,7 @@ export async function getRevenueDashboardSummary(): Promise<RevenueDashboardSumm
     paidBookings: paid.length,
     topRoom: topRooms[0] ?? null,
     topRooms,
+    custom: options?.dateFrom || options?.dateTo ? paid.reduce((sum, booking) => sum + getBookingDisplayTotal({ amount: booking.raw.amount, menuItemsTotal: booking.raw.menu_items_total }), 0) : undefined,
   };
 }
 
