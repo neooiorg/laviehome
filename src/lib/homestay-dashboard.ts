@@ -600,6 +600,7 @@ export type RevenueDashboardSummary = {
   year: number;
   paidBookings: number;
   topRoom: { name: string; bookings: number; revenue: number } | null;
+  topRooms: { name: string; bookings: number; revenue: number }[];
 };
 
 // Chuyển khoản VietQR: tiền đã thực nhận khi khách đã thanh toán / đang ở / hoàn tất.
@@ -746,11 +747,15 @@ export async function getRevenueDashboardSummary(): Promise<RevenueDashboardSumm
     rooms.set(name, current);
   }
 
-  const top = [...rooms.entries()].sort((a, b) => b[1].bookings - a[1].bookings || b[1].revenue - a[1].revenue)[0];
+  const topRooms = [...rooms.entries()]
+    .map(([name, value]) => ({ name, ...value }))
+    .sort((a, b) => b.bookings - a.bookings || b.revenue - a.revenue)
+    .slice(0, 5);
   return {
     ...totals,
     paidBookings: paid.length,
-    topRoom: top ? { name: top[0], ...top[1] } : null,
+    topRoom: topRooms[0] ?? null,
+    topRooms,
   };
 }
 
