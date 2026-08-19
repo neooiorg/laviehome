@@ -76,6 +76,10 @@ export interface AdminBookingInput {
   menuItemIds?: number[];
 }
 
+export type AdminBookingResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
 type AdminRoom = RoomRow & { time_slots?: RoomSlot[] | null };
 
 function resolveRange(data: AdminBookingInput) {
@@ -100,7 +104,20 @@ function resolveRange(data: AdminBookingInput) {
   return { checkInDate, checkOutDate, checkInTime, checkOutTime, checkInAt, checkOutAt, start, end };
 }
 
-export async function createBookingAdmin(data: AdminBookingInput): Promise<void> {
+export async function createBookingAdmin(data: AdminBookingInput): Promise<AdminBookingResult> {
+  try {
+    await createBookingAdminOrThrow(data);
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Không thể tạo booking. Vui lòng thử lại.";
+    // Expected validation errors are returned to the admin form instead of
+    // bubbling into Next's production Server Components error boundary.
+    console.warn("Admin booking creation rejected:", message);
+    return { ok: false, error: message };
+  }
+}
+
+async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void> {
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_at TIMESTAMP`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMP`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`).catch(() => null);
@@ -148,6 +165,7 @@ export async function createBookingAdmin(data: AdminBookingInput): Promise<void>
 
   const hasConflict = activeBookings.some((booking) => {
     if (booking.raw.id === id) return false;
+    if (booking.roomId !== room.id) return false;
 
     if (booking.raw.check_in_at && booking.raw.check_out_at) {
       const start = parseLocalDateTime(booking.raw.check_in_at);

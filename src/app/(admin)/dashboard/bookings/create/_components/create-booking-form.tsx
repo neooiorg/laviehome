@@ -178,7 +178,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
     ]);
   }
 
-  async function createPresetBookings() {
+  async function createPresetBookings(): Promise<{ ok: true } | { ok: false; error: string }> {
     if (timeMode === "custom") {
       const selectedRoomIds = [...new Set(presetSelections.map((selection) => selection.roomId))];
 
@@ -188,7 +188,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
 
         const bookingAmount = Math.max(Number(amount) || 0, 0);
         const bookingDiscountAmount = getDiscountAmountFor(bookingAmount);
-        await createBookingAdmin({
+        const result = await createBookingAdmin({
           roomId: room.id,
           branchId: room.branch_id,
           guestName,
@@ -214,9 +214,10 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           discountAmount: bookingDiscountAmount,
           menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
         });
+        if (!result.ok) return result;
       }
 
-      return;
+      return { ok: true };
     }
 
     for (const selection of presetSelections) {
@@ -227,7 +228,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
       const bookingDiscountAmount = getDiscountAmountFor(bookingAmount);
       if (!slot?.start || !slot.end) continue;
       const overnight = isOvernightRange(slot.start, slot.end);
-      await createBookingAdmin({
+      const result = await createBookingAdmin({
         roomId: room.id,
         branchId: room.branch_id,
         guestName,
@@ -253,7 +254,10 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
         discountAmount: bookingDiscountAmount,
         menuItemIds: selectedMenuItems.length > 0 ? selectedMenuItems : undefined,
       });
+      if (!result.ok) return result;
     }
+
+    return { ok: true };
   }
 
   async function handleCreate() {
@@ -269,7 +273,11 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
     setSaving(true);
     setError("");
     try {
-      await createPresetBookings();
+      const result = await createPresetBookings();
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       router.push("/dashboard/bookings");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể tạo booking.");
