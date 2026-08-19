@@ -89,6 +89,27 @@ export type AdminBookingResult =
   | { ok: true }
   | { ok: false; error: string };
 
+export interface AdminBookingEditInput {
+  id: string;
+  guestName: string;
+  customerName: string;
+  customerPhone: string;
+  checkInDate: string;
+  checkInTime: string;
+  checkOutDate: string;
+  checkOutTime: string;
+  channel: string;
+  status: BookingStatus;
+  amount: number;
+  guestCount: number;
+  notes: string;
+  discountCode?: string | null;
+  hasCar?: boolean;
+  hasDecoration?: boolean;
+  cccdFront?: string | null;
+  cccdBack?: string | null;
+}
+
 type AdminRoom = RoomRow & { time_slots?: RoomSlot[] | null };
 
 function resolveRange(data: AdminBookingInput) {
@@ -286,4 +307,122 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
   }
 
   revalidatePath('/dashboard/bookings');
+}
+
+export async function updateAdminBooking(data: AdminBookingEditInput): Promise<AdminBookingResult> {
+  try {
+    if (!data.id.startsWith('ADM-')) {
+      throw new Error('Chỉ booking do admin tạo mới có thể chỉnh sửa tại đây.');
+    }
+    if (!data.guestName.trim()) {
+      throw new Error('Vui lòng nhập tên khách.');
+    }
+    for (const statement of [
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_at TIMESTAMP`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMP`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`,
+    ]) {
+      await query(statement).catch(() => null);
+    }
+
+    const range = resolveRange({
+      ...data,
+      roomId: 0,
+      branchId: 0,
+      stayDate: data.checkInDate,
+      timeRange: `${data.checkInTime} - ${data.checkOutTime}`,
+      discountPercent: 0,
+      discountAmount: 0,
+    });
+    const bookingRows = await query<{ room_id: number; branch_id: number | null }>(
+      `SELECT room_id, branch_id FROM bookings WHERE id = $1 LIMIT 1`,
+      [data.id]
+    );
+    const booking = bookingRows[0];
+    if (!booking?.room_id) throw new Error('Không tìm thấy booking admin cần chỉnh sửa.');
+
+    const roomRows = await query<AdminRoom>(
+      `SELECT id, branch_id, card_name, branch_name, room_amenities, price_from, price_to, full_day_price,
+              main_image, is_classic, images, slot_prices, time_slots, wifi_name, wifi_password, booking_notice
+       FROM rooms WHERE id = $1 LIMIT 1`,
+      [booking.room_id]
+    );
+    const room = roomRows[0];
+    if (!room) throw new Error('Phòng của booking này không còn tồn tại.');
+
+    const branchRows = room.branch_id
+      ? await query<BranchRow>(`SELECT id, name, active, hotline, google_maps_link, classic_booking_enabled FROM branches WHERE id = $1 LIMIT 1`, [room.branch_id])
+      : [];
+    const requestedTimeslotIds = getTimeslotIdsOverlappingRange({
+      roomId: room.id,
+      roomName: room.card_name,
+      startAt: range.checkInAt,
+      endAt: range.checkOutAt,
+      timeSlots: room.time_slots,
+    });
+    const [rawBookings, holdMinutes] = await Promise.all([
+      fetchRawBookings({ limit: 1500 }),
+      getBookingHoldMinutes(),
+    ]);
+    const activeBookings = rawBookings
+      .map((item) => normalizeBookingRecord(item, [room], branchRows))
+      .filter((item) => item.raw.id !== data.id && item.roomId === room.id && holdsSlot(item.raw, holdMinutes));
+    const hasConflict = activeBookings.some((item) => {
+      if (item.raw.check_in_at && item.raw.check_out_at) {
+        const start = parseLocalDateTime(item.raw.check_in_at);
+        const end = parseLocalDateTime(item.raw.check_out_at);
+        if (start && end && start < range.end && range.start < end) return true;
+      }
+      return item.timeslotIds.some((slotId) => requestedTimeslotIds.includes(slotId));
+    });
+    if (hasConflict) throw new Error('Khoảng thời gian này đã có booking khác giữ phòng.');
+
+    const amount = Math.max(0, Math.round(Number(data.amount) || 0));
+    await query(
+      `UPDATE bookings
+       SET guest_name = $1, customer_name = $2, customer_phone = $3,
+           stay_date = $4::date, date_label = $5, time_range = $6,
+           check_in_at = $7::timestamp, check_out_at = $8::timestamp, timeslot_ids = $9,
+           channel = $10, status = $11,
+           paid_at = CASE WHEN $12 = 'Đã thanh toán' THEN COALESCE(paid_at, NOW()) ELSE paid_at END,
+           amount = $13, quoted_amount = $14, guest_count = $15, notes = $16,
+           discount_code = $17, has_car = $18, has_decoration = $19,
+           cccd_front = $20, cccd_back = $21, updated_at = NOW()
+       WHERE id = $22`,
+      [
+        data.guestName.trim(), data.customerName.trim(), data.customerPhone.trim(),
+        range.checkInDate, range.checkInDate, `${range.checkInTime} - ${range.checkOutTime}`,
+        range.checkInAt, range.checkOutAt,
+        requestedTimeslotIds.length ? stringifyTimeslotIds(requestedTimeslotIds) : null,
+        data.channel, data.status, data.status,
+        amount, amount, Math.max(1, Math.round(Number(data.guestCount) || 1)), data.notes.trim(),
+        data.discountCode?.trim().toUpperCase() || null, Boolean(data.hasCar), Boolean(data.hasDecoration),
+        data.cccdFront ?? null, data.cccdBack ?? null, data.id,
+      ]
+    );
+
+    // Remove the old automatically generated leftovers before creating the new range's leftovers.
+    await query(`DELETE FROM room_availability_slots WHERE source_booking_id = $1`, [data.id]).catch(() => null);
+    await generateResidualAvailabilitySlots({
+      roomId: room.id,
+      roomName: room.card_name,
+      timeSlots: room.time_slots,
+      sourceBookingId: data.id,
+      startAt: range.checkInAt,
+      endAt: range.checkOutAt,
+      price: amount,
+    });
+    revalidatePath('/dashboard/bookings');
+    revalidatePath(`/dashboard/bookings/${data.id}`);
+    revalidatePath('/dashboard/bookings/create');
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Không thể cập nhật booking.';
+    console.error('Admin booking update failed:', message);
+    return { ok: false, error: message };
+  }
 }

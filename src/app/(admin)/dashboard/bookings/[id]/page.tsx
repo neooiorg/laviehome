@@ -11,6 +11,7 @@ import { getBookingById } from "@/lib/homestay-dashboard";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 import { BookingStatusSelect } from "../_components/booking-status-select";
 import { BookingDocumentImage } from "./_components/booking-document-image";
+import { AdminBookingEdit } from "./_components/admin-booking-edit";
 
 function money(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
@@ -73,6 +74,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             {booking.status}
           </Badge>
           <BookingStatusSelect id={booking.id} currentStatus={booking.status} />
+          {booking.id.startsWith("ADM-") && <AdminBookingEdit booking={booking} />}
         </div>
       </div>
 
