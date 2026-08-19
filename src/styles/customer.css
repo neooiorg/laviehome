@@ -49,6 +49,7 @@
 }
 
 :root {
+  --static-asset-revision: 20260819;
   --font-ui: "Bricolage Grotesque", "Segoe UI", Arial, Helvetica, sans-serif;
   --font-logo: "Great Vibes", "Segoe Script", "Brush Script MT", cursive;
   --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
