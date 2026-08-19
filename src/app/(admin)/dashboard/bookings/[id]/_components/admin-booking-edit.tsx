@@ -34,6 +34,7 @@ export function AdminBookingEdit({ booking }: { booking: BookingSnapshot }) {
   const [guestName, setGuestName] = React.useState(booking.guestName);
   const [customerName, setCustomerName] = React.useState(booking.customerName ?? "");
   const [customerPhone, setCustomerPhone] = React.useState(booking.customerPhone ?? "");
+  const [customerEmail, setCustomerEmail] = React.useState(booking.customerEmail ?? "");
   const [checkInDate, setCheckInDate] = React.useState(datePart(booking.checkInAt, booking.stayDate));
   const [checkInTime, setCheckInTime] = React.useState(timePart(booking.checkInAt, booking.timeRange.split(" - ")[0] ?? "09:00"));
   const [checkOutDate, setCheckOutDate] = React.useState(datePart(booking.checkOutAt, booking.stayDate));
@@ -54,7 +55,7 @@ export function AdminBookingEdit({ booking }: { booking: BookingSnapshot }) {
     setError("");
     try {
       const result = await updateAdminBooking({
-        id: booking.id, guestName, customerName, customerPhone,
+        id: booking.id, guestName, customerName, customerPhone, customerEmail,
         checkInDate, checkInTime, checkOutDate, checkOutTime,
         channel, status, amount: Number(amount) || 0, guestCount: Number(guestCount) || 1,
         discountCode, notes, hasCar, hasDecoration, cccdFront, cccdBack,
@@ -80,6 +81,7 @@ export function AdminBookingEdit({ booking }: { booking: BookingSnapshot }) {
           <div className="space-y-1.5"><Label>Số khách</Label><Input type="number" min={1} value={guestCount} onChange={(event) => setGuestCount(event.target.value)} /></div>
           <div className="space-y-1.5"><Label>Tên trên CCCD</Label><Input value={customerName} onChange={(event) => setCustomerName(event.target.value)} /></div>
           <div className="space-y-1.5"><Label>Số điện thoại</Label><Input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label>Email khách</Label><Input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} /></div>
           <div className="space-y-1.5"><Label>Từ ngày *</Label><DatePicker value={checkInDate} onChange={setCheckInDate} className="w-full" /></div>
           <div className="space-y-1.5"><Label>Giờ bắt đầu *</Label><Input type="time" value={checkInTime} onChange={(event) => setCheckInTime(event.target.value)} /></div>
           <div className="space-y-1.5"><Label>Đến ngày *</Label><DatePicker value={checkOutDate} minDate={checkInDate} onChange={setCheckOutDate} className="w-full" /></div>

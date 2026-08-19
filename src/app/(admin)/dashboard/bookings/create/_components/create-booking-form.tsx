@@ -54,6 +54,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
   const [guestName, setGuestName] = React.useState("");
   const [customerName, setCustomerName] = React.useState("");
   const [customerPhone, setCustomerPhone] = React.useState("");
+  const [customerEmail, setCustomerEmail] = React.useState("");
   const [timeMode, setTimeMode] = React.useState<"preset" | "custom">("preset");
   const [presetSelections, setPresetSelections] = React.useState<AdminPresetSelection[]>([]);
   const [checkInDate, setCheckInDate] = React.useState(today);
@@ -194,6 +195,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           guestName,
           customerName,
           customerPhone,
+          customerEmail,
           stayDate: checkInDate,
           timeRange: `${checkInTime} - ${checkOutTime}`,
           checkInDate,
@@ -234,6 +236,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
         guestName,
         customerName,
         customerPhone,
+        customerEmail,
         stayDate: selection.dateIso,
         timeRange: `${slot.start} - ${slot.end}`,
         checkInDate: selection.dateIso,
@@ -372,6 +375,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5"><Label>Tên trên CCCD</Label><Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} /></div>
             <div className="flex flex-col gap-1.5"><Label>Số điện thoại</Label><Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="0901..." /></div>
+            <div className="flex flex-col gap-1.5 sm:col-span-2"><Label>Email khách</Label><Input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="khach@example.com" /><p className="text-xs text-muted-foreground">Khi chọn Đã thanh toán, khách sẽ nhận email xác nhận booking.</p></div>
           </div>
           <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
             <div><p className="font-semibold">Voucher / giảm giá</p><p className="mt-1 text-xs text-muted-foreground">Chọn mã có sẵn hoặc nhập mức giảm riêng cho booking này.</p></div>

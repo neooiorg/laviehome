@@ -21,6 +21,7 @@ import { query } from '@/lib/postgres';
 import { generateResidualAvailabilitySlots } from '@/lib/room-availability-actions';
 import { generateDoorCode } from '@/lib/door-code';
 import { sendTelegramBookingNotification } from '@/lib/telegram-notify';
+import { sendBookingConfirmationEmail } from '@/lib/booking-confirmation-email';
 
 const BOOKING_ACCESS_STATUSES = new Set<BookingStatus>([
   'Đã thanh toán',
@@ -34,8 +35,25 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
   try {
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
     await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`).catch(() => null);
-    await query(
-      `UPDATE bookings
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
+    const updated = await query<{
+      id: string;
+      previous_status: string;
+      customer_email: string | null;
+      customer_name: string | null;
+      guest_name: string | null;
+      room_name: string | null;
+      branch_name: string | null;
+      date_label: string | null;
+      time_range: string | null;
+      door_code: string | null;
+      maps_url: string | null;
+      wifi_name: string | null;
+      wifi_password: string | null;
+      booking_notice: string | null;
+    }>(
+      `WITH previous AS (SELECT id, status FROM bookings WHERE id = $3)
+       UPDATE bookings AS booking
        SET status = $1,
            paid_at = CASE WHEN $2 = 'Đã thanh toán' THEN COALESCE(paid_at, NOW()) ELSE paid_at END,
            door_code = CASE
@@ -43,11 +61,39 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
              ELSE door_code
            END,
            updated_at = NOW()
-       WHERE id = $3`,
+       FROM previous
+       WHERE booking.id = previous.id
+       RETURNING booking.id, previous.status AS previous_status, booking.customer_email, booking.customer_name,
+         booking.guest_name, booking.room_name, booking.branch_name, booking.date_label, booking.time_range, booking.door_code,
+         (SELECT google_maps_link FROM branches WHERE branches.id = booking.branch_id) AS maps_url,
+         (SELECT wifi_name FROM rooms WHERE rooms.id = booking.room_id) AS wifi_name,
+         (SELECT wifi_password FROM rooms WHERE rooms.id = booking.room_id) AS wifi_password,
+         (SELECT booking_notice FROM rooms WHERE rooms.id = booking.room_id) AS booking_notice`,
       // $1 is inferred as VARCHAR by bookings.status; $2 is TEXT for the comparison.
       // Keeping them separate avoids PostgreSQL error 42P08 (conflicting parameter types).
       [status, status, id, BOOKING_ACCESS_STATUSES.has(status), generateDoorCode()]
     );
+    const booking = updated[0];
+    if (booking && status === 'Đã thanh toán' && booking.previous_status !== 'Đã thanh toán') {
+      try {
+        await sendBookingConfirmationEmail({
+          bookingId: booking.id,
+          customerEmail: booking.customer_email,
+          customerName: booking.customer_name || booking.guest_name,
+          roomName: booking.room_name,
+          branchName: booking.branch_name,
+          dateLabel: booking.date_label,
+          timeRange: booking.time_range,
+          doorCode: booking.door_code ?? '',
+          mapsUrl: booking.maps_url,
+          wifiName: booking.wifi_name,
+          wifiPassword: booking.wifi_password,
+          bookingNotice: booking.booking_notice,
+        });
+      } catch (error) {
+        console.error('Admin paid booking email error:', error);
+      }
+    }
     revalidatePath('/dashboard/bookings');
     revalidatePath(`/dashboard/bookings/${id}`);
     return { ok: true };
@@ -64,6 +110,7 @@ export interface AdminBookingInput {
   guestName: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   stayDate: string;
   timeRange: string;
   checkInDate?: string;
@@ -94,6 +141,7 @@ export interface AdminBookingEditInput {
   guestName: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   checkInDate: string;
   checkInTime: string;
   checkOutDate: string;
@@ -152,6 +200,7 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMP`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
@@ -231,10 +280,10 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
 
   await query(
     `INSERT INTO bookings (
-      id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone,
+      id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone, customer_email,
       stay_date, date_label, time_range, check_in_at, check_out_at, timeslot_ids, channel, status,
       amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back, door_code, paid_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)`,
     [
       id,
       data.roomId,
@@ -244,6 +293,7 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
       data.guestName,
       data.customerName,
       data.customerPhone,
+      data.customerEmail?.trim().toLowerCase() || null,
       range.checkInDate,
       range.checkInDate,
       `${range.checkInTime} - ${range.checkOutTime}`,
@@ -304,6 +354,24 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
     } catch (error) {
       console.error('Admin booking Telegram notification error:', error);
     }
+    try {
+      await sendBookingConfirmationEmail({
+        bookingId: id,
+        customerEmail: data.customerEmail ?? null,
+        customerName: data.customerName || data.guestName,
+        roomName: room.card_name,
+        branchName: branch?.name ?? room.branch_name,
+        dateLabel: range.checkInDate,
+        timeRange: `${range.checkInTime} - ${range.checkOutTime}`,
+        doorCode: doorCode ?? '',
+        mapsUrl: branch?.google_maps_link,
+        wifiName: room.wifi_name,
+        wifiPassword: room.wifi_password,
+        bookingNotice: room.booking_notice,
+      });
+    } catch (error) {
+      console.error('Admin booking confirmation email error:', error);
+    }
   }
 
   revalidatePath('/dashboard/bookings');
@@ -324,6 +392,7 @@ export async function updateAdminBooking(data: AdminBookingEditInput): Promise<A
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`,
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`,
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`,
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`,
     ]) {
       await query(statement).catch(() => null);
@@ -338,8 +407,8 @@ export async function updateAdminBooking(data: AdminBookingEditInput): Promise<A
       discountPercent: 0,
       discountAmount: 0,
     });
-    const bookingRows = await query<{ room_id: number; branch_id: number | null }>(
-      `SELECT room_id, branch_id FROM bookings WHERE id = $1 LIMIT 1`,
+    const bookingRows = await query<{ room_id: number; branch_id: number | null; status: string }>(
+      `SELECT room_id, branch_id, status FROM bookings WHERE id = $1 LIMIT 1`,
       [data.id]
     );
     const booking = bookingRows[0];
@@ -382,23 +451,26 @@ export async function updateAdminBooking(data: AdminBookingEditInput): Promise<A
     if (hasConflict) throw new Error('Khoảng thời gian này đã có booking khác giữ phòng.');
 
     const amount = Math.max(0, Math.round(Number(data.amount) || 0));
+    const doorCode = BOOKING_ACCESS_STATUSES.has(data.status) ? generateDoorCode() : null;
     await query(
       `UPDATE bookings
-       SET guest_name = $1, customer_name = $2, customer_phone = $3,
-           stay_date = $4::date, date_label = $5, time_range = $6,
-           check_in_at = $7::timestamp, check_out_at = $8::timestamp, timeslot_ids = $9,
-           channel = $10, status = $11,
-           paid_at = CASE WHEN $12 = 'Đã thanh toán' THEN COALESCE(paid_at, NOW()) ELSE paid_at END,
-           amount = $13, quoted_amount = $14, guest_count = $15, notes = $16,
-           discount_code = $17, has_car = $18, has_decoration = $19,
-           cccd_front = $20, cccd_back = $21, updated_at = NOW()
-       WHERE id = $22`,
+       SET guest_name = $1, customer_name = $2, customer_phone = $3, customer_email = $4,
+           stay_date = $5::date, date_label = $6, time_range = $7,
+           check_in_at = $8::timestamp, check_out_at = $9::timestamp, timeslot_ids = $10,
+           channel = $11, status = $12,
+           paid_at = CASE WHEN $13 = 'Đã thanh toán' THEN COALESCE(paid_at, NOW()) ELSE paid_at END,
+           door_code = CASE WHEN $14::boolean THEN COALESCE(door_code, $15) ELSE door_code END,
+           amount = $16, quoted_amount = $17, guest_count = $18, notes = $19,
+           discount_code = $20, has_car = $21, has_decoration = $22,
+           cccd_front = $23, cccd_back = $24, updated_at = NOW()
+       WHERE id = $25`,
       [
-        data.guestName.trim(), data.customerName.trim(), data.customerPhone.trim(),
+        data.guestName.trim(), data.customerName.trim(), data.customerPhone.trim(), data.customerEmail?.trim().toLowerCase() || null,
         range.checkInDate, range.checkInDate, `${range.checkInTime} - ${range.checkOutTime}`,
         range.checkInAt, range.checkOutAt,
         requestedTimeslotIds.length ? stringifyTimeslotIds(requestedTimeslotIds) : null,
         data.channel, data.status, data.status,
+        BOOKING_ACCESS_STATUSES.has(data.status), doorCode,
         amount, amount, Math.max(1, Math.round(Number(data.guestCount) || 1)), data.notes.trim(),
         data.discountCode?.trim().toUpperCase() || null, Boolean(data.hasCar), Boolean(data.hasDecoration),
         data.cccdFront ?? null, data.cccdBack ?? null, data.id,
@@ -416,6 +488,26 @@ export async function updateAdminBooking(data: AdminBookingEditInput): Promise<A
       endAt: range.checkOutAt,
       price: amount,
     });
+    if (data.status === 'Đã thanh toán' && booking.status !== 'Đã thanh toán') {
+      try {
+        await sendBookingConfirmationEmail({
+          bookingId: data.id,
+          customerEmail: data.customerEmail ?? null,
+          customerName: data.customerName || data.guestName,
+          roomName: room.card_name,
+          branchName: branchRows[0]?.name ?? room.branch_name,
+          dateLabel: range.checkInDate,
+          timeRange: `${range.checkInTime} - ${range.checkOutTime}`,
+          doorCode: doorCode ?? '',
+          mapsUrl: branchRows[0]?.google_maps_link,
+          wifiName: room.wifi_name,
+          wifiPassword: room.wifi_password,
+          bookingNotice: room.booking_notice,
+        });
+      } catch (error) {
+        console.error('Admin edited paid booking email error:', error);
+      }
+    }
     revalidatePath('/dashboard/bookings');
     revalidatePath(`/dashboard/bookings/${data.id}`);
     revalidatePath('/dashboard/bookings/create');
