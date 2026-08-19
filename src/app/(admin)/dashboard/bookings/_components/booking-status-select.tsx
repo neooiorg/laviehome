@@ -24,27 +24,39 @@ interface Props {
 export function BookingStatusSelect({ id, currentStatus }: Props) {
   const [status, setStatus] = React.useState<BookingStatus>(currentStatus);
   const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState("");
 
   async function handleChange(value: string) {
     const next = value as BookingStatus;
     setPending(true);
     setStatus(next);
-    await updateBookingStatus(id, next);
-    setPending(false);
+    setError("");
+    try {
+      const result = await updateBookingStatus(id, next);
+      if (!result.ok) {
+        setStatus(currentStatus);
+        setError(result.error);
+      }
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
-    <Select value={status} onValueChange={handleChange} disabled={pending}>
-      <SelectTrigger size="sm" className="h-7 w-56">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          {STATUSES.map((s) => (
-            <SelectItem key={s} value={s}>{s}</SelectItem>
-          ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+    <div className="space-y-1">
+      <Select value={status} onValueChange={handleChange} disabled={pending}>
+        <SelectTrigger size="sm" className="h-7 w-56">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
   );
 }

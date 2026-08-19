@@ -30,23 +30,32 @@ const BOOKING_ACCESS_STATUSES = new Set<BookingStatus>([
   'Hoàn tất',
 ]);
 
-export async function updateBookingStatus(id: string, status: BookingStatus) {
-  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
-  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`).catch(() => null);
-  await query(
-    `UPDATE bookings
-     SET status = $1,
-         paid_at = CASE WHEN $1 = 'Đã thanh toán' THEN COALESCE(paid_at, NOW()) ELSE paid_at END,
-         door_code = CASE
-           WHEN $3::boolean THEN COALESCE(door_code, $4)
-           ELSE door_code
-         END,
-         updated_at = NOW()
-     WHERE id = $2`,
-    [status, id, BOOKING_ACCESS_STATUSES.has(status), generateDoorCode()]
-  );
-  revalidatePath('/dashboard/bookings');
-  revalidatePath(`/dashboard/bookings/${id}`);
+export async function updateBookingStatus(id: string, status: BookingStatus): Promise<AdminBookingResult> {
+  try {
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`).catch(() => null);
+    await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`).catch(() => null);
+    await query(
+      `UPDATE bookings
+       SET status = $1,
+           paid_at = CASE WHEN $2 = 'Đã thanh toán' THEN COALESCE(paid_at, NOW()) ELSE paid_at END,
+           door_code = CASE
+             WHEN $4::boolean THEN COALESCE(door_code, $5)
+             ELSE door_code
+           END,
+           updated_at = NOW()
+       WHERE id = $3`,
+      // $1 is inferred as VARCHAR by bookings.status; $2 is TEXT for the comparison.
+      // Keeping them separate avoids PostgreSQL error 42P08 (conflicting parameter types).
+      [status, status, id, BOOKING_ACCESS_STATUSES.has(status), generateDoorCode()]
+    );
+    revalidatePath('/dashboard/bookings');
+    revalidatePath(`/dashboard/bookings/${id}`);
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Không thể cập nhật trạng thái booking.";
+    console.error("Booking status update failed:", message);
+    return { ok: false, error: message };
+  }
 }
 
 export interface AdminBookingInput {
