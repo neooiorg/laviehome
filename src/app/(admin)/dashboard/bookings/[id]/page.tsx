@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { formatVietnamDateTime } from "@/lib/vietnam-time";
 import { getBookingById } from "@/lib/homestay-dashboard";
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 import { BookingStatusSelect } from "../_components/booking-status-select";
@@ -65,7 +66,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         <div>
           <h1 className="text-2xl font-bold tracking-tight">#{booking.id}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Tạo lúc {new Date(booking.createdAt).toLocaleString("vi-VN")}
+            Tạo lúc {formatVietnamDateTime(booking.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-3 mt-3 sm:mt-0">
@@ -164,7 +165,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               <Separator />
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs text-muted-foreground">Tạo lúc</span>
-                <span className="text-sm">{new Date(booking.createdAt).toLocaleString("vi-VN")}</span>
+                <span className="text-sm">{formatVietnamDateTime(booking.createdAt)}</span>
               </div>
             </CardContent>
           </Card>

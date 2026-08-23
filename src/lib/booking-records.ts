@@ -12,6 +12,8 @@ import {
 import { query } from "@/lib/postgres";
 import { getBookingHoldMinutes } from "@/lib/settings-actions";
 
+let bookingTimestampMigration: Promise<void> | undefined;
+
 export type RawBookingRecord = {
   id: string;
   room_id: number | null;
@@ -104,6 +106,17 @@ export async function ensureBookingNotificationColumns() {
   await query(`alter table bookings add column if not exists check_in_at timestamp`).catch(() => []);
   await query(`alter table bookings add column if not exists check_out_at timestamp`).catch(() => []);
   await query(`alter table bookings add column if not exists paid_at timestamp`).catch(() => []);
+
+  // Older installations created this field without a timezone. Those values
+  // were written by the server in UTC, so preserve that instant when upgrading.
+  bookingTimestampMigration ??= query(
+    `
+    alter table bookings
+    alter column created_at type timestamptz
+    using created_at at time zone 'UTC'
+    `
+  ).then(() => undefined);
+  await bookingTimestampMigration;
 }
 
 /** The auto-assigned status for an online booking awaiting a bank transfer. */

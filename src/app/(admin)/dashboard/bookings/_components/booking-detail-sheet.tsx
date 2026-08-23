@@ -4,6 +4,7 @@ import Image from "next/image";
 
 import type { BookingSnapshot } from "@/lib/homestay-dashboard";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { formatVietnamDateTime } from "@/lib/vietnam-time";
 
 import { BookingStatusSelect } from "./booking-status-select";
 
@@ -121,7 +122,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
               <section className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hệ thống</h3>
                 <Field label="Booking ID" value={<span className="font-mono text-xs">{booking.id}</span>} />
-                <Field label="Tạo lúc" value={new Date(booking.createdAt).toLocaleString("vi-VN")} />
+                <Field label="Tạo lúc" value={formatVietnamDateTime(booking.createdAt)} />
               </section>
             </div>
           </>
