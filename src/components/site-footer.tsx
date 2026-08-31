@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { BrandWordmark } from "@/components/brand-wordmark";
@@ -102,8 +103,25 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="border-t border-white/5 py-6 text-center text-[10px] font-bold uppercase tracking-widest text-white/40">
-        © 2026 Lavie Home. Tất cả quyền được bảo lưu.
+      <div className="flex flex-col items-center justify-center gap-4 border-t border-white/5 px-4 py-6 sm:flex-row sm:gap-6">
+        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-white/40">
+          © 2026 Lavie Home. Tất cả quyền được bảo lưu.
+        </p>
+        <a
+          href="http://online.gov.vn/nen-tang/59949bd5-77b6-4af4-8c17-1a067e01be8a"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Đã xác nhận với Bộ Công Thương"
+          className="shrink-0 transition-opacity hover:opacity-85 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pink-300"
+        >
+          <Image
+            src="/images/bo-cong-thuong-da-thong-bao.png"
+            alt="Đã thông báo với Bộ Công Thương"
+            width={230}
+            height={86}
+            className="h-11 w-auto"
+          />
+        </a>
       </div>
     </footer>
   );
