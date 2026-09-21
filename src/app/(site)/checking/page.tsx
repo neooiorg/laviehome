@@ -220,9 +220,14 @@ export default function CheckingPage() {
                       <span className="font-semibold">{booking.time_range}</span>
                     </div>
                     {PAID_STATUSES.includes(booking.status) && booking.door_code && (
-                      <div className="flex items-center gap-2 text-white/70">
+                      <div className="flex items-start gap-2 text-white/70">
                         <KeyRound size={14} className="shrink-0 text-red-300" />
-                        <span className="font-semibold text-red-300">Mật khẩu cửa: {booking.door_code}</span>
+                        <div>
+                          <p className="font-semibold text-red-300">Mật khẩu cửa: {booking.door_code}</p>
+                          <p className="mt-1 text-xs font-medium italic leading-relaxed text-white/55">
+                            Mã khóa có hiệu lực trước giờ đặt 10 phút. Nếu đến sớm, vui lòng báo trước với Home.
+                          </p>
+                        </div>
                       </div>
                     )}
                     {booking.customer_email && (

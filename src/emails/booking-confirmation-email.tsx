@@ -92,6 +92,9 @@ export function BookingConfirmationEmail({
               <Text style={doorCodeText}>
                 Mật khẩu cửa: <span style={doorCodeValue}>{doorCode}</span>
               </Text>
+              <Text style={doorCodeNotice}>
+                Mã khóa có hiệu lực trước giờ đặt 10 phút. Nếu đến sớm, vui lòng báo trước với Home.
+              </Text>
             </Step>
 
             <Step number="3" title="Nội quy">
@@ -330,6 +333,14 @@ const doorCodeText = {
 const doorCodeValue = {
   color: "#ffb6e5",
   fontFamily: "Consolas, 'SFMono-Regular', monospace",
+};
+
+const doorCodeNotice = {
+  color: "rgba(255, 248, 251, 0.72)",
+  fontSize: "13px",
+  fontStyle: "italic",
+  lineHeight: "1.5",
+  margin: "8px 0 0",
 };
 
 const noticeText = {

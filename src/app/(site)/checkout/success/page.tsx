@@ -243,6 +243,9 @@ export default async function CheckoutSuccessPage({
                 <p className="mt-2 text-base font-black text-yellow-200 sm:text-lg">
                   Mật khẩu cửa: <span className="font-mono text-pink-100">{booking.door_code}</span>
                 </p>
+                <p className="mt-1 text-sm font-semibold italic leading-relaxed text-white/65">
+                  Mã khóa có hiệu lực trước giờ đặt 10 phút. Nếu đến sớm, vui lòng báo trước với Home.
+                </p>
               </SuccessStep>
 
               <SuccessStep index={3} title="Nội quy" icon={BookOpen}>
