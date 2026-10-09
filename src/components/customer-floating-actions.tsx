@@ -55,7 +55,7 @@ function resultRotation(index: number, current: number) {
 
 function WheelGraphic({ rotation, spinning }: { rotation: number; spinning: boolean }) {
   return (
-    <div className="relative mx-auto size-[min(72vw,19rem)] max-h-[19rem] max-w-[19rem]">
+    <div className="relative mx-auto size-[min(70vw,34dvh,17rem)] shrink-0">
       <div className="absolute left-1/2 top-[-0.35rem] z-20 -translate-x-1/2 drop-shadow-[0_4px_6px_rgba(0,0,0,0.45)]">
         <div className="h-0 w-0 border-x-[14px] border-t-[25px] border-x-transparent border-t-yellow-200" />
       </div>
@@ -191,72 +191,78 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-1rem)] w-[min(94vw,34rem)] max-w-none overflow-y-auto border border-pink-200/25 bg-[#170c1d] p-5 text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)] sm:rounded-[1.75rem] sm:p-7" showCloseButton={!spinning}>
-        <DialogHeader className="text-center">
-          <div className="mx-auto flex size-10 items-center justify-center rounded-full border border-yellow-200/35 bg-yellow-200/10 text-yellow-200">
-            <Sparkles size={20} />
-          </div>
-          <DialogTitle className="text-2xl font-black tracking-[-0.03em] text-pink-100 sm:text-3xl">
-            Vòng quay may mắn
-          </DialogTitle>
-          <DialogDescription className="text-sm font-semibold leading-6 text-white/60">
-            Mỗi thiết bị có một lượt quay trong ngày. Voucher chỉ dùng cho số điện thoại đã nhập.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        className="z-[101] flex max-h-[calc(100dvh-1rem)] w-[min(94vw,32rem)] max-w-none overflow-hidden border border-pink-200/25 bg-[#170c1d] p-0 text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)] sm:max-h-[min(44rem,calc(100dvh-2rem))] sm:rounded-[1.75rem]"
+        overlayClassName="z-[100] bg-black/65 backdrop-blur-sm"
+        showCloseButton={!spinning}
+      >
+        <div className="scrollbar-thin scrollbar-gutter-stable flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
+          <DialogHeader className="shrink-0 px-6 text-center">
+            <div className="mx-auto flex size-9 items-center justify-center rounded-full border border-yellow-200/35 bg-yellow-200/10 text-yellow-200 sm:size-10">
+              <Sparkles size={19} />
+            </div>
+            <DialogTitle className="text-2xl font-black tracking-[-0.03em] text-pink-100 sm:text-3xl">
+              Vòng quay may mắn
+            </DialogTitle>
+            <DialogDescription className="text-sm font-semibold leading-5 text-white/65 sm:leading-6">
+              Mỗi thiết bị có một lượt quay trong ngày. Voucher chỉ dùng cho số điện thoại đã nhập.
+            </DialogDescription>
+          </DialogHeader>
 
-        <WheelGraphic rotation={rotation} spinning={spinning} />
+          <WheelGraphic rotation={rotation} spinning={spinning} />
 
-        {loading && !spinning && !result ? (
-          <div className="min-h-24 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
-        ) : result ? (
-          <div className="rounded-2xl border border-pink-200/25 bg-white/[0.06] p-4 text-center">
-            <p className="text-xs font-black uppercase tracking-[0.15em] text-yellow-200">
-              {result.alreadySpun ? "Kết quả hôm nay" : "Phần thưởng của bạn"}
-            </p>
-            <p className="mt-2 text-2xl font-black text-pink-100">{result.prizeLabel}</p>
-            {result.voucherCode ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => void copyVoucher()}
-                  className="mx-auto mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-yellow-200/45 bg-yellow-200/10 px-4 font-mono text-lg font-black tracking-[0.12em] text-yellow-100 transition hover:bg-yellow-200/15"
-                >
-                  {result.voucherCode} {copied ? <Check size={17} /> : <Copy size={17} />}
-                </button>
-                <p className="mt-3 text-xs font-semibold leading-5 text-white/55">
-                  Dùng cho số {result.phoneMasked}. Hạn đến {expiryLabel}. Chỉ áp dụng tiền phòng và không cộng dồn mã khác.
-                </p>
-              </>
-            ) : (
-              <p className="mt-2 text-sm font-semibold text-white/58">Hẹn bạn quay lại vào ngày mai.</p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <label className="grid gap-2 text-sm font-bold text-white/75">
-              Số điện thoại nhận voucher
-              <input
-                autoComplete="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                placeholder="Ví dụ: 0938 123 456"
-                className="min-h-12 w-full rounded-xl border border-white/15 bg-white/[0.06] px-4 text-base font-bold text-white outline-none transition placeholder:text-white/30 focus:border-pink-300 focus:ring-2 focus:ring-pink-300/20"
-              />
-            </label>
-            <button
-              type="button"
-              disabled={loading || spinning || !phone.trim()}
-              onClick={() => void handleSpin()}
-              className="primary-button min-h-12 w-full text-base disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              <Gift size={18} /> {loading ? "Đang kiểm tra..." : "Quay ngay"}
-            </button>
-          </div>
-        )}
+          {loading && !spinning && !result ? (
+            <div className="min-h-24 shrink-0 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+          ) : result ? (
+            <div className="shrink-0 rounded-2xl border border-pink-200/25 bg-white/[0.06] p-4 text-center">
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-yellow-200">
+                {result.alreadySpun ? "Kết quả hôm nay" : "Phần thưởng của bạn"}
+              </p>
+              <p className="mt-2 text-2xl font-black text-pink-100">{result.prizeLabel}</p>
+              {result.voucherCode ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void copyVoucher()}
+                    className="mx-auto mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-yellow-200/45 bg-yellow-200/10 px-4 font-mono text-lg font-black tracking-[0.12em] text-yellow-100 transition hover:bg-yellow-200/15"
+                  >
+                    {result.voucherCode} {copied ? <Check size={17} /> : <Copy size={17} />}
+                  </button>
+                  <p className="mt-3 text-xs font-semibold leading-5 text-white/55">
+                    Dùng cho số {result.phoneMasked}. Hạn đến {expiryLabel}. Chỉ áp dụng tiền phòng và không cộng dồn mã khác.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-2 text-sm font-semibold text-white/58">Hẹn bạn quay lại vào ngày mai.</p>
+              )}
+            </div>
+          ) : (
+            <div className="shrink-0 space-y-3">
+              <label className="grid gap-2 text-sm font-bold text-white/75">
+                Số điện thoại nhận voucher
+                <input
+                  autoComplete="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="Ví dụ: 0938 123 456"
+                  className="min-h-12 w-full rounded-xl border border-white/15 bg-white/[0.06] px-4 text-base font-bold text-white outline-none transition placeholder:text-white/40 focus:border-pink-300 focus:ring-2 focus:ring-pink-300/20"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={loading || spinning || !phone.trim()}
+                onClick={() => void handleSpin()}
+                className="primary-button min-h-12 w-full text-base disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <Gift size={18} /> {loading ? "Đang kiểm tra..." : "Quay ngay"}
+              </button>
+            </div>
+          )}
 
-        {spinning && <p className="text-center text-sm font-bold text-yellow-100">Vòng quay đang chọn phần thưởng...</p>}
-        {error && <p role="alert" className="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-center text-sm font-bold text-red-200">{error}</p>}
+          {spinning && <p className="shrink-0 text-center text-sm font-bold text-yellow-100">Vòng quay đang chọn phần thưởng...</p>}
+          {error && <p role="alert" className="shrink-0 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-center text-sm font-bold text-red-200">{error}</p>}
+        </div>
       </DialogContent>
     </Dialog>
   );
