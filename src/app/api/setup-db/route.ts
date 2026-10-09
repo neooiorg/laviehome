@@ -86,6 +86,8 @@ export async function GET(req: NextRequest) {
         active BOOLEAN DEFAULT TRUE,
         max_uses INTEGER DEFAULT 100,
         used_count INTEGER DEFAULT 0,
+        recipient_phone_hash TEXT,
+        source VARCHAR(40),
         expires_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
@@ -134,6 +136,25 @@ export async function GET(req: NextRequest) {
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS door_code VARCHAR(8)`);
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_in_at TIMESTAMP`);
     await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS recipient_phone_hash TEXT`);
+    await pool.query(`ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS source VARCHAR(40)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lucky_wheel_spins (
+        id UUID PRIMARY KEY,
+        spin_date DATE NOT NULL,
+        device_hash CHAR(64) NOT NULL,
+        phone_hash CHAR(64) NOT NULL,
+        phone_masked VARCHAR(20) NOT NULL,
+        prize_key VARCHAR(40) NOT NULL,
+        prize_label VARCHAR(100) NOT NULL,
+        prize_percent INTEGER NOT NULL DEFAULT 0,
+        voucher_code VARCHAR(50) REFERENCES discount_codes(code) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (device_hash, spin_date)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_lucky_wheel_spins_created_at ON lucky_wheel_spins(created_at DESC)`);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS room_availability_slots (

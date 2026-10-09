@@ -7,11 +7,8 @@ import {
   BedDouble,
   Bolt,
   CalendarDays,
-  ChevronUp,
   Clock3,
   MapPin,
-  MessageCircle,
-  Phone,
   Sparkles,
   X,
 } from "lucide-react";
@@ -21,7 +18,7 @@ import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { BookingDateRangePicker } from "@/components/booking-date-range-picker";
 import { CUSTOMER_CONTACT } from "@/config/customer-info";
-import { compactPhone, money } from "@/lib/format";
+import { money } from "@/lib/format";
 import { parseAmenity, resolveAmenityIcon } from "@/lib/amenity-icons";
 import { makeBookingReference } from "@/lib/booking-reference";
 import {
@@ -875,18 +872,6 @@ export function LavieHomeApp({
         </section>
 
       </main>
-
-      <div className="fixed bottom-7 right-5 z-40 hidden flex-col gap-3 md:flex">
-        <a className="float-button bg-slate-700" href="#top" aria-label="Lên đầu trang">
-          <ChevronUp size={22} />
-        </a>
-        <a className="float-button bg-emerald-500" href={`tel:${compactPhone(currentBranch?.hotline ?? CUSTOMER_CONTACT.phoneLocalCompact)}`} aria-label="Gọi ngay">
-          <Phone size={22} />
-        </a>
-        <a className="float-button bg-blue-600" href={CUSTOMER_CONTACT.zaloUrl} aria-label="Zalo" target="_blank" rel="noopener noreferrer">
-          <MessageCircle size={20} />
-        </a>
-      </div>
 
       {selectedSlots.length > 0 && (
         <>

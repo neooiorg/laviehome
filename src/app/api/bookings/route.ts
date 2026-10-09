@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 
 import { expireStalePendingBookings, fetchRawBookings, holdsSlot, normalizeBookingRecord } from "@/lib/booking-records";
 import { getPublicBranches, getPublicRooms } from "@/lib/homestay-dashboard";
@@ -14,6 +14,7 @@ import {
   stringifyTimeslotIds,
 } from "@/lib/booking-slots";
 import { getBookingHoldMinutes } from "@/lib/settings-actions";
+import { hashLuckyWheelPhone } from "@/lib/lucky-wheel";
 
 let pool: Pool | null = null;
 function getPool() {
@@ -111,6 +112,9 @@ async function ensureTable(db: Pool) {
   ]) {
     await db.query(stmt).catch(() => {});
   }
+
+  await db.query(`ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS recipient_phone_hash TEXT`).catch(() => {});
+  await db.query(`ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS source VARCHAR(40)`).catch(() => {});
 }
 
 const SURCHARGE: Record<number, number> = { 3: 50000, 4: 100000 };
@@ -121,10 +125,12 @@ function toSafeAmount(value: unknown) {
 }
 
 async function resolveAmount(
-  db: Pool,
+  db: Pool | PoolClient,
   bookingId: string,
   guestCount: number,
   discountCode: string | null,
+  customerPhone: string | null,
+  discountAlreadyReserved: boolean,
   fallback?: { roomBase?: number; menuTotal?: number }
 ): Promise<{ amount: number; total: number; roomBase: number; menuTotal: number }> {
   const { rows } = await db.query(
@@ -141,13 +147,23 @@ async function resolveAmount(
   let discountPercent = 0;
   if (discountCode) {
     const { rows: dcRows } = await db.query(
-      `SELECT percent FROM discount_codes
+      `SELECT percent, recipient_phone_hash FROM discount_codes
        WHERE code = $1 AND active = TRUE
          AND (expires_at IS NULL OR expires_at > NOW())
-         AND (max_uses IS NULL OR used_count < max_uses)`,
-      [discountCode.trim().toUpperCase()]
+         AND ($2::boolean OR max_uses IS NULL OR used_count < max_uses)`,
+      [discountCode.trim().toUpperCase(), discountAlreadyReserved]
     );
-    if (dcRows.length > 0) discountPercent = Number(dcRows[0].percent);
+    if (dcRows.length === 0) throw new Error("DISCOUNT_UNAVAILABLE");
+
+    const recipientPhoneHash = dcRows[0].recipient_phone_hash as string | null;
+    if (recipientPhoneHash) {
+      const submittedPhoneHash = hashLuckyWheelPhone(customerPhone ?? "");
+      if (!submittedPhoneHash || submittedPhoneHash !== recipientPhoneHash) {
+        throw new Error("DISCOUNT_PHONE_MISMATCH");
+      }
+    }
+
+    discountPercent = Number(dcRows[0].percent);
   }
 
   const discountAmount = Math.round((roomBase * discountPercent) / 100);
@@ -285,18 +301,50 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { amount: bookingAmount, total: payTotal, roomBase, menuTotal } = await resolveAmount(
-      db,
-      id,
-      Number(guest_count ?? 2),
-      discount_code ?? existing?.discount_code ?? null,
-      {
-        roomBase: toSafeAmount(quoted_amount),
-        menuTotal: toSafeAmount(menu_items_total),
-      }
-    );
+    const selectedDiscountCode = String(discount_code ?? existing?.discount_code ?? "").trim().toUpperCase() || null;
+    const previousDiscountCode = existing?.discount_code?.trim().toUpperCase() || null;
+    const discountAlreadyReserved = Boolean(selectedDiscountCode && selectedDiscountCode === previousDiscountCode);
+    const client = await db.connect();
 
-    await db.query(
+    try {
+      await client.query("BEGIN");
+      const { amount: bookingAmount, total: payTotal, roomBase, menuTotal } = await resolveAmount(
+        client,
+        id,
+        Number(guest_count ?? 2),
+        selectedDiscountCode,
+        customer_phone ?? null,
+        discountAlreadyReserved,
+        {
+          roomBase: toSafeAmount(quoted_amount),
+          menuTotal: toSafeAmount(menu_items_total),
+        }
+      );
+
+      if (selectedDiscountCode && selectedDiscountCode !== previousDiscountCode) {
+        const phoneHash = hashLuckyWheelPhone(String(customer_phone ?? ""));
+        const reserved = await client.query(
+          `UPDATE discount_codes
+              SET used_count = used_count + 1
+            WHERE code = $1
+              AND active = TRUE
+              AND (expires_at IS NULL OR expires_at > NOW())
+              AND (max_uses IS NULL OR used_count < max_uses)
+              AND (recipient_phone_hash IS NULL OR recipient_phone_hash = $2)
+            RETURNING code`,
+          [selectedDiscountCode, phoneHash]
+        );
+        if (!reserved.rowCount) throw new Error("DISCOUNT_UNAVAILABLE");
+      }
+
+      if (previousDiscountCode && previousDiscountCode !== selectedDiscountCode) {
+        await client.query(
+          `UPDATE discount_codes SET used_count = GREATEST(used_count - 1, 0) WHERE code = $1`,
+          [previousDiscountCode]
+        );
+      }
+
+      await client.query(
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name, stay_date, date_label, time_range,
         timeslot_ids, channel, quoted_amount, amount, menu_items_total, customer_name, customer_phone, customer_email, discount_code,
@@ -320,7 +368,7 @@ export async function POST(req: NextRequest) {
         guest_count = COALESCE(EXCLUDED.guest_count, bookings.guest_count),
         has_car = COALESCE(EXCLUDED.has_car, bookings.has_car),
         has_decoration = COALESCE(EXCLUDED.has_decoration, bookings.has_decoration),
-        discount_code = COALESCE(EXCLUDED.discount_code, bookings.discount_code),
+        discount_code = EXCLUDED.discount_code,
         quoted_amount = COALESCE(NULLIF(bookings.quoted_amount, 0), EXCLUDED.quoted_amount),
         amount = EXCLUDED.amount,
         menu_items_total = COALESCE(EXCLUDED.menu_items_total, bookings.menu_items_total),
@@ -355,7 +403,7 @@ export async function POST(req: NextRequest) {
         customer_name ?? null,
         customer_phone ?? null,
         customer_email ?? null,
-        discount_code ?? null,
+        selectedDiscountCode,
         notes ?? null,
         guest_count ? Number(guest_count) : 2,
         has_car ?? false,
@@ -366,12 +414,25 @@ export async function POST(req: NextRequest) {
         normalizedPaymentReference ? payTotal : null,
         shouldClearPaymentReference,
       ]
-    );
+      );
 
-    return NextResponse.json({ success: true, id, amount: payTotal });
+      await client.query("COMMIT");
+      return NextResponse.json({ success: true, id, amount: payTotal });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error("Create booking error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
+    if (msg === "DISCOUNT_PHONE_MISMATCH") {
+      return NextResponse.json({ error: "Mã giảm giá không thuộc số điện thoại này." }, { status: 400 });
+    }
+    if (msg === "DISCOUNT_UNAVAILABLE") {
+      return NextResponse.json({ error: "Mã giảm giá đã hết hạn hoặc đã được sử dụng." }, { status: 409 });
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

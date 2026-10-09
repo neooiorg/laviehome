@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { IdCard, Mail, Tag, Upload, UserRound } from "lucide-react";
 
 import { money } from "@/lib/format";
@@ -76,7 +76,6 @@ export function CheckoutForm({
   const [cccdFrontName, setCccdFrontName] = useState("");
   const [cccdBackName, setCccdBackName] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const reportedDiscountUseRef = useRef<string | null>(null);
 
   function readFileAsBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -122,7 +121,8 @@ export function CheckoutForm({
     setValidating(true);
 
     try {
-      const res = await fetch(`/api/discount?code=${encodeURIComponent(code)}`);
+      const params = new URLSearchParams({ code, phone: customerPhone.trim() });
+      const res = await fetch(`/api/discount?${params.toString()}`, { cache: "no-store" });
       const data: DiscountResult = await res.json();
       setDiscountResult(data);
       setSaved(false);
@@ -230,20 +230,15 @@ export function CheckoutForm({
         syncPricingWithServer(data.amount);
       }
 
-      if (discountResult?.valid && appliedDiscountCode && reportedDiscountUseRef.current !== appliedDiscountCode) {
-        reportedDiscountUseRef.current = appliedDiscountCode;
-        fetch("/api/discount", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: appliedDiscountCode }),
-        }).catch(() => {});
-      }
-
       setSaved(true);
       onConfirmed?.(nextPaymentReference);
-    } catch {
+    } catch (submitError) {
       if (onlinePaymentEnabled) {
-        setConflictError("Không thể cập nhật mã thanh toán. Vui lòng bấm xác nhận lại sau vài giây.");
+        setConflictError(
+          submitError instanceof Error
+            ? submitError.message
+            : "Không thể cập nhật mã thanh toán. Vui lòng bấm xác nhận lại sau vài giây."
+        );
       } else {
         // Offline bookings can still be followed up manually by staff.
         onConfirmed?.(null);
