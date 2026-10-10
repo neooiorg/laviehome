@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { CUSTOMER_CONTACT } from "@/config/customer-info";
 import { compactPhone } from "@/lib/format";
-import { LUCKY_WHEEL_SEGMENTS } from "@/lib/lucky-wheel-config";
+import { DEFAULT_LUCKY_WHEEL_CONFIG, LUCKY_WHEEL_SEGMENTS, type LuckyWheelPrize } from "@/lib/lucky-wheel-config";
 
 type SpinResult = {
   alreadySpun: boolean;
@@ -30,10 +30,13 @@ type WheelStatus = {
   enabled?: boolean;
   eligible: boolean;
   result: SpinResult | null;
+  prizes?: LuckyWheelPrize[];
   error?: string;
 };
 
-const SEGMENT_ANGLE = 360 / LUCKY_WHEEL_SEGMENTS.length;
+function segmentAngle(segmentCount: number) {
+  return 360 / segmentCount;
+}
 
 function polarPoint(radius: number, angleDegrees: number) {
   const radians = ((angleDegrees - 90) * Math.PI) / 180;
@@ -43,22 +46,32 @@ function polarPoint(radius: number, angleDegrees: number) {
   };
 }
 
-function segmentPath(index: number) {
-  const start = polarPoint(108, index * SEGMENT_ANGLE);
-  const end = polarPoint(108, (index + 1) * SEGMENT_ANGLE);
+function segmentPath(index: number, segmentCount: number) {
+  const angle = segmentAngle(segmentCount);
+  const start = polarPoint(108, index * angle);
+  const end = polarPoint(108, (index + 1) * angle);
   return `M 120 120 L ${start.x} ${start.y} A 108 108 0 0 1 ${end.x} ${end.y} Z`;
 }
 
-function resultRotation(index: number, current: number) {
+function needsDarkText(color: string) {
+  const hex = color.slice(1);
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  return red * 0.299 + green * 0.587 + blue * 0.114 > 150;
+}
+
+function resultRotation(index: number, current: number, segmentCount: number) {
+  const angle = segmentAngle(segmentCount);
   const completeTurns = Math.ceil(current / 360) * 360 + 5 * 360;
-  return completeTurns - (index * SEGMENT_ANGLE + SEGMENT_ANGLE / 2);
+  return completeTurns - (index * angle + angle / 2);
 }
 
 function MiniWheelIcon() {
   return (
     <svg aria-hidden="true" className="lucky-wheel-mini size-8" viewBox="0 0 240 240">
       {LUCKY_WHEEL_SEGMENTS.map((segment, index) => (
-        <path key={segment.key} d={segmentPath(index)} fill={segment.color} stroke="#fff8fb" strokeWidth="3" />
+        <path key={segment.key} d={segmentPath(index, LUCKY_WHEEL_SEGMENTS.length)} fill={segment.color} stroke="#fff8fb" strokeWidth="3" />
       ))}
       <circle cx="120" cy="120" r="109" fill="none" stroke="#f6d76f" strokeWidth="9" />
       <circle cx="120" cy="120" r="23" fill="#170c1d" stroke="#fff8fb" strokeWidth="7" />
@@ -67,7 +80,8 @@ function MiniWheelIcon() {
   );
 }
 
-function WheelGraphic({ rotation, spinning }: { rotation: number; spinning: boolean }) {
+function WheelGraphic({ rotation, spinning, prizes }: { rotation: number; spinning: boolean; prizes: LuckyWheelPrize[] }) {
+  const angle = segmentAngle(prizes.length);
   return (
     <div className="relative mx-auto size-[min(70vw,34dvh,17rem)] shrink-0">
       <div className="absolute left-1/2 top-[-0.35rem] z-20 -translate-x-1/2 drop-shadow-[0_4px_6px_rgba(0,0,0,0.45)]">
@@ -86,21 +100,22 @@ function WheelGraphic({ rotation, spinning }: { rotation: number; spinning: bool
             transition: spinning ? "transform 4.2s cubic-bezier(0.12, 0.74, 0.08, 1)" : "none",
           }}
         >
-          {LUCKY_WHEEL_SEGMENTS.map((segment, index) => {
-            const labelPoint = polarPoint(70, index * SEGMENT_ANGLE + SEGMENT_ANGLE / 2);
-            const darkText = segment.key === "discount-10" || segment.key === "discount-20";
+          {prizes.map((segment, index) => {
+            const labelPoint = polarPoint(70, index * angle + angle / 2);
+            const darkText = needsDarkText(segment.color);
+            const fontSize = segment.shortLabel.length > 9 ? "6.5" : segment.shortLabel.length > 6 || prizes.length > 8 ? "8.5" : "13";
             return (
               <g key={segment.key}>
-                <path d={segmentPath(index)} fill={segment.color} stroke="#fff4" strokeWidth="1.5" />
+                <path d={segmentPath(index, prizes.length)} fill={segment.color} stroke="#fff4" strokeWidth="1.5" />
                 <text
                   x={labelPoint.x}
                   y={labelPoint.y}
                   fill={darkText ? "#221124" : "#fffafc"}
-                  fontSize={segment.key === "better-luck" ? "8.5" : "13"}
+                  fontSize={fontSize}
                   fontWeight="900"
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  transform={`rotate(${index * SEGMENT_ANGLE + SEGMENT_ANGLE / 2} ${labelPoint.x} ${labelPoint.y})`}
+                  transform={`rotate(${index * angle + angle / 2} ${labelPoint.x} ${labelPoint.y})`}
                 >
                   {segment.shortLabel}
                 </text>
@@ -124,6 +139,7 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   const [result, setResult] = useState<SpinResult | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [prizes, setPrizes] = useState<LuckyWheelPrize[]>(DEFAULT_LUCKY_WHEEL_CONFIG.prizes);
   const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadStatus = useCallback(async () => {
@@ -133,9 +149,10 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
       const response = await fetch("/api/lucky-wheel", { cache: "no-store" });
       const data = (await response.json()) as WheelStatus;
       if (!response.ok) throw new Error(data.error || "Không thể kiểm tra lượt quay.");
+      if (data.prizes?.length) setPrizes(data.prizes);
       setResult(data.result);
       if (data.result) {
-        setRotation(resultRotation(data.result.prizeIndex, 0));
+        setRotation(resultRotation(data.result.prizeIndex, 0, data.prizes?.length || DEFAULT_LUCKY_WHEEL_CONFIG.prizes.length));
       } else {
         setRotation(0);
       }
@@ -170,17 +187,19 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),
       });
-      const data = (await response.json()) as { result?: SpinResult; error?: string };
+      const data = (await response.json()) as { result?: SpinResult; prizes?: LuckyWheelPrize[]; error?: string };
       if (!response.ok || !data.result) throw new Error(data.error || "Không thể thực hiện lượt quay.");
+      const activePrizes = data.prizes?.length ? data.prizes : prizes;
+      setPrizes(activePrizes);
 
       if (data.result.alreadySpun) {
         setResult(data.result);
-        setRotation(resultRotation(data.result.prizeIndex, rotation));
+        setRotation(resultRotation(data.result.prizeIndex, rotation, activePrizes.length));
         return;
       }
 
       setSpinning(true);
-      setRotation((current) => resultRotation(data.result!.prizeIndex, current));
+      setRotation((current) => resultRotation(data.result!.prizeIndex, current, activePrizes.length));
       revealTimer.current = setTimeout(() => {
         setResult(data.result!);
         setSpinning(false);
@@ -223,7 +242,7 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
             </DialogDescription>
           </DialogHeader>
 
-          <WheelGraphic rotation={rotation} spinning={spinning} />
+          <WheelGraphic rotation={rotation} spinning={spinning} prizes={prizes} />
 
           {loading && !spinning && !result ? (
             <div className="min-h-24 shrink-0 animate-pulse rounded-2xl border border-white/10 bg-white/5" />

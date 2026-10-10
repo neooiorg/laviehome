@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Disc3, Gift, Save, TicketCheck, Users } from "lucide-react";
+import { Disc3, Gift, Plus, Save, TicketCheck, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import type { LuckyWheelAdminReport } from "@/lib/lucky-wheel-admin";
 import { updateLuckyWheelConfig } from "@/lib/lucky-wheel-admin-actions";
-import {
-  LUCKY_WHEEL_SEGMENTS,
-  type LuckyWheelConfig,
-  type LuckyWheelPrizeKey,
-} from "@/lib/lucky-wheel-config";
+import type { LuckyWheelConfig, LuckyWheelPrize } from "@/lib/lucky-wheel-config";
 
 function MetricCard({
   icon: Icon,
@@ -55,15 +51,44 @@ export function LuckyWheelAdmin({
 }) {
   const [config, setConfig] = React.useState(initialConfig);
   const [pending, startTransition] = React.useTransition();
-  const totalWeight = Object.values(config.weights).reduce((sum, value) => sum + value, 0);
+  const totalWeight = config.prizes.reduce((sum, prize) => sum + prize.weight, 0);
   const winRate = report.totalSpins ? Math.round((report.winningSpins / report.totalSpins) * 100) : 0;
 
-  function updateWeight(key: LuckyWheelPrizeKey, value: number) {
-    const weight = Number.isFinite(value) ? Math.min(100, Math.max(0, Math.round(value))) : 0;
+  function updatePrize(key: string, updates: Partial<LuckyWheelPrize>) {
     setConfig((current) => ({
       ...current,
-      weights: { ...current.weights, [key]: weight },
+      prizes: current.prizes.map((prize) => prize.key === key ? { ...prize, ...updates } : prize),
     }));
+  }
+
+  function addPrize() {
+    if (config.prizes.length >= 12) {
+      toast.error("Tối đa 12 ô phần thưởng trên vòng quay.");
+      return;
+    }
+    const color = ["#f35abd", "#f6d76f", "#7c6cff", "#55d6b4", "#2f2035", "#54a9f5"][config.prizes.length % 6];
+    const newPrize: LuckyWheelPrize = {
+      key: `prize-${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`,
+      label: "Phần thưởng mới",
+      shortLabel: "Mới",
+      color,
+      percent: 0,
+      weight: 0,
+    };
+    setConfig((current) => ({ ...current, prizes: [...current.prizes, newPrize] }));
+  }
+
+  function removePrize(key: string) {
+    if (config.prizes.length <= 2) {
+      toast.error("Vòng quay cần tối thiểu 2 ô phần thưởng.");
+      return;
+    }
+    setConfig((current) => {
+      const removed = current.prizes.find((prize) => prize.key === key);
+      const prizes = current.prizes.filter((prize) => prize.key !== key);
+      if (removed && prizes.length) prizes[0] = { ...prizes[0], weight: prizes[0].weight + removed.weight };
+      return { ...current, prizes };
+    });
   }
 
   function handleSave() {
@@ -138,39 +163,70 @@ export function LuckyWheelAdmin({
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-end justify-between gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <Label>Tỷ lệ phần thưởng</Label>
-                  <p className="mt-1 text-sm text-muted-foreground">Nhập phần trăm cho từng ô. Tổng phải đúng 100%.</p>
+                  <Label>Ô phần thưởng</Label>
+                  <p className="mt-1 text-sm text-muted-foreground">Thêm, sửa hoặc xóa ô. Tổng tỷ lệ trúng phải đúng 100%; mức giảm 0% không phát voucher.</p>
                 </div>
-                <Badge variant={totalWeight === 100 ? "secondary" : "destructive"}>{totalWeight}% / 100%</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={totalWeight === 100 ? "secondary" : "destructive"}>{totalWeight}% / 100%</Badge>
+                  <Button type="button" size="sm" variant="outline" onClick={addPrize} disabled={pending || config.prizes.length >= 12}>
+                    <Plus className="size-4" /> Thêm ô
+                  </Button>
+                </div>
               </div>
 
-              <div className="overflow-hidden rounded-lg border">
-                {LUCKY_WHEEL_SEGMENTS.map((segment) => (
-                  <div key={segment.key} className="grid grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-4 border-b p-3 last:border-b-0">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="size-3 shrink-0 rounded-full ring-1 ring-black/10" style={{ backgroundColor: segment.color }} />
-                        <span className="truncate text-sm font-medium">{segment.label}</span>
+              <div className="space-y-3">
+                {config.prizes.map((prize, index) => (
+                    <div key={prize.key} className="rounded-lg border p-3 sm:p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">{index + 1}</span>
+                          <span className="truncate text-sm font-semibold">{prize.label || "Ô phần thưởng"}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`Xóa ${prize.label}`}
+                          onClick={() => removePrize(prize.key)}
+                          disabled={pending || config.prizes.length <= 2}
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
                       </div>
-                      <Progress value={config.weights[segment.key]} className="mt-2 h-1.5" />
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`prize-label-${prize.key}`}>Tên phần thưởng</Label>
+                          <Input id={`prize-label-${prize.key}`} maxLength={60} value={prize.label} onChange={(event) => updatePrize(prize.key, { label: event.target.value })} disabled={pending} />
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`prize-short-${prize.key}`}>Chữ trên vòng quay</Label>
+                          <Input id={`prize-short-${prize.key}`} maxLength={16} value={prize.shortLabel} onChange={(event) => updatePrize(prize.key, { shortLabel: event.target.value })} disabled={pending} />
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`prize-percent-${prize.key}`}>Giảm giá (%)</Label>
+                          <Input id={`prize-percent-${prize.key}`} type="number" min={0} max={100} inputMode="numeric" value={prize.percent} onChange={(event) => updatePrize(prize.key, { percent: Math.min(100, Math.max(0, Number(event.target.value) || 0)) })} disabled={pending} />
+                          <p className="text-xs text-muted-foreground">Đặt 0 nếu đây là ô không trúng voucher.</p>
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`prize-weight-${prize.key}`}>Tỷ lệ xuất hiện (%)</Label>
+                          <div className="relative">
+                            <Input id={`prize-weight-${prize.key}`} type="number" min={0} max={100} inputMode="numeric" value={prize.weight} onChange={(event) => updatePrize(prize.key, { weight: Math.min(100, Math.max(0, Number(event.target.value) || 0)) })} disabled={pending} className="pr-7 text-right tabular-nums" />
+                            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">%</span>
+                          </div>
+                          <Progress value={prize.weight} className="h-1.5" />
+                        </div>
+                        <div className="grid gap-1.5 sm:col-span-2">
+                          <Label htmlFor={`prize-color-${prize.key}`}>Màu ô</Label>
+                          <div className="flex items-center gap-3">
+                            <Input id={`prize-color-${prize.key}`} type="color" value={prize.color} onChange={(event) => updatePrize(prize.key, { color: event.target.value })} disabled={pending} className="h-10 w-14 cursor-pointer p-1" />
+                            <span className="font-mono text-xs uppercase text-muted-foreground">{prize.color}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        inputMode="numeric"
-                        value={config.weights[segment.key]}
-                        onChange={(event) => updateWeight(segment.key, Number(event.target.value))}
-                        disabled={pending}
-                        className="pr-7 text-right tabular-nums"
-                        aria-label={`Tỷ lệ ${segment.label}`}
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">%</span>
-                    </div>
-                  </div>
                 ))}
               </div>
             </div>
@@ -188,7 +244,7 @@ export function LuckyWheelAdmin({
           </CardHeader>
           <CardContent className="space-y-4">
             {report.distribution.length ? report.distribution.map((item) => {
-              const segment = LUCKY_WHEEL_SEGMENTS.find((entry) => entry.key === item.prizeKey);
+              const segment = config.prizes.find((entry) => entry.key === item.prizeKey);
               const percent = report.totalSpins ? Math.round((item.count / report.totalSpins) * 100) : 0;
               return (
                 <div key={item.prizeKey} className="space-y-2">

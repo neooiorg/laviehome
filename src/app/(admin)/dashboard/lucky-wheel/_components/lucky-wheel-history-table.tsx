@@ -123,6 +123,8 @@ export function LuckyWheelHistoryTable({ spins }: { spins: LuckyWheelRecentSpin[
     },
   ];
 
+  // TanStack Table keeps internal mutable state that React Compiler cannot safely memoize.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: spins,
     columns,

@@ -52,9 +52,9 @@ export async function GET(request: NextRequest) {
     if (!config.enabled) {
       return withDeviceCookie(NextResponse.json({ enabled: false, eligible: false, result: null }), deviceId);
     }
-    const result = await getLuckyWheelStatus(client, deviceId);
+    const result = await getLuckyWheelStatus(client, deviceId, config.prizes);
     return withDeviceCookie(
-      NextResponse.json({ enabled: true, eligible: !result, result }),
+      NextResponse.json({ enabled: true, eligible: !result, result, prizes: config.prizes }),
       deviceId
     );
   } catch (error) {
@@ -82,11 +82,12 @@ export async function POST(request: NextRequest) {
   const client = await getPool().connect();
 
   try {
+    const config = await getLuckyWheelConfig();
     const result = await createLuckyWheelSpin(client, {
       deviceId,
       phone: parsed.data.phone,
     });
-    return withDeviceCookie(NextResponse.json({ result }), deviceId);
+    return withDeviceCookie(NextResponse.json({ result, prizes: config.prizes }), deviceId);
   } catch (error) {
     if (error instanceof Error && error.message === "LUCKY_WHEEL_DISABLED") {
       return withDeviceCookie(

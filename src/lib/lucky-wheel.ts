@@ -4,20 +4,12 @@ import { createHmac, randomInt, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 
 import {
-  LUCKY_WHEEL_SEGMENTS,
-  type LuckyWheelConfig,
+  DEFAULT_LUCKY_WHEEL_PRIZES,
+  type LuckyWheelPrize,
   type LuckyWheelPrizeKey,
 } from "@/lib/lucky-wheel-config";
 import { getLuckyWheelConfig } from "@/lib/lucky-wheel-settings";
 import { query } from "@/lib/postgres";
-
-const PRIZE_PERCENT: Record<LuckyWheelPrizeKey, number> = {
-  "discount-5": 5,
-  "discount-10": 10,
-  "discount-15": 15,
-  "discount-20": 20,
-  "better-luck": 0,
-};
 
 export const LUCKY_WHEEL_DEVICE_COOKIE = "lvh-wheel-device";
 
@@ -36,7 +28,7 @@ export type LuckyWheelSpinResult = {
 type SpinRow = {
   spin_date: string;
   phone_masked: string;
-  prize_key: LuckyWheelPrizeKey;
+  prize_key: string;
   prize_label: string;
   prize_percent: number;
   voucher_code: string | null;
@@ -130,16 +122,16 @@ export async function ensureLuckyWheelTables(client?: Pick<PoolClient, "query">)
   await run(`CREATE INDEX IF NOT EXISTS idx_lucky_wheel_spins_created_at ON lucky_wheel_spins(created_at DESC)`);
 }
 
-function selectPrize(weights: LuckyWheelConfig["weights"]) {
-  const totalWeight = Object.values(weights).reduce((total, weight) => total + weight, 0);
+function selectPrize(prizes: LuckyWheelPrize[]) {
+  const totalWeight = prizes.reduce((total, prize) => total + prize.weight, 0);
   let draw = randomInt(1, totalWeight + 1);
 
-  for (const segment of LUCKY_WHEEL_SEGMENTS) {
-    draw -= weights[segment.key];
+  for (const segment of prizes) {
+    draw -= segment.weight;
     if (draw <= 0) return segment;
   }
 
-  return LUCKY_WHEEL_SEGMENTS.at(-1)!;
+  return prizes.at(-1)!;
 }
 
 function makeVoucherCode() {
@@ -149,8 +141,8 @@ function makeVoucherCode() {
   return `LAVIE-${suffix}`;
 }
 
-function mapSpin(row: SpinRow, alreadySpun: boolean): LuckyWheelSpinResult {
-  const prizeIndex = LUCKY_WHEEL_SEGMENTS.findIndex((segment) => segment.key === row.prize_key);
+function mapSpin(row: SpinRow, alreadySpun: boolean, prizes: LuckyWheelPrize[]): LuckyWheelSpinResult {
+  const prizeIndex = prizes.findIndex((segment) => segment.key === row.prize_key);
   return {
     alreadySpun,
     prizeKey: row.prize_key,
@@ -177,11 +169,15 @@ async function findTodaySpin(client: Pick<PoolClient, "query">, deviceHash: stri
   return result.rows[0] ?? null;
 }
 
-export async function getLuckyWheelStatus(client: Pick<PoolClient, "query">, deviceId: string) {
+export async function getLuckyWheelStatus(
+  client: Pick<PoolClient, "query">,
+  deviceId: string,
+  prizes: LuckyWheelPrize[] = DEFAULT_LUCKY_WHEEL_PRIZES
+) {
   await ensureLuckyWheelTables(client);
   const spinDate = getVietnamDateKey();
   const row = await findTodaySpin(client, hashLuckyWheelValue(`device:${deviceId}`), spinDate);
-  return row ? mapSpin(row, true) : null;
+  return row ? mapSpin(row, true, prizes) : null;
 }
 
 export async function createLuckyWheelSpin(
@@ -197,10 +193,10 @@ export async function createLuckyWheelSpin(
   const spinDate = getVietnamDateKey();
   const deviceHash = hashLuckyWheelValue(`device:${input.deviceId}`);
   const existing = await findTodaySpin(client, deviceHash, spinDate);
-  if (existing) return mapSpin(existing, true);
+  if (existing) return mapSpin(existing, true, config.prizes);
 
-  const segment = selectPrize(config.weights);
-  const prizePercent = PRIZE_PERCENT[segment.key];
+  const segment = selectPrize(config.prizes);
+  const prizePercent = segment.percent;
   const phoneHash = hashLuckyWheelValue(`phone:${normalizedPhone}`);
   const phoneMasked = maskVietnamPhone(normalizedPhone);
   let voucherCode: string | null = null;
@@ -254,7 +250,7 @@ export async function createLuckyWheelSpin(
     await client.query("ROLLBACK");
     if ((error as { code?: string }).code === "23505") {
       const concurrent = await findTodaySpin(client, deviceHash, spinDate);
-      if (concurrent) return mapSpin(concurrent, true);
+      if (concurrent) return mapSpin(concurrent, true, config.prizes);
     }
     throw error;
   }
@@ -262,7 +258,7 @@ export async function createLuckyWheelSpin(
   return {
     alreadySpun: false,
     prizeKey: segment.key,
-    prizeIndex: LUCKY_WHEEL_SEGMENTS.findIndex((item) => item.key === segment.key),
+    prizeIndex: config.prizes.findIndex((item) => item.key === segment.key),
     prizeLabel: segment.label,
     prizePercent,
     voucherCode,
