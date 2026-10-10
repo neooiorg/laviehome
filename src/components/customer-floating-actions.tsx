@@ -83,7 +83,7 @@ function MiniWheelIcon() {
 function WheelGraphic({ rotation, spinning, prizes }: { rotation: number; spinning: boolean; prizes: LuckyWheelPrize[] }) {
   const angle = segmentAngle(prizes.length);
   return (
-    <div className="relative mx-auto size-[min(70vw,34dvh,17rem)] shrink-0">
+    <div className="relative mx-auto size-[min(72vw,34dvh,18rem)] shrink-0">
       <div className="absolute left-1/2 top-[-0.35rem] z-20 -translate-x-1/2 drop-shadow-[0_4px_6px_rgba(0,0,0,0.45)]">
         <div className="h-0 w-0 border-x-[14px] border-t-[25px] border-x-transparent border-t-yellow-200" />
       </div>
@@ -225,13 +225,13 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="z-[101] flex max-h-[calc(100dvh-1rem)] w-[min(96vw,34rem)] max-w-none overflow-hidden border border-pink-200/25 bg-[#170c1d] p-0 text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)] sm:max-h-[min(44rem,calc(100dvh-2rem))] sm:rounded-[1.75rem]"
+        className="z-[101] flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[38rem] overflow-hidden border border-pink-200/25 bg-[#170c1d] p-0 text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)] sm:w-[min(96vw,38rem)] sm:max-w-[38rem] sm:max-h-[min(44rem,calc(100dvh-2rem))] sm:rounded-[1.75rem]"
         overlayClassName="z-[100] bg-black/65 backdrop-blur-sm"
         showCloseButton={!spinning}
       >
         <div className="scrollbar-thin scrollbar-gutter-stable flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
-          <DialogHeader className="shrink-0 px-6 text-center">
-            <DialogTitle className="text-2xl font-black tracking-[-0.03em] text-pink-100 sm:text-3xl">
+          <DialogHeader className="shrink-0 px-3 text-center sm:px-6">
+            <DialogTitle className="whitespace-nowrap text-xl font-black tracking-[-0.03em] text-pink-100 sm:text-3xl">
               Vòng quay may mắn
             </DialogTitle>
             <DialogDescription className="text-sm font-semibold leading-5 text-white/65 sm:leading-6">
