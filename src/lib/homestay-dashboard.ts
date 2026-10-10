@@ -796,7 +796,7 @@ export async function getDiscountCodes(): Promise<DiscountCode[]> {
   // matching the DiscountCode type. The edit sheet calls expires_at.slice(...),
   // which would throw if pg returned a Date.
   return query<DiscountCode>(
-    `select code, percent, description, active, max_uses, used_count,
+    `select code, percent, description, active, max_uses, used_count, source,
             expires_at::text as expires_at, created_at::text as created_at
      from discount_codes order by created_at desc`
   );

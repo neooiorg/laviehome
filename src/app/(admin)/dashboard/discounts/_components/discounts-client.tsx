@@ -61,6 +61,16 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
       id: "source",
       header: "Nguồn",
       accessorFn: (row) => row.source === "lucky-wheel" ? "Vòng quay" : "Admin",
+      filterFn: (row, _id, values: string[]) =>
+        !values.length || values.includes(row.original.source === "lucky-wheel" ? "lucky-wheel" : "admin"),
+      meta: {
+        label: "Nguồn",
+        variant: "select",
+        options: [
+          { label: "Admin tạo", value: "admin" },
+          { label: "Vòng quay", value: "lucky-wheel" },
+        ],
+      },
       cell: ({ row }) => (
         <Badge variant={row.original.source === "lucky-wheel" ? "outline" : "secondary"}>
           {row.original.source === "lucky-wheel" ? "Vòng quay" : "Admin"}
