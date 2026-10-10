@@ -100,8 +100,11 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "lucky-wheel",
         title: "Vòng quay may mắn",
-        url: "/dashboard/lucky-wheel",
         icon: Disc3,
+        subItems: [
+          { id: "lucky-wheel-overview", title: "Cài đặt & báo cáo", url: "/dashboard/lucky-wheel" },
+          { id: "lucky-wheel-history", title: "Lịch sử lượt quay", url: "/dashboard/lucky-wheel/history" },
+        ],
       },
       {
         id: "customers",
