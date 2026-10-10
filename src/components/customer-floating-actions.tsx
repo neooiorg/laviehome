@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronUp, Copy, Gift, MessageCircle, Phone, Sparkles } from "lucide-react";
+import { Check, ChevronUp, Copy, Gift, MessageCircle, Phone } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -225,15 +225,12 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="z-[101] flex max-h-[calc(100dvh-1rem)] w-[min(94vw,32rem)] max-w-none overflow-hidden border border-pink-200/25 bg-[#170c1d] p-0 text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)] sm:max-h-[min(44rem,calc(100dvh-2rem))] sm:rounded-[1.75rem]"
+        className="z-[101] flex max-h-[calc(100dvh-1rem)] w-[min(96vw,34rem)] max-w-none overflow-hidden border border-pink-200/25 bg-[#170c1d] p-0 text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)] sm:max-h-[min(44rem,calc(100dvh-2rem))] sm:rounded-[1.75rem]"
         overlayClassName="z-[100] bg-black/65 backdrop-blur-sm"
         showCloseButton={!spinning}
       >
         <div className="scrollbar-thin scrollbar-gutter-stable flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4 sm:p-6">
           <DialogHeader className="shrink-0 px-6 text-center">
-            <div className="mx-auto flex size-9 items-center justify-center rounded-full border border-yellow-200/35 bg-yellow-200/10 text-yellow-200 sm:size-10">
-              <Sparkles size={19} />
-            </div>
             <DialogTitle className="text-2xl font-black tracking-[-0.03em] text-pink-100 sm:text-3xl">
               Vòng quay may mắn
             </DialogTitle>
