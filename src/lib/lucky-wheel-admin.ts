@@ -6,7 +6,7 @@ import { query } from "@/lib/postgres";
 export type LuckyWheelRecentSpin = {
   id: string;
   createdAt: string;
-  phoneMasked: string;
+  phoneNumber: string | null;
   prizeLabel: string;
   prizePercent: number;
   voucherCode: string | null;
@@ -57,7 +57,7 @@ export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport>
     query<{
       id: string;
       created_at: string;
-      phone_masked: string;
+      phone_number: string | null;
       prize_label: string;
       prize_percent: number;
       voucher_code: string | null;
@@ -65,7 +65,7 @@ export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport>
       active: boolean | null;
       expires_at: string | null;
     }>(`
-      SELECT s.id::text, s.created_at::text, s.phone_masked, s.prize_label, s.prize_percent,
+      SELECT s.id::text, s.created_at::text, s.phone_number, s.prize_label, s.prize_percent,
              s.voucher_code, d.used_count, d.active, d.expires_at::text
       FROM lucky_wheel_spins s
       LEFT JOIN discount_codes d ON d.code = s.voucher_code
@@ -89,7 +89,7 @@ export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport>
     spins: recentRows.map((row) => ({
       id: row.id,
       createdAt: row.created_at,
-      phoneMasked: row.phone_masked,
+      phoneNumber: row.phone_number,
       prizeLabel: row.prize_label,
       prizePercent: Number(row.prize_percent),
       voucherCode: row.voucher_code,

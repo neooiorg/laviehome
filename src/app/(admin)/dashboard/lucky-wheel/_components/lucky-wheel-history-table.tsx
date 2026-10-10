@@ -79,7 +79,7 @@ export function LuckyWheelHistoryTable({ spins }: { spins: LuckyWheelRecentSpin[
   const columns: ColumnDef<LuckyWheelRecentSpin>[] = [
     {
       id: "search",
-      accessorFn: (spin) => `${spin.phoneMasked} ${spin.prizeLabel} ${spin.voucherCode ?? ""}`,
+      accessorFn: (spin) => `${spin.phoneNumber ?? ""} ${spin.prizeLabel} ${spin.voucherCode ?? ""}`,
       filterFn: "includesString",
       enableHiding: false,
     },
@@ -89,9 +89,9 @@ export function LuckyWheelHistoryTable({ spins }: { spins: LuckyWheelRecentSpin[
       cell: ({ row }) => <span className="whitespace-nowrap text-muted-foreground">{formatDateTime(row.original.createdAt)}</span>,
     },
     {
-      accessorKey: "phoneMasked",
+      accessorKey: "phoneNumber",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Số điện thoại" />,
-      cell: ({ row }) => <span className="whitespace-nowrap font-medium tabular-nums">{row.original.phoneMasked}</span>,
+      cell: ({ row }) => <span className="whitespace-nowrap font-medium tabular-nums">{row.original.phoneNumber ?? "—"}</span>,
     },
     {
       accessorKey: "prizeLabel",
@@ -146,7 +146,6 @@ export function LuckyWheelHistoryTable({ spins }: { spins: LuckyWheelRecentSpin[
           <CalendarClock className="size-4 text-muted-foreground" />
           <h2 className="font-semibold">Lịch sử lượt quay</h2>
         </div>
-        <p className="text-sm text-muted-foreground">Số điện thoại được che; tìm theo số đã che, phần thưởng hoặc mã voucher.</p>
       </div>
       <DataTable table={table} emptyMessage="Không tìm thấy lượt quay nào.">
         <DataTableToolbar table={table} searchColumn="search" searchPlaceholder="Tìm số điện thoại, voucher...">

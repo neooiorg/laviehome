@@ -119,6 +119,7 @@ export async function ensureLuckyWheelTables(client?: Pick<PoolClient, "query">)
       UNIQUE (device_hash, spin_date)
     )
   `);
+  await run(`ALTER TABLE lucky_wheel_spins ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_lucky_wheel_spins_created_at ON lucky_wheel_spins(created_at DESC)`);
 }
 
@@ -230,15 +231,16 @@ export async function createLuckyWheelSpin(
 
     await client.query(
       `INSERT INTO lucky_wheel_spins (
-         id, spin_date, device_hash, phone_hash, phone_masked, prize_key,
+         id, spin_date, device_hash, phone_hash, phone_masked, phone_number, prize_key,
          prize_label, prize_percent, voucher_code
-       ) VALUES ($1, $2::date, $3, $4, $5, $6, $7, $8, $9)`,
+       ) VALUES ($1, $2::date, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
         randomUUID(),
         spinDate,
         deviceHash,
         phoneHash,
         phoneMasked,
+        normalizedPhone,
         segment.key,
         segment.label,
         prizePercent,
