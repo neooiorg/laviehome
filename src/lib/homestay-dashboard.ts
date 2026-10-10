@@ -148,6 +148,7 @@ export type DiscountCode = {
   used_count: number;
   expires_at: string | null;
   created_at: string;
+  source?: string | null;
 };
 
 function splitBranchName(name: string) {
@@ -781,7 +782,7 @@ export async function getBranchById(id: number): Promise<BranchRow | null> {
 
 export async function getDiscountByCode(code: string): Promise<DiscountCode | null> {
   const results = await query<DiscountCode>(
-    `select code, percent, description, active, max_uses, used_count,
+    `select code, percent, description, active, max_uses, used_count, source,
             expires_at::text as expires_at, created_at::text as created_at
      from discount_codes where code = $1`,
     [code]
@@ -790,6 +791,7 @@ export async function getDiscountByCode(code: string): Promise<DiscountCode | nu
 }
 
 export async function getDiscountCodes(): Promise<DiscountCode[]> {
+  await query(`ALTER TABLE discount_codes ADD COLUMN IF NOT EXISTS source VARCHAR(40)`);
   // Cast timestamps to text so they arrive as ISO strings (not JS Date objects),
   // matching the DiscountCode type. The edit sheet calls expires_at.slice(...),
   // which would throw if pg returned a Date.

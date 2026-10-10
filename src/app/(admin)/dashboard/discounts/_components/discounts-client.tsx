@@ -25,11 +25,13 @@ import { DataTable } from "@/components/data-table";
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { DataTableToolbar } from "@/components/data-table/data-table-toolbar";
 import { TruncatedCell } from "@/components/data-table/data-table-truncate";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DiscountCode } from "@/lib/homestay-dashboard";
 import { toggleDiscountActive } from "@/lib/discount-actions";
 
 export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
   const [codes, setCodes] = React.useState(initial);
+  const [activeTab, setActiveTab] = React.useState("regular");
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ search: false });
@@ -114,8 +116,10 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
     },
   ];
 
+  // TanStack Table keeps internal mutable state that React Compiler cannot safely memoize.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: codes,
+    data: codes.filter((code) => (code.source === "lucky-wheel") === (activeTab === "lucky-wheel")),
     columns,
     state: { sorting, columnFilters, columnVisibility, pagination },
     onSortingChange: setSorting,
@@ -153,7 +157,17 @@ export function DiscountsClient({ codes: initial }: { codes: DiscountCode[] }) {
         </div>
       </CardHeader>
       <CardContent className="px-0">
-        <DataTable table={table} emptyMessage="Không có mã giảm giá nào." toolbar={toolbar} />
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList variant="line" className="mx-4 mt-2">
+            <TabsTrigger value="regular">Mã giảm giá ({codes.filter((code) => code.source !== "lucky-wheel").length})</TabsTrigger>
+            <TabsTrigger value="lucky-wheel">Từ vòng quay ({codes.filter((code) => code.source === "lucky-wheel").length})</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <DataTable
+          table={table}
+          emptyMessage={activeTab === "lucky-wheel" ? "Chưa có mã nào được tạo từ vòng quay." : "Không có mã giảm giá nào."}
+          toolbar={toolbar}
+        />
       </CardContent>
     </Card>
   );
