@@ -26,10 +26,10 @@ export type LuckyWheelAdminReport = {
   spins: LuckyWheelRecentSpin[];
 };
 
-export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport> {
+export async function getLuckyWheelAdminReport(options: { includeSpins?: boolean } = {}): Promise<LuckyWheelAdminReport> {
   await ensureLuckyWheelTables();
 
-  const [summaryRows, distributionRows, recentRows] = await Promise.all([
+  const [summaryRows, distributionRows] = await Promise.all([
     query<{
       today_spins: string;
       last_7_days_spins: string;
@@ -54,24 +54,28 @@ export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport>
       GROUP BY prize_key, prize_label
       ORDER BY COUNT(*) DESC, prize_label ASC
     `),
-    query<{
-      id: string;
-      created_at: string;
-      phone_number: string | null;
-      prize_label: string;
-      prize_percent: number;
-      voucher_code: string | null;
-      used_count: number | null;
-      active: boolean | null;
-      expires_at: string | null;
-    }>(`
-      SELECT s.id::text, s.created_at::text, s.phone_number, s.prize_label, s.prize_percent,
-             s.voucher_code, d.used_count, d.active, d.expires_at::text
-      FROM lucky_wheel_spins s
-      LEFT JOIN discount_codes d ON d.code = s.voucher_code
-      ORDER BY s.created_at DESC
-    `),
   ]);
+
+  const recentRows = options.includeSpins
+    ? await query<{
+        id: string;
+        created_at: string;
+        phone_number: string | null;
+        prize_label: string;
+        prize_percent: number;
+        voucher_code: string | null;
+        used_count: number | null;
+        active: boolean | null;
+        expires_at: string | null;
+      }>(`
+        SELECT s.id::text, s.created_at::text, s.phone_number, s.prize_label, s.prize_percent,
+               s.voucher_code, d.used_count, d.active, d.expires_at::text
+        FROM lucky_wheel_spins s
+        LEFT JOIN discount_codes d ON d.code = s.voucher_code
+        ORDER BY s.created_at DESC
+        LIMIT 500
+      `)
+    : [];
 
   const summary = summaryRows[0];
   return {

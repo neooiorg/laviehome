@@ -19,12 +19,12 @@ export default async function LuckyWheelHistoryPage() {
   if (!session) redirect("/auth/v2/login");
   if (session.user.role !== "admin") redirect("/unauthorized");
 
-  const report = await getLuckyWheelAdminReport();
+  const report = await getLuckyWheelAdminReport({ includeSpins: true });
 
   return (
     <PageContainer
       pageTitle="Lịch sử lượt quay"
-      pageDescription={`Đang lưu ${report.spins.length.toLocaleString("vi-VN")} lượt quay.`}
+      pageDescription={`Đang lưu ${report.totalSpins.toLocaleString("vi-VN")} lượt quay; hiển thị 500 lượt mới nhất.`}
     >
       <LuckyWheelHistoryTable spins={report.spins} />
     </PageContainer>
