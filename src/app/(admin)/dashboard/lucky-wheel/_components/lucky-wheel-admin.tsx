@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarClock, CheckCircle2, Disc3, Gift, Save, TicketCheck, Users } from "lucide-react";
+import { Disc3, Gift, Save, TicketCheck, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { LuckyWheelAdminReport } from "@/lib/lucky-wheel-admin";
 import { updateLuckyWheelConfig } from "@/lib/lucky-wheel-admin-actions";
 import {
@@ -19,27 +18,6 @@ import {
   type LuckyWheelConfig,
   type LuckyWheelPrizeKey,
 } from "@/lib/lucky-wheel-config";
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
 
 function MetricCard({
   icon: Icon,
@@ -233,58 +211,6 @@ export function LuckyWheelAdmin({
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CalendarClock className="size-5 text-muted-foreground" /> Lịch sử lượt quay
-          </CardTitle>
-          <CardDescription>100 lượt gần nhất. Số điện thoại được che để bảo vệ thông tin khách hàng.</CardDescription>
-        </CardHeader>
-        <CardContent className="px-0">
-          {report.recentSpins.length ? (
-            <div className="max-h-[32rem] overflow-auto">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-card">
-                  <TableRow>
-                    <TableHead className="pl-4">Thời gian</TableHead>
-                    <TableHead>Số điện thoại</TableHead>
-                    <TableHead>Phần thưởng</TableHead>
-                    <TableHead>Mã voucher</TableHead>
-                    <TableHead>Hết hạn</TableHead>
-                    <TableHead className="pr-4 text-right">Trạng thái</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.recentSpins.map((spin) => (
-                    <TableRow key={spin.id}>
-                      <TableCell className="pl-4 text-muted-foreground">{formatDateTime(spin.createdAt)}</TableCell>
-                      <TableCell>{spin.phoneMasked}</TableCell>
-                      <TableCell className="font-medium">{spin.prizeLabel}</TableCell>
-                      <TableCell className="font-mono text-xs">{spin.voucherCode ?? "—"}</TableCell>
-                      <TableCell>{formatDate(spin.voucherExpiresAt)}</TableCell>
-                      <TableCell className="pr-4 text-right">
-                        {!spin.voucherCode ? (
-                          <Badge variant="outline">Không trúng</Badge>
-                        ) : spin.voucherUsed ? (
-                          <Badge className="gap-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="size-3" /> Đã dùng
-                          </Badge>
-                        ) : spin.voucherActive === false ? (
-                          <Badge variant="secondary">Đã tắt</Badge>
-                        ) : (
-                          <Badge variant="outline">Chưa dùng</Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="p-8 text-center text-sm text-muted-foreground">Chưa có lịch sử lượt quay.</div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export type LuckyWheelAdminReport = {
   vouchersUsed: number;
   winningSpins: number;
   distribution: Array<{ prizeKey: string; prizeLabel: string; count: number }>;
-  recentSpins: LuckyWheelRecentSpin[];
+  spins: LuckyWheelRecentSpin[];
 };
 
 export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport> {
@@ -70,7 +70,6 @@ export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport>
       FROM lucky_wheel_spins s
       LEFT JOIN discount_codes d ON d.code = s.voucher_code
       ORDER BY s.created_at DESC
-      LIMIT 100
     `),
   ]);
 
@@ -87,7 +86,7 @@ export async function getLuckyWheelAdminReport(): Promise<LuckyWheelAdminReport>
       prizeLabel: row.prize_label,
       count: Number(row.count),
     })),
-    recentSpins: recentRows.map((row) => ({
+    spins: recentRows.map((row) => ({
       id: row.id,
       createdAt: row.created_at,
       phoneMasked: row.phone_masked,
