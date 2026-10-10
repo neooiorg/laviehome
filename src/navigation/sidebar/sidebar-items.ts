@@ -2,6 +2,7 @@ import {
   BedDouble,
   BookOpen,
   Building2,
+  Disc3,
   LayoutDashboard,
   Settings2,
   Tag,
@@ -95,6 +96,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Mã giảm giá",
         url: "/dashboard/discounts",
         icon: Tag,
+      },
+      {
+        id: "lucky-wheel",
+        title: "Vòng quay may mắn",
+        url: "/dashboard/lucky-wheel",
+        icon: Disc3,
+        badge: "new",
       },
       {
         id: "customers",

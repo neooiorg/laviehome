@@ -27,6 +27,7 @@ type SpinResult = {
 };
 
 type WheelStatus = {
+  enabled?: boolean;
   eligible: boolean;
   result: SpinResult | null;
   error?: string;
@@ -281,23 +282,25 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   );
 }
 
-export function CustomerFloatingActions() {
+export function CustomerFloatingActions({ luckyWheelEnabled = true }: { luckyWheelEnabled?: boolean }) {
   const [wheelOpen, setWheelOpen] = useState(false);
 
   return (
     <>
       <div className="fixed bottom-7 right-5 z-40 hidden flex-col gap-3 md:flex">
-        <div className="relative flex justify-end">
-          <span className="lucky-wheel-callout" aria-hidden="true">Quay nhận ưu đãi</span>
-          <button
-            type="button"
-            className="float-button border border-yellow-200/70 bg-[#170c1d] shadow-[0_0_26px_rgba(243,90,189,0.48)]"
-            onClick={() => setWheelOpen(true)}
-            aria-label="Mở vòng quay may mắn"
-          >
-            <MiniWheelIcon />
-          </button>
-        </div>
+        {luckyWheelEnabled && (
+          <div className="relative flex justify-end">
+            <span className="lucky-wheel-callout" aria-hidden="true">Quay nhận ưu đãi</span>
+            <button
+              type="button"
+              className="float-button border border-yellow-200/70 bg-[#170c1d] shadow-[0_0_26px_rgba(243,90,189,0.48)]"
+              onClick={() => setWheelOpen(true)}
+              aria-label="Mở vòng quay may mắn"
+            >
+              <MiniWheelIcon />
+            </button>
+          </div>
+        )}
         <a className="float-button bg-slate-700" href="#top" aria-label="Lên đầu trang">
           <ChevronUp size={22} />
         </a>
@@ -309,19 +312,21 @@ export function CustomerFloatingActions() {
         </a>
       </div>
 
-      <div className="fixed bottom-[9.25rem] right-3 z-40 flex items-center md:hidden">
-        <span className="lucky-wheel-callout" aria-hidden="true">Quay nhận ưu đãi</span>
-        <button
-          type="button"
-          onClick={() => setWheelOpen(true)}
-          className="flex size-12 items-center justify-center rounded-full border border-yellow-200/70 bg-[#170c1d] shadow-[0_10px_28px_rgba(0,0,0,0.45),0_0_22px_rgba(243,90,189,0.38)]"
-          aria-label="Mở vòng quay may mắn"
-        >
-          <MiniWheelIcon />
-        </button>
-      </div>
+      {luckyWheelEnabled && (
+        <div className="fixed bottom-[9.25rem] right-3 z-40 flex items-center md:hidden">
+          <span className="lucky-wheel-callout" aria-hidden="true">Quay nhận ưu đãi</span>
+          <button
+            type="button"
+            onClick={() => setWheelOpen(true)}
+            className="flex size-12 items-center justify-center rounded-full border border-yellow-200/70 bg-[#170c1d] shadow-[0_10px_28px_rgba(0,0,0,0.45),0_0_22px_rgba(243,90,189,0.38)]"
+            aria-label="Mở vòng quay may mắn"
+          >
+            <MiniWheelIcon />
+          </button>
+        </div>
+      )}
 
-      <LuckyWheelDialog open={wheelOpen} onOpenChange={setWheelOpen} />
+      {luckyWheelEnabled && <LuckyWheelDialog open={wheelOpen} onOpenChange={setWheelOpen} />}
     </>
   );
 }

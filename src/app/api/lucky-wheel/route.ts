@@ -8,6 +8,7 @@ import {
   getLuckyWheelStatus,
   LUCKY_WHEEL_DEVICE_COOKIE,
 } from "@/lib/lucky-wheel";
+import { getLuckyWheelConfig } from "@/lib/lucky-wheel-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +48,13 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
 
   try {
+    const config = await getLuckyWheelConfig();
+    if (!config.enabled) {
+      return withDeviceCookie(NextResponse.json({ enabled: false, eligible: false, result: null }), deviceId);
+    }
     const result = await getLuckyWheelStatus(client, deviceId);
     return withDeviceCookie(
-      NextResponse.json({ eligible: !result, result }),
+      NextResponse.json({ enabled: true, eligible: !result, result }),
       deviceId
     );
   } catch (error) {
@@ -83,6 +88,12 @@ export async function POST(request: NextRequest) {
     });
     return withDeviceCookie(NextResponse.json({ result }), deviceId);
   } catch (error) {
+    if (error instanceof Error && error.message === "LUCKY_WHEEL_DISABLED") {
+      return withDeviceCookie(
+        NextResponse.json({ error: "Vòng quay hiện đang tạm dừng." }, { status: 403 }),
+        deviceId
+      );
+    }
     if (error instanceof Error && error.message === "INVALID_PHONE") {
       return withDeviceCookie(
         NextResponse.json({ error: "Số điện thoại Việt Nam chưa đúng định dạng." }, { status: 400 }),
@@ -99,4 +110,3 @@ export async function POST(request: NextRequest) {
     client.release();
   }
 }
-

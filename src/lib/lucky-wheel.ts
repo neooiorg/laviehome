@@ -5,18 +5,11 @@ import type { PoolClient } from "pg";
 
 import {
   LUCKY_WHEEL_SEGMENTS,
-  LUCKY_WHEEL_VOUCHER_DAYS,
+  type LuckyWheelConfig,
   type LuckyWheelPrizeKey,
 } from "@/lib/lucky-wheel-config";
+import { getLuckyWheelConfig } from "@/lib/lucky-wheel-settings";
 import { query } from "@/lib/postgres";
-
-const PRIZE_WEIGHTS: Record<LuckyWheelPrizeKey, number> = {
-  "discount-5": 35,
-  "discount-10": 20,
-  "discount-15": 8,
-  "discount-20": 2,
-  "better-luck": 35,
-};
 
 const PRIZE_PERCENT: Record<LuckyWheelPrizeKey, number> = {
   "discount-5": 5,
@@ -137,12 +130,12 @@ export async function ensureLuckyWheelTables(client?: Pick<PoolClient, "query">)
   await run(`CREATE INDEX IF NOT EXISTS idx_lucky_wheel_spins_created_at ON lucky_wheel_spins(created_at DESC)`);
 }
 
-function selectPrize() {
-  const totalWeight = Object.values(PRIZE_WEIGHTS).reduce((total, weight) => total + weight, 0);
+function selectPrize(weights: LuckyWheelConfig["weights"]) {
+  const totalWeight = Object.values(weights).reduce((total, weight) => total + weight, 0);
   let draw = randomInt(1, totalWeight + 1);
 
   for (const segment of LUCKY_WHEEL_SEGMENTS) {
-    draw -= PRIZE_WEIGHTS[segment.key];
+    draw -= weights[segment.key];
     if (draw <= 0) return segment;
   }
 
@@ -198,13 +191,15 @@ export async function createLuckyWheelSpin(
   await ensureLuckyWheelTables(client);
   const normalizedPhone = normalizeVietnamPhone(input.phone);
   if (!normalizedPhone) throw new Error("INVALID_PHONE");
+  const config = await getLuckyWheelConfig();
+  if (!config.enabled) throw new Error("LUCKY_WHEEL_DISABLED");
 
   const spinDate = getVietnamDateKey();
   const deviceHash = hashLuckyWheelValue(`device:${input.deviceId}`);
   const existing = await findTodaySpin(client, deviceHash, spinDate);
   if (existing) return mapSpin(existing, true);
 
-  const segment = selectPrize();
+  const segment = selectPrize(config.weights);
   const prizePercent = PRIZE_PERCENT[segment.key];
   const phoneHash = hashLuckyWheelValue(`phone:${normalizedPhone}`);
   const phoneMasked = maskVietnamPhone(normalizedPhone);
@@ -214,7 +209,7 @@ export async function createLuckyWheelSpin(
   await client.query("BEGIN");
   try {
     if (prizePercent > 0) {
-      const expiresAt = new Date(Date.now() + LUCKY_WHEEL_VOUCHER_DAYS * 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + config.voucherDays * 24 * 60 * 60 * 1000);
       voucherExpiresAt = expiresAt.toISOString();
 
       for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -276,4 +271,3 @@ export async function createLuckyWheelSpin(
     spinDate,
   };
 }
-
