@@ -131,8 +131,16 @@ function WheelGraphic({ rotation, spinning, prizes }: { rotation: number; spinni
   );
 }
 
-function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [phone, setPhone] = useState("");
+function LuckyWheelDialog({
+  open,
+  onOpenChange,
+  initialPhone,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialPhone: string;
+}) {
+  const [phone, setPhone] = useState(initialPhone);
   const [loading, setLoading] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
@@ -164,11 +172,14 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   }, []);
 
   useEffect(() => {
-    if (open) void loadStatus();
+    if (open) {
+      setPhone(initialPhone);
+      void loadStatus();
+    }
     return () => {
       if (revealTimer.current) clearTimeout(revealTimer.current);
     };
-  }, [loadStatus, open]);
+  }, [initialPhone, loadStatus, open]);
 
   function handleOpenChange(nextOpen: boolean) {
     onOpenChange(nextOpen);
@@ -317,30 +328,31 @@ export function CustomerFloatingActions() {
   );
 }
 
-export function CheckoutLuckyWheelAction({ enabled }: { enabled: boolean }) {
+export function CheckoutLuckyWheelAction({ enabled, phone }: { enabled: boolean; phone: string }) {
   const [wheelOpen, setWheelOpen] = useState(false);
+  const [phoneAtOpen, setPhoneAtOpen] = useState("");
   if (!enabled) return null;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setWheelOpen(true)}
-        className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-pink-200/25 bg-gradient-to-r from-pink-500/10 via-[#24152b] to-yellow-200/10 px-4 py-4 text-left transition hover:border-pink-200/50 hover:from-pink-500/15 hover:to-yellow-200/15"
+        onClick={() => {
+          setPhoneAtOpen(phone);
+          setWheelOpen(true);
+        }}
+        className="checkout-wheel-launcher group"
         aria-label="Mở vòng quay may mắn"
       >
-        <span className="flex min-w-0 items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-yellow-200/30 bg-[#170c1d] shadow-[0_0_20px_rgba(243,90,189,0.2)]">
-            <MiniWheelIcon />
-          </span>
-          <span className="min-w-0">
-            <span className="block font-extrabold text-pink-100">Quay nhận ưu đãi</span>
-            <span className="mt-0.5 block text-xs font-semibold text-white/55">Thử vận may trước khi hoàn tất đặt phòng</span>
-          </span>
+        <span className="checkout-wheel-launcher__icon">
+          <MiniWheelIcon />
         </span>
-        <Gift className="size-5 shrink-0 text-yellow-200 transition-transform group-hover:rotate-12" />
+        <span className="checkout-wheel-launcher__copy">
+          <span className="checkout-wheel-launcher__title">Quay nhận ưu đãi</span>
+          <span className="checkout-wheel-launcher__description">Thử vận may trước khi hoàn tất đặt phòng</span>
+        </span>
       </button>
-      <LuckyWheelDialog open={wheelOpen} onOpenChange={setWheelOpen} />
+      <LuckyWheelDialog open={wheelOpen} onOpenChange={setWheelOpen} initialPhone={phoneAtOpen} />
     </>
   );
 }

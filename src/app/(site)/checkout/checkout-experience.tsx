@@ -88,6 +88,7 @@ export function CheckoutExperience({
   const [successOpen, setSuccessOpen] = useState(false);
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [paymentNeedsRefresh, setPaymentNeedsRefresh] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState("");
   const paymentSequenceRef = useRef(1);
 
   const handlePricingChange = useCallback((next: CheckoutPricing) => {
@@ -156,15 +157,17 @@ export function CheckoutExperience({
           onPreparePaymentReference={handlePreparePaymentReference}
           onPaymentDetailsChanged={handlePaymentDetailsChanged}
           onConfirmed={handleConfirmed}
+          onCustomerPhoneChange={setCustomerPhone}
           onlinePaymentEnabled={onlinePaymentEnabled}
           paymentNeedsRefresh={paymentNeedsRefresh}
         />
       </div>
 
+      <CheckoutLuckyWheelAction enabled={luckyWheelEnabled} phone={customerPhone} />
+
       {/* Below lg the layout is single-column: cap the summary/payment column so
           its cards (QR box, bank rows) don't stretch full-width on tablets. */}
       <aside className="grid h-fit w-full min-w-0 max-w-md gap-6 lg:max-w-none lg:sticky lg:top-28">
-        <CheckoutLuckyWheelAction enabled={luckyWheelEnabled} />
         <section className="section-card overflow-hidden p-6 md:p-8">
           <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-[-0.02em]">
             <FileText className="shrink-0 text-yellow-200" size={21} /> Tóm Tắt Đặt Phòng

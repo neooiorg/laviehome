@@ -31,6 +31,7 @@ type CheckoutFormProps = {
   onPreparePaymentReference?: () => string | null;
   onPaymentDetailsChanged?: () => void;
   onConfirmed?: (paymentReference?: string | null) => void;
+  onCustomerPhoneChange?: (phone: string) => void;
   onlinePaymentEnabled?: boolean;
   paymentNeedsRefresh?: boolean;
 };
@@ -55,6 +56,7 @@ export function CheckoutForm({
   onPreparePaymentReference,
   onPaymentDetailsChanged,
   onConfirmed,
+  onCustomerPhoneChange,
   onlinePaymentEnabled = true,
   paymentNeedsRefresh = false,
 }: CheckoutFormProps) {
@@ -275,11 +277,13 @@ export function CheckoutForm({
               className="field-input !pl-5"
               inputMode="tel"
               name="customer_phone"
+              autoComplete="tel"
               placeholder="Số điện thoại nhận mã mở khóa"
               required
               value={customerPhone}
               onChange={(event) => {
                 setCustomerPhone(event.target.value);
+                onCustomerPhoneChange?.(event.target.value);
                 setSaved(false);
               }}
             />

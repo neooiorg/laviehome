@@ -1178,7 +1178,108 @@ input {
 
 .lucky-wheel-mini {
   transform-origin: center;
-  animation: lucky-wheel-tease 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: lucky-wheel-tease 5.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.checkout-wheel-launcher {
+  position: fixed;
+  right: 0.75rem;
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  max-width: calc(100vw - 1.5rem);
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid rgba(246, 215, 111, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(115deg, #d92e91 0%, #7c3178 58%, #b28b3f 100%);
+  padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 10px 30px rgba(18, 7, 21, 0.48), 0 0 24px rgba(243, 90, 189, 0.28);
+  transition: filter 180ms ease, transform 180ms ease;
+}
+
+.checkout-wheel-launcher:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+.checkout-wheel-launcher:focus-visible {
+  outline: 3px solid #f6d76f;
+  outline-offset: 3px;
+}
+
+.checkout-wheel-launcher__icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: #190e20;
+}
+
+.checkout-wheel-launcher__icon svg {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.checkout-wheel-launcher__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.checkout-wheel-launcher__title {
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.checkout-wheel-launcher__description {
+  max-width: 15rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+@media (min-width: 768px) {
+  .checkout-wheel-launcher {
+    right: 1.25rem;
+    bottom: 13.3rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    max-width: none;
+    justify-content: center;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .checkout-wheel-launcher__icon {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .checkout-wheel-launcher__copy {
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 0.7rem);
+    width: 14rem;
+    transform: translateY(-50%);
+    border: 1px solid rgba(246, 215, 111, 0.55);
+    border-radius: 1rem;
+    background: linear-gradient(120deg, #28172f, #170c1d);
+    padding: 0.75rem 0.9rem;
+    box-shadow: 0 8px 26px rgba(18, 7, 21, 0.42);
+  }
+
+  .checkout-wheel-launcher__description {
+    font-size: 0.68rem;
+  }
 }
 
 @keyframes lucky-wheel-callout {
@@ -1189,15 +1290,19 @@ input {
 }
 
 @keyframes lucky-wheel-tease {
-  0%, 70%, 100% { transform: rotate(0deg); }
-  82% { transform: rotate(22deg); }
-  92% { transform: rotate(-10deg); }
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(720deg); }
+  39%, 68% { transform: rotate(720deg); }
+  94% { transform: rotate(1440deg); }
+  100% { transform: rotate(1440deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lucky-wheel-callout,
-  .lucky-wheel-mini {
+  .lucky-wheel-mini,
+  .checkout-wheel-launcher {
     animation: none;
+    transition: none;
   }
 }
 
