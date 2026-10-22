@@ -16,6 +16,7 @@ import {
 import { getMenuItemsByIds } from "@/lib/menu-actions";
 import { getBookingHoldMinutes, getOnlinePaymentEnabled } from "@/lib/settings-actions";
 import { getBankPaymentConfig } from "@/lib/payment-config";
+import { getLuckyWheelConfig } from "@/lib/lucky-wheel-settings";
 import { CheckoutExperience } from "./checkout-experience";
 
 type CheckoutSearchParams = Record<string, string | string[] | undefined>;
@@ -168,7 +169,10 @@ export default async function CheckoutPage({
     );
   }
 
-  const onlinePaymentEnabled = await getOnlinePaymentEnabled();
+  const [onlinePaymentEnabled, luckyWheelConfig] = await Promise.all([
+    getOnlinePaymentEnabled(),
+    getLuckyWheelConfig(),
+  ]);
   const bankConfig = getBankPaymentConfig();
 
   return (
@@ -191,6 +195,7 @@ export default async function CheckoutPage({
           onlinePaymentEnabled={onlinePaymentEnabled}
           hotline={checkout.hotline}
           bankConfig={bankConfig}
+          luckyWheelEnabled={luckyWheelConfig.enabled && checkout.roomId !== null && checkout.roomName !== "N/A"}
         />
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold text-white/50">

@@ -4,14 +4,10 @@ import { MaintenanceScreen } from '@/components/maintenance-screen';
 import { CustomerFloatingActions } from '@/components/customer-floating-actions';
 import { SiteFooter } from '@/components/site-footer';
 import { getMaintenanceMode } from '@/lib/settings-actions';
-import { getLuckyWheelConfig } from '@/lib/lucky-wheel-settings';
 import { getPublicBranches } from '@/lib/homestay-dashboard';
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [maintenance, luckyWheelConfig] = await Promise.all([
-    getMaintenanceMode(),
-    getLuckyWheelConfig(),
-  ]);
+  const maintenance = await getMaintenanceMode();
 
   if (maintenance) {
     const branches = await getPublicBranches().catch(() => []);
@@ -22,7 +18,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <>
       {children}
-      <CustomerFloatingActions luckyWheelEnabled={luckyWheelConfig.enabled} />
+      <CustomerFloatingActions />
       <SiteFooter />
     </>
   );

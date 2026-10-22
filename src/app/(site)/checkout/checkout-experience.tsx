@@ -19,6 +19,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { CheckoutPaymentBox } from "@/components/checkout-payment-box";
+import { CheckoutLuckyWheelAction } from "@/components/customer-floating-actions";
 import type { BankPaymentConfig } from "@/lib/payment-config";
 import {
   Dialog,
@@ -54,6 +55,7 @@ type CheckoutExperienceProps = {
   onlinePaymentEnabled: boolean;
   hotline: string;
   bankConfig: BankPaymentConfig;
+  luckyWheelEnabled: boolean;
 };
 
 export function CheckoutExperience({
@@ -72,6 +74,7 @@ export function CheckoutExperience({
   onlinePaymentEnabled,
   hotline,
   bankConfig,
+  luckyWheelEnabled,
 }: CheckoutExperienceProps) {
   const [pricing, setPricing] = useState<CheckoutPricing>({
     guestCount: 2,
@@ -161,6 +164,7 @@ export function CheckoutExperience({
       {/* Below lg the layout is single-column: cap the summary/payment column so
           its cards (QR box, bank rows) don't stretch full-width on tablets. */}
       <aside className="grid h-fit w-full min-w-0 max-w-md gap-6 lg:max-w-none lg:sticky lg:top-28">
+        <CheckoutLuckyWheelAction enabled={luckyWheelEnabled} />
         <section className="section-card overflow-hidden p-6 md:p-8">
           <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-[-0.02em]">
             <FileText className="shrink-0 text-yellow-200" size={21} /> Tóm Tắt Đặt Phòng

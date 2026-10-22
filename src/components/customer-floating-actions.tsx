@@ -298,25 +298,10 @@ function LuckyWheelDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   );
 }
 
-export function CustomerFloatingActions({ luckyWheelEnabled = true }: { luckyWheelEnabled?: boolean }) {
-  const [wheelOpen, setWheelOpen] = useState(false);
-
+export function CustomerFloatingActions() {
   return (
     <>
       <div className="fixed bottom-7 right-5 z-40 hidden flex-col gap-3 md:flex">
-        {luckyWheelEnabled && (
-          <div className="relative flex justify-end">
-            <span className="lucky-wheel-callout" aria-hidden="true">Quay nhận ưu đãi</span>
-            <button
-              type="button"
-              className="float-button border border-yellow-200/70 bg-[#170c1d] shadow-[0_0_26px_rgba(243,90,189,0.48)]"
-              onClick={() => setWheelOpen(true)}
-              aria-label="Mở vòng quay may mắn"
-            >
-              <MiniWheelIcon />
-            </button>
-          </div>
-        )}
         <a className="float-button bg-slate-700" href="#top" aria-label="Lên đầu trang">
           <ChevronUp size={22} />
         </a>
@@ -328,21 +313,34 @@ export function CustomerFloatingActions({ luckyWheelEnabled = true }: { luckyWhe
         </a>
       </div>
 
-      {luckyWheelEnabled && (
-        <div className="fixed bottom-[9.25rem] right-3 z-40 flex items-center md:hidden">
-          <span className="lucky-wheel-callout" aria-hidden="true">Quay nhận ưu đãi</span>
-          <button
-            type="button"
-            onClick={() => setWheelOpen(true)}
-            className="flex size-12 items-center justify-center rounded-full border border-yellow-200/70 bg-[#170c1d] shadow-[0_10px_28px_rgba(0,0,0,0.45),0_0_22px_rgba(243,90,189,0.38)]"
-            aria-label="Mở vòng quay may mắn"
-          >
-            <MiniWheelIcon />
-          </button>
-        </div>
-      )}
+    </>
+  );
+}
 
-      {luckyWheelEnabled && <LuckyWheelDialog open={wheelOpen} onOpenChange={setWheelOpen} />}
+export function CheckoutLuckyWheelAction({ enabled }: { enabled: boolean }) {
+  const [wheelOpen, setWheelOpen] = useState(false);
+  if (!enabled) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setWheelOpen(true)}
+        className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-pink-200/25 bg-gradient-to-r from-pink-500/10 via-[#24152b] to-yellow-200/10 px-4 py-4 text-left transition hover:border-pink-200/50 hover:from-pink-500/15 hover:to-yellow-200/15"
+        aria-label="Mở vòng quay may mắn"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-yellow-200/30 bg-[#170c1d] shadow-[0_0_20px_rgba(243,90,189,0.2)]">
+            <MiniWheelIcon />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-extrabold text-pink-100">Quay nhận ưu đãi</span>
+            <span className="mt-0.5 block text-xs font-semibold text-white/55">Thử vận may trước khi hoàn tất đặt phòng</span>
+          </span>
+        </span>
+        <Gift className="size-5 shrink-0 text-yellow-200 transition-transform group-hover:rotate-12" />
+      </button>
+      <LuckyWheelDialog open={wheelOpen} onOpenChange={setWheelOpen} />
     </>
   );
 }

@@ -31,18 +31,15 @@ export function SiteHeader() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-[80] border-b border-white/10 bg-[#100813]/86 backdrop-blur-xl">
-        {/* Banner Khuyến Mãi cho Khách Hàng Mới */}
+        {/* Booking promotion banner */}
         <div className="w-full bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 py-2 text-white font-bold relative z-50 shadow-md">
           {/* Desktop Version */}
           <div className="hidden md:flex mx-auto max-w-7xl items-center justify-center gap-2 flex-wrap text-xs md:text-sm px-4">
             <span className="inline-flex items-center gap-1 rounded bg-white/20 px-2.5 py-0.5 text-[10px] md:text-xs font-black uppercase tracking-wider text-white border border-white/10">
-              ƯU ĐÃI LẦN ĐẦU
+              ƯU ĐÃI ĐẶT PHÒNG
             </span>
             <span>
-              Giảm ngay <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã:
-            </span>
-            <span className="inline-block rounded bg-white px-2 py-0.5 font-mono text-xs font-black text-pink-600 shadow-sm border border-pink-100 select-all cursor-pointer">
-              LAVIENEW
+              Chọn phòng và đến bước thanh toán để quay nhận ưu đãi dành riêng cho khách đặt phòng.
             </span>
           </div>
 
@@ -52,19 +49,19 @@ export function SiteHeader() {
               {/* Slide Item 1 */}
               <div className="custom-marquee-content">
                 <span className="inline-flex items-center gap-1 rounded bg-white/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white border border-white/10 shrink-0">
-                  ƯU ĐÃI LẦN ĐẦU
+                  ƯU ĐÃI ĐẶT PHÒNG
                 </span>
                 <span>
-                  Giảm ngay <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã: <strong className="bg-white text-pink-600 px-1.5 py-0.5 rounded font-mono text-[10px] font-black mx-1">LAVIENEW</strong>
+                  Chọn phòng và đến bước thanh toán để quay nhận ưu đãi dành riêng cho khách đặt phòng.
                 </span>
               </div>
               {/* Slide Item 2 (Duplicate for seamless loop) */}
               <div className="custom-marquee-content">
                 <span className="inline-flex items-center gap-1 rounded bg-white/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white border border-white/10 shrink-0">
-                  ƯU ĐÃI LẦN ĐẦU
+                  ƯU ĐÃI ĐẶT PHÒNG
                 </span>
                 <span>
-                  Giảm ngay <strong className="text-yellow-100 font-extrabold">10%</strong> khi đặt phòng lần đầu! Nhập mã: <strong className="bg-white text-pink-600 px-1.5 py-0.5 rounded font-mono text-[10px] font-black mx-1">LAVIENEW</strong>
+                  Chọn phòng và đến bước thanh toán để quay nhận ưu đãi dành riêng cho khách đặt phòng.
                 </span>
               </div>
             </div>
