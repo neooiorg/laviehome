@@ -1,4 +1,34 @@
 /* Lavie customer site CSS — imported only by (site)/layout.tsx */
+.seasonal-effects {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+.seasonal-effects__particle {
+  position: absolute;
+  top: 0;
+  color: #fff4d5;
+  text-shadow: 0 0 12px currentColor;
+  will-change: transform;
+}
+
+.seasonal-effects--tet .seasonal-effects__particle,
+.seasonal-effects--spring .seasonal-effects__particle { color: #ffb1d7; }
+.seasonal-effects--summer .seasonal-effects__particle { color: #ffe38e; }
+.seasonal-effects--autumn .seasonal-effects__particle { color: #f2bd82; }
+.seasonal-effects--winter .seasonal-effects__particle { color: #d7ecff; }
+
+@media (max-width: 640px) {
+  .seasonal-effects__particle:nth-child(2n) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seasonal-effects__particle { top: 14%; }
+}
 
 @font-face {
   font-family: "Bricolage Grotesque";

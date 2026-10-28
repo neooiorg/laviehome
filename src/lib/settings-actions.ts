@@ -13,12 +13,20 @@ import {
   normalizeCustomerContentConfig,
   type CustomerContentConfig,
 } from '@/lib/customer-content';
+import {
+  DEFAULT_SEASONAL_EFFECT_CONFIG,
+  normalizeSeasonalEffectConfig,
+  type SeasonalEffectConfig,
+} from '@/lib/seasonal-effects';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 
 const ONLINE_PAYMENT_KEY = 'online_payment_enabled';
 const MAINTENANCE_KEY = 'maintenance_mode';
 const COMBO_PROMO_KEY = 'combo_promo_config';
 const BOOKING_HOLD_KEY = 'booking_hold_minutes';
 const CUSTOMER_CONTENT_KEY = 'customer_content_config';
+const SEASONAL_EFFECT_KEY = 'seasonal_effect_config';
 
 /** Default window (minutes) an unpaid "Chờ thanh toán" booking keeps holding its slot. */
 const DEFAULT_BOOKING_HOLD_MINUTES = 10;
@@ -185,4 +193,36 @@ export async function setCustomerContentConfig(config: CustomerContentConfig): P
   revalidatePath('/rules');
   revalidatePath('/cancellation-policy');
   revalidatePath('/checkout/success');
+}
+
+export async function getSeasonalEffectConfig(): Promise<SeasonalEffectConfig> {
+  try {
+    await ensureSettingsTable();
+    const rows = await query<{ value: string }>(
+      `SELECT value FROM app_settings WHERE key = $1`,
+      [SEASONAL_EFFECT_KEY]
+    );
+    return rows.length
+      ? normalizeSeasonalEffectConfig(JSON.parse(rows[0].value))
+      : DEFAULT_SEASONAL_EFFECT_CONFIG;
+  } catch {
+    return DEFAULT_SEASONAL_EFFECT_CONFIG;
+  }
+}
+
+export async function setSeasonalEffectConfig(value: SeasonalEffectConfig): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error('Unauthorized');
+  const config = normalizeSeasonalEffectConfig(value);
+  if (config.startDate && config.endDate && config.startDate > config.endDate) {
+    throw new Error('Ngày kết thúc phải sau ngày bắt đầu');
+  }
+  await ensureSettingsTable();
+  await query(
+    `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+    [SEASONAL_EFFECT_KEY, JSON.stringify(config)]
+  );
+  revalidatePath('/dashboard/settings');
+  revalidatePath('/', 'layout');
 }
