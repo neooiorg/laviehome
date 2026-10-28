@@ -10,10 +10,20 @@
 
 .seasonal-effects__particle {
   position: absolute;
-  top: 0;
+  top: -8vh;
   color: #fff4d5;
   text-shadow: 0 0 12px currentColor;
+  animation-name: seasonal-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
   will-change: transform;
+}
+
+@keyframes seasonal-fall {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
+  12% { opacity: 0.8; }
+  85% { opacity: 0.8; }
+  100% { transform: translate3d(var(--seasonal-drift), 116vh, 0) rotate(90deg); opacity: 0; }
 }
 
 .seasonal-effects--tet .seasonal-effects__particle,
@@ -27,7 +37,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .seasonal-effects__particle { top: 14%; }
+  .seasonal-effects__particle { display: none; }
 }
 
 @font-face {
