@@ -28,11 +28,6 @@
 
 .seasonal-effects--tet .seasonal-effects__particle,
 .seasonal-effects--spring .seasonal-effects__particle { color: #ffb1d7; }
-.seasonal-effects--christmas .seasonal-effects__particle {
-  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-  text-shadow: none;
-  filter: drop-shadow(0 2px 8px rgb(255 255 255 / 25%));
-}
 .seasonal-effects--summer .seasonal-effects__particle { color: #ffe38e; }
 .seasonal-effects--autumn .seasonal-effects__particle { color: #f2bd82; }
 .seasonal-effects--winter .seasonal-effects__particle { color: #d7ecff; }
