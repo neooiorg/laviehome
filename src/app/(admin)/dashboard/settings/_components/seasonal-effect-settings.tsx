@@ -81,6 +81,7 @@ export function SeasonalEffectSettings({ initialConfig }: { initialConfig: Seaso
               <SelectContent>
                 <SelectItem value="light">Nhẹ</SelectItem>
                 <SelectItem value="normal">Bình thường</SelectItem>
+                <SelectItem value="high">Nhiều</SelectItem>
               </SelectContent>
             </Select>
           </div>

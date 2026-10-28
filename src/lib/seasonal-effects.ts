@@ -12,7 +12,7 @@ export type SeasonalPreset = keyof typeof SEASONAL_PRESETS;
 export type SeasonalEffectConfig = {
   enabled: boolean;
   preset: SeasonalPreset;
-  intensity: 'light' | 'normal';
+  intensity: 'light' | 'normal' | 'high';
 };
 
 export const DEFAULT_SEASONAL_EFFECT_CONFIG: SeasonalEffectConfig = {
@@ -28,6 +28,6 @@ export function normalizeSeasonalEffectConfig(value: unknown): SeasonalEffectCon
     enabled: raw.enabled === true,
     preset: typeof raw.preset === 'string' && raw.preset in SEASONAL_PRESETS
       ? raw.preset as SeasonalPreset : 'christmas',
-    intensity: raw.intensity === 'normal' ? 'normal' : 'light',
+    intensity: raw.intensity === 'high' ? 'high' : raw.intensity === 'normal' ? 'normal' : 'light',
   };
 }
