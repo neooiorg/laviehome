@@ -75,8 +75,13 @@ export function CheckoutForm({
   const [guestCount, setGuestCount] = useState(2);
   const [cccdFront, setCccdFront] = useState<string | null>(null);
   const [cccdBack, setCccdBack] = useState<string | null>(null);
+  const [cccdFront2, setCccdFront2] = useState<string | null>(null);
+  const [cccdBack2, setCccdBack2] = useState<string | null>(null);
   const [cccdFrontName, setCccdFrontName] = useState("");
   const [cccdBackName, setCccdBackName] = useState("");
+  const [cccdFront2Name, setCccdFront2Name] = useState("");
+  const [cccdBack2Name, setCccdBack2Name] = useState("");
+  const [documentError, setDocumentError] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   function readFileAsBase64(file: File): Promise<string> {
@@ -93,6 +98,7 @@ export function CheckoutForm({
     if (!file) return;
     setCccdFrontName(file.name);
     setCccdFront(await readFileAsBase64(file));
+    setDocumentError(false);
     setSaved(false);
   }
 
@@ -101,6 +107,25 @@ export function CheckoutForm({
     if (!file) return;
     setCccdBackName(file.name);
     setCccdBack(await readFileAsBase64(file));
+    setDocumentError(false);
+    setSaved(false);
+  }
+
+  async function handleCccdFront2(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setCccdFront2Name(file.name);
+    setCccdFront2(await readFileAsBase64(file));
+    setDocumentError(false);
+    setSaved(false);
+  }
+
+  async function handleCccdBack2(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setCccdBack2Name(file.name);
+    setCccdBack2(await readFileAsBase64(file));
+    setDocumentError(false);
     setSaved(false);
   }
 
@@ -166,6 +191,8 @@ export function CheckoutForm({
       discount_code: appliedDiscountCode,
       cccd_front: cccdFront,
       cccd_back: cccdBack,
+      cccd_front_2: cccdFront2,
+      cccd_back_2: cccdBack2,
       payment_reference: nextPaymentReference ?? null,
       clear_payment_reference: clearPaymentReference,
     };
@@ -175,7 +202,9 @@ export function CheckoutForm({
     branchId,
     branchName,
     cccdBack,
+    cccdBack2,
     cccdFront,
+    cccdFront2,
     customerEmail,
     customerName,
     customerPhone,
@@ -205,6 +234,11 @@ export function CheckoutForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!cccdFront || !cccdBack || !cccdFront2 || !cccdBack2) {
+      setDocumentError(true);
+      document.getElementById('checkout-documents')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     setSaving(true);
 
     try {
@@ -386,13 +420,14 @@ export function CheckoutForm({
         </div>
       </section>
 
-      <section className="section-card p-6 md:p-8">
+      <section id="checkout-documents" className="section-card p-6 md:p-8">
         <h2 className="flex items-center gap-2 text-xl font-extrabold tracking-[-0.025em]">
           <IdCard className="text-pink-200" size={21} /> Xác Thực Căn Cước
         </h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-white/58">
-          Dữ liệu thẻ CCCD của bạn sẽ được mã hoá và tự động xoá sau khi check-out.
+          Vui lòng tải rõ hai mặt của hai căn cước để Home xác thực thông tin khách lưu trú.
         </p>
+        <p className="mt-5 text-sm font-bold text-pink-200">Căn cước 1</p>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="checkout-upload">
             {cccdFront ? (
@@ -402,7 +437,7 @@ export function CheckoutForm({
               <Upload size={24} className="text-pink-300" />
             )}
             <span className={cccdFrontName ? "max-w-full truncate text-xs text-emerald-300" : ""}>
-              {cccdFrontName || "Mặt Trước CCCD / Bằng Lái"}
+              {cccdFrontName || "Mặt trước căn cước 1 *"}
             </span>
             <input type="file" accept="image/*" onChange={handleCccdFront} />
           </label>
@@ -414,11 +449,39 @@ export function CheckoutForm({
               <Upload size={24} className="text-pink-300" />
             )}
             <span className={cccdBackName ? "max-w-full truncate text-xs text-emerald-300" : ""}>
-              {cccdBackName || "Mặt Sau CCCD / Bằng Lái"}
+              {cccdBackName || "Mặt sau căn cước 1 *"}
             </span>
             <input type="file" accept="image/*" onChange={handleCccdBack} />
           </label>
         </div>
+        <p className="mt-6 text-sm font-bold text-pink-200">Căn cước 2</p>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          <label className="checkout-upload">
+            {cccdFront2 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={cccdFront2} alt="Căn cước 2 mặt trước" className="aspect-[1.585/1] w-full rounded-xl bg-black/25 object-contain" />
+            ) : (
+              <Upload size={24} className="text-pink-300" />
+            )}
+            <span className={cccdFront2Name ? "max-w-full truncate text-xs text-emerald-300" : ""}>
+              {cccdFront2Name || "Mặt trước căn cước 2 *"}
+            </span>
+            <input type="file" accept="image/*" onChange={handleCccdFront2} />
+          </label>
+          <label className="checkout-upload">
+            {cccdBack2 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={cccdBack2} alt="Căn cước 2 mặt sau" className="aspect-[1.585/1] w-full rounded-xl bg-black/25 object-contain" />
+            ) : (
+              <Upload size={24} className="text-pink-300" />
+            )}
+            <span className={cccdBack2Name ? "max-w-full truncate text-xs text-emerald-300" : ""}>
+              {cccdBack2Name || "Mặt sau căn cước 2 *"}
+            </span>
+            <input type="file" accept="image/*" onChange={handleCccdBack2} />
+          </label>
+        </div>
+        {documentError && <p role="alert" className="mt-3 text-sm font-semibold text-rose-300">Vui lòng tải đủ mặt trước và mặt sau của cả hai căn cước.</p>}
         <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm font-semibold leading-6 text-white/62 transition-colors hover:text-white">
           <input
             className="mt-1 accent-pink-500"

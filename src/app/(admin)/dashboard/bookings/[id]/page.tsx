@@ -141,14 +141,16 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="space-y-6">
-          {(booking.cccdFront || booking.cccdBack) && (
+          {(booking.cccdFront || booking.cccdBack || booking.cccdFront2 || booking.cccdBack2) && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">CCCD / CMND</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {booking.cccdFront && <BookingDocumentImage src={booking.cccdFront} label="Mặt trước" />}
-                {booking.cccdBack && <BookingDocumentImage src={booking.cccdBack} label="Mặt sau" />}
+                {booking.cccdFront && <BookingDocumentImage src={booking.cccdFront} label="Căn cước 1 · Mặt trước" />}
+                {booking.cccdBack && <BookingDocumentImage src={booking.cccdBack} label="Căn cước 1 · Mặt sau" />}
+                {booking.cccdFront2 && <BookingDocumentImage src={booking.cccdFront2} label="Căn cước 2 · Mặt trước" />}
+                {booking.cccdBack2 && <BookingDocumentImage src={booking.cccdBack2} label="Căn cước 2 · Mặt sau" />}
               </CardContent>
             </Card>
           )}

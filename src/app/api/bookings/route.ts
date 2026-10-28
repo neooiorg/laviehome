@@ -57,6 +57,8 @@ async function ensureTable(db: Pool) {
       has_decoration BOOLEAN DEFAULT FALSE,
       cccd_front TEXT,
       cccd_back TEXT,
+      cccd_front_2 TEXT,
+      cccd_back_2 TEXT,
       door_code VARCHAR(8),
       payment_reference VARCHAR(80),
       payment_amount BIGINT,
@@ -90,6 +92,8 @@ async function ensureTable(db: Pool) {
       ADD COLUMN IF NOT EXISTS has_decoration BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS cccd_front TEXT,
       ADD COLUMN IF NOT EXISTS cccd_back TEXT,
+      ADD COLUMN IF NOT EXISTS cccd_front_2 TEXT,
+      ADD COLUMN IF NOT EXISTS cccd_back_2 TEXT,
       ADD COLUMN IF NOT EXISTS door_code VARCHAR(8),
       ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(80),
       ADD COLUMN IF NOT EXISTS payment_amount BIGINT,
@@ -194,6 +198,8 @@ export async function POST(req: NextRequest) {
       has_decoration,
       cccd_front,
       cccd_back,
+      cccd_front_2,
+      cccd_back_2,
       payment_reference,
       clear_payment_reference,
       quoted_amount,
@@ -235,6 +241,15 @@ export async function POST(req: NextRequest) {
           discount_code: string | null;
         }
       | undefined;
+
+    if (!existing && [cccd_front, cccd_back, cccd_front_2, cccd_back_2].some(
+      (image) => typeof image !== 'string' || !image.startsWith('data:image/')
+    )) {
+      return NextResponse.json(
+        { error: 'Vui lòng tải đủ hai mặt của cả hai căn cước.' },
+        { status: 400 }
+      );
+    }
 
     const [rooms, branches] = await Promise.all([getPublicRooms(), getPublicBranches()]);
     const resolvedRoomId =
@@ -348,8 +363,8 @@ export async function POST(req: NextRequest) {
       `INSERT INTO bookings (
         id, guest_name, room_id, room_name, branch_id, branch_name, stay_date, date_label, time_range,
         timeslot_ids, channel, quoted_amount, amount, menu_items_total, customer_name, customer_phone, customer_email, discount_code,
-        notes, guest_count, has_car, has_decoration, cccd_front, cccd_back, payment_reference, payment_amount
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
+        notes, guest_count, has_car, has_decoration, cccd_front, cccd_back, cccd_front_2, cccd_back_2, payment_reference, payment_amount
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
       ON CONFLICT (id) DO UPDATE SET
         room_id = COALESCE(EXCLUDED.room_id, bookings.room_id),
         room_name = COALESCE(EXCLUDED.room_name, bookings.room_name),
@@ -374,13 +389,15 @@ export async function POST(req: NextRequest) {
         menu_items_total = COALESCE(EXCLUDED.menu_items_total, bookings.menu_items_total),
         cccd_front = COALESCE(EXCLUDED.cccd_front, bookings.cccd_front),
         cccd_back = COALESCE(EXCLUDED.cccd_back, bookings.cccd_back),
+        cccd_front_2 = COALESCE(EXCLUDED.cccd_front_2, bookings.cccd_front_2),
+        cccd_back_2 = COALESCE(EXCLUDED.cccd_back_2, bookings.cccd_back_2),
         payment_reference = CASE
-          WHEN $27::boolean THEN NULL
+          WHEN $29::boolean THEN NULL
           WHEN EXCLUDED.payment_reference IS NOT NULL THEN EXCLUDED.payment_reference
           ELSE bookings.payment_reference
         END,
         payment_amount = CASE
-          WHEN $27::boolean THEN NULL
+          WHEN $29::boolean THEN NULL
           WHEN EXCLUDED.payment_reference IS NOT NULL THEN EXCLUDED.payment_amount
           ELSE bookings.payment_amount
         END,
@@ -410,6 +427,8 @@ export async function POST(req: NextRequest) {
         has_decoration ?? false,
         cccd_front ?? null,
         cccd_back ?? null,
+        cccd_front_2 ?? null,
+        cccd_back_2 ?? null,
         normalizedPaymentReference,
         normalizedPaymentReference ? payTotal : null,
         shouldClearPaymentReference,

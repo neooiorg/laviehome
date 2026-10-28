@@ -70,6 +70,8 @@ export async function GET(req: NextRequest) {
         notes TEXT,
         cccd_front TEXT,
         cccd_back TEXT,
+        cccd_front_2 TEXT,
+        cccd_back_2 TEXT,
         door_code VARCHAR(8),
         room_name VARCHAR(255),
         branch_name VARCHAR(255),

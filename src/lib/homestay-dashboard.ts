@@ -51,6 +51,8 @@ export type BookingSnapshot = {
   notes: string | null;
   cccdFront: string | null;
   cccdBack: string | null;
+  cccdFront2: string | null;
+  cccdBack2: string | null;
   doorCode: string | null;
   createdAt: string;
 };
@@ -292,6 +294,8 @@ function toBookingSnapshot(booking: NormalizedBookingRecord): BookingSnapshot {
     notes: booking.raw.notes,
     cccdFront: booking.raw.cccd_front,
     cccdBack: booking.raw.cccd_back,
+    cccdFront2: booking.raw.cccd_front_2,
+    cccdBack2: booking.raw.cccd_back_2,
     doorCode: booking.raw.door_code,
     createdAt: booking.raw.created_at
   };

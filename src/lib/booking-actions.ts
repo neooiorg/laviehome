@@ -129,6 +129,8 @@ export interface AdminBookingInput {
   hasDecoration?: boolean;
   cccdFront?: string | null;
   cccdBack?: string | null;
+  cccdFront2?: string | null;
+  cccdBack2?: string | null;
   menuItemIds?: number[];
 }
 
@@ -156,6 +158,8 @@ export interface AdminBookingEditInput {
   hasDecoration?: boolean;
   cccdFront?: string | null;
   cccdBack?: string | null;
+  cccdFront2?: string | null;
+  cccdBack2?: string | null;
 }
 
 type AdminRoom = RoomRow & { time_slots?: RoomSlot[] | null };
@@ -200,6 +204,8 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS check_out_at TIMESTAMP`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front_2 TEXT`).catch(() => null);
+  await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back_2 TEXT`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS quoted_amount BIGINT DEFAULT 0`).catch(() => null);
   await query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`).catch(() => null);
@@ -282,8 +288,8 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
     `INSERT INTO bookings (
       id, room_id, room_name, branch_id, branch_name, guest_name, customer_name, customer_phone, customer_email,
       stay_date, date_label, time_range, check_in_at, check_out_at, timeslot_ids, channel, status,
-      amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back, door_code, paid_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)`,
+      amount, quoted_amount, discount_code, guest_count, menu_items_total, has_car, has_decoration, notes, cccd_front, cccd_back, cccd_front_2, cccd_back_2, door_code, paid_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)`,
     [
       id,
       data.roomId,
@@ -312,6 +318,8 @@ async function createBookingAdminOrThrow(data: AdminBookingInput): Promise<void>
       noteWithManualDiscount,
       data.cccdFront ?? null,
       data.cccdBack ?? null,
+      data.cccdFront2 ?? null,
+      data.cccdBack2 ?? null,
       doorCode,
       data.status === 'Đã thanh toán' ? new Date().toISOString() : null,
     ]
@@ -392,6 +400,8 @@ export async function updateAdminBooking(data: AdminBookingEditInput): Promise<A
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_code VARCHAR(50)`,
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front TEXT`,
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back TEXT`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_front_2 TEXT`,
+      `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cccd_back_2 TEXT`,
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255)`,
       `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP`,
     ]) {
@@ -462,8 +472,9 @@ export async function updateAdminBooking(data: AdminBookingEditInput): Promise<A
            door_code = CASE WHEN $14::boolean THEN COALESCE(door_code, $15) ELSE door_code END,
            amount = $16, quoted_amount = $17, guest_count = $18, notes = $19,
            discount_code = $20, has_car = $21, has_decoration = $22,
-           cccd_front = $23, cccd_back = $24, updated_at = NOW()
-       WHERE id = $25`,
+           cccd_front = $23, cccd_back = $24,
+           cccd_front_2 = $25, cccd_back_2 = $26, updated_at = NOW()
+       WHERE id = $27`,
       [
         data.guestName.trim(), data.customerName.trim(), data.customerPhone.trim(), data.customerEmail?.trim().toLowerCase() || null,
         range.checkInDate, range.checkInDate, `${range.checkInTime} - ${range.checkOutTime}`,
@@ -473,7 +484,8 @@ export async function updateAdminBooking(data: AdminBookingEditInput): Promise<A
         BOOKING_ACCESS_STATUSES.has(data.status), doorCode,
         amount, amount, Math.max(1, Math.round(Number(data.guestCount) || 1)), data.notes.trim(),
         data.discountCode?.trim().toUpperCase() || null, Boolean(data.hasCar), Boolean(data.hasDecoration),
-        data.cccdFront ?? null, data.cccdBack ?? null, data.id,
+        data.cccdFront ?? null, data.cccdBack ?? null,
+        data.cccdFront2 ?? null, data.cccdBack2 ?? null, data.id,
       ]
     );
 

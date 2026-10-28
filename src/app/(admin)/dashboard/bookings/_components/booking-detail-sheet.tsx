@@ -89,7 +89,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                 </section>
               )}
 
-              {(booking.cccdFront || booking.cccdBack) && (
+              {(booking.cccdFront || booking.cccdBack || booking.cccdFront2 || booking.cccdBack2) && (
                 <section className="space-y-3">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">CCCD</h3>
                   <div className="grid grid-cols-2 gap-2">
@@ -97,7 +97,7 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                       <a href={booking.cccdFront} target="_blank" rel="noreferrer">
                         <Image
                           src={booking.cccdFront}
-                          alt="CCCD mặt trước"
+                          alt="Căn cước 1 mặt trước"
                           width={200}
                           height={130}
                           className="w-full rounded-md border object-cover"
@@ -108,11 +108,21 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
                       <a href={booking.cccdBack} target="_blank" rel="noreferrer">
                         <Image
                           src={booking.cccdBack}
-                          alt="CCCD mặt sau"
+                          alt="Căn cước 1 mặt sau"
                           width={200}
                           height={130}
                           className="w-full rounded-md border object-cover"
                         />
+                      </a>
+                    )}
+                    {booking.cccdFront2 && (
+                      <a href={booking.cccdFront2} target="_blank" rel="noreferrer">
+                        <Image src={booking.cccdFront2} alt="Căn cước 2 mặt trước" width={200} height={130} className="w-full rounded-md border object-cover" />
+                      </a>
+                    )}
+                    {booking.cccdBack2 && (
+                      <a href={booking.cccdBack2} target="_blank" rel="noreferrer">
+                        <Image src={booking.cccdBack2} alt="Căn cước 2 mặt sau" width={200} height={130} className="w-full rounded-md border object-cover" />
                       </a>
                     )}
                   </div>

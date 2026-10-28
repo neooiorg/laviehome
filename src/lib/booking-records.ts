@@ -41,6 +41,8 @@ export type RawBookingRecord = {
   notes: string | null;
   cccd_front: string | null;
   cccd_back: string | null;
+  cccd_front_2: string | null;
+  cccd_back_2: string | null;
   door_code: string | null;
   paid_at: string | null;
   created_at: string;
@@ -106,6 +108,8 @@ export async function ensureBookingNotificationColumns() {
   await query(`alter table bookings add column if not exists check_in_at timestamp`).catch(() => []);
   await query(`alter table bookings add column if not exists check_out_at timestamp`).catch(() => []);
   await query(`alter table bookings add column if not exists paid_at timestamp`).catch(() => []);
+  await query(`alter table bookings add column if not exists cccd_front_2 text`).catch(() => []);
+  await query(`alter table bookings add column if not exists cccd_back_2 text`).catch(() => []);
 
   // Older installations created this field without a timezone. Those values
   // were written by the server in UTC, so preserve that instant when upgrading.
@@ -202,8 +206,8 @@ export async function fetchRawBookings(options?: {
   params.push(limit);
   const whereClause = where.length > 0 ? `where ${where.join(" and ")}` : "";
   const cccdColumns = includeImages
-    ? "cccd_front,\n      cccd_back,"
-    : "null::text as cccd_front,\n      null::text as cccd_back,";
+    ? "cccd_front,\n      cccd_back,\n      cccd_front_2,\n      cccd_back_2,"
+    : "null::text as cccd_front,\n      null::text as cccd_back,\n      null::text as cccd_front_2,\n      null::text as cccd_back_2,";
 
   return query<RawBookingRecord>(
     `
@@ -331,6 +335,8 @@ export async function getActiveBookingsForRoomDate(input: {
       notes,
       null::text as cccd_front,
       null::text as cccd_back,
+      null::text as cccd_front_2,
+      null::text as cccd_back_2,
       door_code,
       paid_at::text,
       created_at::text,

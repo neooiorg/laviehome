@@ -49,6 +49,8 @@ export function AdminBookingEdit({ booking }: { booking: BookingSnapshot }) {
   const [hasDecoration, setHasDecoration] = React.useState(booking.hasDecoration);
   const [cccdFront, setCccdFront] = React.useState<string | null>(booking.cccdFront);
   const [cccdBack, setCccdBack] = React.useState<string | null>(booking.cccdBack);
+  const [cccdFront2, setCccdFront2] = React.useState<string | null>(booking.cccdFront2);
+  const [cccdBack2, setCccdBack2] = React.useState<string | null>(booking.cccdBack2);
 
   async function save() {
     setSaving(true);
@@ -58,7 +60,7 @@ export function AdminBookingEdit({ booking }: { booking: BookingSnapshot }) {
         id: booking.id, guestName, customerName, customerPhone, customerEmail,
         checkInDate, checkInTime, checkOutDate, checkOutTime,
         channel, status, amount: Number(amount) || 0, guestCount: Number(guestCount) || 1,
-        discountCode, notes, hasCar, hasDecoration, cccdFront, cccdBack,
+        discountCode, notes, hasCar, hasDecoration, cccdFront, cccdBack, cccdFront2, cccdBack2,
       });
       if (!result.ok) {
         setError(result.error);
@@ -96,7 +98,10 @@ export function AdminBookingEdit({ booking }: { booking: BookingSnapshot }) {
           <label className="flex items-center gap-2 rounded-md border p-3 text-sm"><input type="checkbox" checked={hasCar} onChange={(event) => setHasCar(event.target.checked)} /> Có xe hơi</label>
           <label className="flex items-center gap-2 rounded-md border p-3 text-sm"><input type="checkbox" checked={hasDecoration} onChange={(event) => setHasDecoration(event.target.checked)} /> Có trang trí</label>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">CCCD mặt trước</Label><ImageUpload value={cccdFront ? [cccdFront] : []} onChange={(urls) => setCccdFront(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">CCCD mặt sau</Label><ImageUpload value={cccdBack ? [cccdBack] : []} onChange={(urls) => setCccdBack(urls[0] ?? null)} single /></div></div>
+        <p className="pt-3 text-sm font-medium">Căn cước 1</p>
+        <div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">Mặt trước</Label><ImageUpload value={cccdFront ? [cccdFront] : []} onChange={(urls) => setCccdFront(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">Mặt sau</Label><ImageUpload value={cccdBack ? [cccdBack] : []} onChange={(urls) => setCccdBack(urls[0] ?? null)} single /></div></div>
+        <p className="pt-3 text-sm font-medium">Căn cước 2</p>
+        <div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">Mặt trước</Label><ImageUpload value={cccdFront2 ? [cccdFront2] : []} onChange={(urls) => setCccdFront2(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">Mặt sau</Label><ImageUpload value={cccdBack2 ? [cccdBack2] : []} onChange={(urls) => setCccdBack2(urls[0] ?? null)} single /></div></div>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Hủy</Button><Button onClick={save} disabled={saving}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</Button></div>
       </DialogContent>

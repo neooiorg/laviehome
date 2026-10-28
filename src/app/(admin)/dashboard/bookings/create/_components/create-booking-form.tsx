@@ -74,6 +74,8 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
   const [hasDecoration, setHasDecoration] = React.useState(false);
   const [cccdFront, setCccdFront] = React.useState<string | null>(null);
   const [cccdBack, setCccdBack] = React.useState<string | null>(null);
+  const [cccdFront2, setCccdFront2] = React.useState<string | null>(null);
+  const [cccdBack2, setCccdBack2] = React.useState<string | null>(null);
   const [selectedMenuItems, setSelectedMenuItems] = React.useState<number[]>([]);
   const [customBlockedRoomIds, setCustomBlockedRoomIds] = React.useState<Set<number>>(new Set());
   const [customAvailabilityLoading, setCustomAvailabilityLoading] = React.useState(false);
@@ -211,6 +213,8 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
           hasDecoration,
           cccdFront,
           cccdBack,
+          cccdFront2,
+          cccdBack2,
           discountCode: discountMode === "voucher" ? voucherCode : null,
           discountPercent,
           discountAmount: bookingDiscountAmount,
@@ -252,6 +256,8 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
         hasDecoration,
         cccdFront,
         cccdBack,
+        cccdFront2,
+        cccdBack2,
         discountCode: discountMode === "voucher" ? voucherCode : null,
         discountPercent,
         discountAmount: bookingDiscountAmount,
@@ -420,7 +426,7 @@ export function CreateBookingForm({ rooms, menuItems, discountCodes }: CreateBoo
             <label className="flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm"><input className="mt-1 accent-primary" type="checkbox" checked={hasCar} onChange={(event) => setHasCar(event.target.checked)} /><span><strong>Đến bằng xe hơi</strong><span className="mt-0.5 block text-xs text-muted-foreground">Để nhân viên hỗ trợ chỗ đỗ xe.</span></span></label>
             <label className="flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm"><input className="mt-1 accent-primary" type="checkbox" checked={hasDecoration} onChange={(event) => setHasDecoration(event.target.checked)} /><span><strong>Gói trang trí</strong><span className="mt-0.5 block text-xs text-muted-foreground">Nhân viên sẽ liên hệ tư vấn thêm.</span></span></label>
           </div>
-          <div className="space-y-3 rounded-xl border p-4"><div className="flex items-start gap-2"><IdCard className="mt-0.5 size-5 text-primary" /><div><p className="font-semibold">Xác thực căn cước</p><p className="text-xs text-muted-foreground">Tải mặt trước và mặt sau CCCD của khách nếu cần lưu cùng booking.</p></div></div><div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">CCCD mặt trước</Label><ImageUpload value={cccdFront ? [cccdFront] : []} onChange={(urls) => setCccdFront(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">CCCD mặt sau</Label><ImageUpload value={cccdBack ? [cccdBack] : []} onChange={(urls) => setCccdBack(urls[0] ?? null)} single /></div></div></div>
+          <div className="space-y-3 rounded-xl border p-4"><div className="flex items-start gap-2"><IdCard className="mt-0.5 size-5 text-primary" /><div><p className="font-semibold">Xác thực căn cước</p><p className="text-xs text-muted-foreground">Tải hai mặt của mỗi căn cước để lưu cùng booking.</p></div></div><p className="text-sm font-medium">Căn cước 1</p><div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">Mặt trước</Label><ImageUpload value={cccdFront ? [cccdFront] : []} onChange={(urls) => setCccdFront(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">Mặt sau</Label><ImageUpload value={cccdBack ? [cccdBack] : []} onChange={(urls) => setCccdBack(urls[0] ?? null)} single /></div></div><p className="text-sm font-medium">Căn cước 2</p><div className="grid gap-4 sm:grid-cols-2"><div><Label className="mb-2 block">Mặt trước</Label><ImageUpload value={cccdFront2 ? [cccdFront2] : []} onChange={(urls) => setCccdFront2(urls[0] ?? null)} single /></div><div><Label className="mb-2 block">Mặt sau</Label><ImageUpload value={cccdBack2 ? [cccdBack2] : []} onChange={(urls) => setCccdBack2(urls[0] ?? null)} single /></div></div></div>
           {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
           <div className="flex gap-2 border-t pt-3"><Button variant="outline" asChild><Link href="/dashboard/bookings">Hủy</Link></Button><Button onClick={handleCreate} disabled={saving || !guestName || presetSelections.length === 0 || (timeMode === "custom" && !hasValidRange)}>{saving ? "Đang tạo..." : "Tạo booking"}</Button></div>
         </CardContent>
