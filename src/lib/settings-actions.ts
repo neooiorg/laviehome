@@ -214,9 +214,6 @@ export async function setSeasonalEffectConfig(value: SeasonalEffectConfig): Prom
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
   const config = normalizeSeasonalEffectConfig(value);
-  if (config.startDate && config.endDate && config.startDate > config.endDate) {
-    throw new Error('Ngày kết thúc phải sau ngày bắt đầu');
-  }
   await ensureSettingsTable();
   await query(
     `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
