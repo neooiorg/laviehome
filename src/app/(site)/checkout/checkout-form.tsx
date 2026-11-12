@@ -40,6 +40,50 @@ type DiscountResult =
   | { valid: true; percent: number; description: string }
   | { valid: false; error: string };
 
+const MAX_DOCUMENT_BYTES = 900_000;
+
+async function optimizeDocumentImage(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Vui lòng chọn ảnh căn cước hợp lệ.");
+  }
+  if (file.size > 30 * 1024 * 1024) {
+    throw new Error("Ảnh gốc quá lớn. Vui lòng chọn ảnh dưới 30 MB.");
+  }
+
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Không đọc được ảnh này. Vui lòng chọn ảnh JPG, PNG hoặc WebP."));
+      image.src = url;
+    });
+
+    if (!image.naturalWidth || !image.naturalHeight) {
+      throw new Error("Ảnh không hợp lệ. Vui lòng chọn ảnh khác.");
+    }
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Thiết bị không hỗ trợ xử lý ảnh. Vui lòng thử trình duyệt khác.");
+
+    for (const [maxSide, quality] of [[1800, 0.82], [1600, 0.76], [1400, 0.7], [1200, 0.65], [1000, 0.6]]) {
+      const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const result = canvas.toDataURL("image/jpeg", quality);
+      if ((result.length - result.indexOf(",") - 1) * 0.75 <= MAX_DOCUMENT_BYTES) return result;
+    }
+
+    throw new Error("Ảnh chưa thể giảm dung lượng đủ nhỏ. Vui lòng chụp lại rõ nét và thử lại.");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export function CheckoutForm({
   bookingId,
   roomId,
@@ -81,52 +125,30 @@ export function CheckoutForm({
   const [cccdBackName, setCccdBackName] = useState("");
   const [cccdFront2Name, setCccdFront2Name] = useState("");
   const [cccdBack2Name, setCccdBack2Name] = useState("");
-  const [documentError, setDocumentError] = useState(false);
+  const [documentError, setDocumentError] = useState<string | null>(null);
+  const [processingImages, setProcessingImages] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  function readFileAsBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function handleCccdFront(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleDocumentImage(
+    event: React.ChangeEvent<HTMLInputElement>,
+    setImage: (value: string | null) => void,
+    setName: (value: string) => void,
+  ) {
     const file = event.target.files?.[0];
     if (!file) return;
-    setCccdFrontName(file.name);
-    setCccdFront(await readFileAsBase64(file));
-    setDocumentError(false);
-    setSaved(false);
-  }
-
-  async function handleCccdBack(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setCccdBackName(file.name);
-    setCccdBack(await readFileAsBase64(file));
-    setDocumentError(false);
-    setSaved(false);
-  }
-
-  async function handleCccdFront2(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setCccdFront2Name(file.name);
-    setCccdFront2(await readFileAsBase64(file));
-    setDocumentError(false);
-    setSaved(false);
-  }
-
-  async function handleCccdBack2(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setCccdBack2Name(file.name);
-    setCccdBack2(await readFileAsBase64(file));
-    setDocumentError(false);
-    setSaved(false);
+    setProcessingImages((count) => count + 1);
+    setDocumentError(null);
+    try {
+      const optimized = await optimizeDocumentImage(file);
+      setImage(optimized);
+      setName(file.name);
+      setSaved(false);
+    } catch (error) {
+      setDocumentError(error instanceof Error ? error.message : "Không xử lý được ảnh. Vui lòng thử lại.");
+    } finally {
+      setProcessingImages((count) => count - 1);
+      event.target.value = "";
+    }
   }
 
   const surcharge = guestCount === 3 ? 50000 : guestCount === 4 ? 100000 : 0;
@@ -235,7 +257,7 @@ export function CheckoutForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!cccdFront || !cccdBack || !cccdFront2 || !cccdBack2) {
-      setDocumentError(true);
+      setDocumentError("Vui lòng tải đủ mặt trước và mặt sau của cả hai căn cước.");
       document.getElementById('checkout-documents')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -427,6 +449,7 @@ export function CheckoutForm({
         <p className="mt-3 text-sm font-semibold leading-6 text-white/58">
           Vui lòng tải rõ hai mặt của hai căn cước để Home xác thực thông tin khách lưu trú.
         </p>
+        <p className="mt-1 text-xs text-white/45">Ảnh sẽ được tự động giảm dung lượng trước khi gửi.</p>
         <p className="mt-5 text-sm font-bold text-pink-200">Căn cước 1</p>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="checkout-upload">
@@ -439,7 +462,7 @@ export function CheckoutForm({
             <span className={cccdFrontName ? "max-w-full truncate text-xs text-emerald-300" : ""}>
               {cccdFrontName || "Mặt trước căn cước 1 *"}
             </span>
-            <input type="file" accept="image/*" onChange={handleCccdFront} />
+            <input type="file" accept="image/*" onChange={(event) => void handleDocumentImage(event, setCccdFront, setCccdFrontName)} />
           </label>
           <label className="checkout-upload">
             {cccdBack ? (
@@ -451,7 +474,7 @@ export function CheckoutForm({
             <span className={cccdBackName ? "max-w-full truncate text-xs text-emerald-300" : ""}>
               {cccdBackName || "Mặt sau căn cước 1 *"}
             </span>
-            <input type="file" accept="image/*" onChange={handleCccdBack} />
+            <input type="file" accept="image/*" onChange={(event) => void handleDocumentImage(event, setCccdBack, setCccdBackName)} />
           </label>
         </div>
         <p className="mt-6 text-sm font-bold text-pink-200">Căn cước 2</p>
@@ -466,7 +489,7 @@ export function CheckoutForm({
             <span className={cccdFront2Name ? "max-w-full truncate text-xs text-emerald-300" : ""}>
               {cccdFront2Name || "Mặt trước căn cước 2 *"}
             </span>
-            <input type="file" accept="image/*" onChange={handleCccdFront2} />
+            <input type="file" accept="image/*" onChange={(event) => void handleDocumentImage(event, setCccdFront2, setCccdFront2Name)} />
           </label>
           <label className="checkout-upload">
             {cccdBack2 ? (
@@ -478,10 +501,11 @@ export function CheckoutForm({
             <span className={cccdBack2Name ? "max-w-full truncate text-xs text-emerald-300" : ""}>
               {cccdBack2Name || "Mặt sau căn cước 2 *"}
             </span>
-            <input type="file" accept="image/*" onChange={handleCccdBack2} />
+            <input type="file" accept="image/*" onChange={(event) => void handleDocumentImage(event, setCccdBack2, setCccdBack2Name)} />
           </label>
         </div>
-        {documentError && <p role="alert" className="mt-3 text-sm font-semibold text-rose-300">Vui lòng tải đủ mặt trước và mặt sau của cả hai căn cước.</p>}
+        {processingImages > 0 && <p role="status" className="mt-3 text-sm font-semibold text-white/65">Đang tối ưu ảnh căn cước...</p>}
+        {documentError && <p role="alert" className="mt-3 text-sm font-semibold text-rose-300">{documentError}</p>}
         <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm font-semibold leading-6 text-white/62 transition-colors hover:text-white">
           <input
             className="mt-1 accent-pink-500"
@@ -596,10 +620,12 @@ export function CheckoutForm({
 
       <button
         type="submit"
-        disabled={saving || saved || !!conflictError || !acceptedTerms}
+        disabled={saving || saved || processingImages > 0 || !!conflictError || !acceptedTerms}
         className="primary-button w-full py-4 text-base disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {saving
+        {processingImages > 0
+          ? "Đang tối ưu ảnh..."
+          : saving
           ? "Đang lưu..."
           : onlinePaymentEnabled
             ? paymentNeedsRefresh
